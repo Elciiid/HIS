@@ -2,5 +2,14 @@
 __pycache__/
 *.pyc
 .pytest_cache/
-artifacts/
 *.egg-info/
+
+# Run outputs are regenerated, so they stay out of the repo -- except the
+# verification records, which are the evidence behind every claim in the README
+# and are small enough to version.
+artifacts/*
+!artifacts/benchmark_report.md
+!artifacts/benchmark_results.json
+!artifacts/config_benchmark.json
+!artifacts/precision_study.md
+!artifacts/precision_study.json

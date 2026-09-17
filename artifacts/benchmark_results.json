@@ -1,0 +1,425 @@
+{
+  "provenance": {
+    "source": "SYNTHETIC",
+    "config_hash": "95f82786e6a18b05",
+    "seed": 20260917,
+    "git_commit": "7d0f4fa",
+    "timestamp": "2026-09-17T22:47:57Z",
+    "device": "cuda",
+    "precision": "fp64",
+    "engine": "engine",
+    "notes": [
+      "analytical verification suite"
+    ]
+  },
+  "fast": false,
+  "results": [
+    {
+      "key": "1",
+      "name": "Lake at rest (well-balancedness)",
+      "passed": true,
+      "criterion": "max|u|,max|v| < 1e-10 m/s and max|eta-eta0| < 1e-10 m after 500 steps (1st and 2nd order)",
+      "metrics": {
+        "o1_max_abs_u": 2.26886193655598e-14,
+        "o1_max_abs_v": 2.321185265184906e-14,
+        "o1_max_eta_dev": 1.7763568394002505e-15,
+        "o1_mass_err": 5.366063222653604e-28,
+        "o1_wet_fraction": 0.42478461538461537,
+        "o2_max_abs_u": 2.771040538992049e-14,
+        "o2_max_abs_v": 3.2541122890622567e-14,
+        "o2_max_eta_dev": 1.7763568394002505e-15,
+        "o2_mass_err": 6.242398760862101e-28,
+        "o2_wet_fraction": 0.42478461538461537
+      },
+      "notes": [
+        "grid 400x325 @ 20 m, eta0 = 3.0 m, partially dry, closed edges"
+      ],
+      "figures": [],
+      "seconds": 65.78949049999937
+    },
+    {
+      "key": "2",
+      "name": "Ritter dam-break (dry bed)",
+      "passed": true,
+      "criterion": "operational thresholds (h_dry=1e-3): L1 error decreases monotonically under refinement for both orders and MUSCL beats 1st order at the finest grid; scheme-isolated (h_dry=1e-6, KP eps=1e-24): observed L1 order >= 0.6 (1st) and >= 0.9 (MUSCL). The spec's 0.8 / 1.5 thresholds are enforced on the smooth problem (2b): this solution contains rarefaction kinks and a dry front with sqrt-type velocity, which cap attainable L1 order near 1",
+      "metrics": {
+        "grids": [
+          200,
+          400,
+          800,
+          1600
+        ],
+        "o1_L1": [
+          0.014506866057006807,
+          0.009799964919612944,
+          0.006773142265764339,
+          0.004831513915866772
+        ],
+        "o1_L2": [
+          0.019013288659087264,
+          0.0131415000708866,
+          0.00938992102170101,
+          0.007219082209641675
+        ],
+        "o1_order_L1": [
+          0.565887395182055,
+          0.532951285888089,
+          0.4873499822740967
+        ],
+        "o1_order_L2": [
+          0.5328781260035513,
+          0.4849450366726047,
+          0.3792975902051983
+        ],
+        "o1_mass_err": 0.0,
+        "isolated_o1_L1": [
+          0.014135894632199003,
+          0.008907852970893408,
+          0.005430854454139359,
+          0.003224284764158051
+        ],
+        "isolated_o1_order_L1": [
+          0.6662135403670507,
+          0.7138985460028272,
+          0.7522000336007978
+        ],
+        "o2_L1": [
+          0.005977452599511156,
+          0.0037394736263691363,
+          0.002761953548611918,
+          0.0023161073347202905
+        ],
+        "o2_L2": [
+          0.008099618808196207,
+          0.005726495270716238,
+          0.0051943681438671434,
+          0.005235997421201615
+        ],
+        "o2_order_L1": [
+          0.6766955759854877,
+          0.43714615248744726,
+          0.253986942816256
+        ],
+        "o2_order_L2": [
+          0.5002015612016061,
+          0.1407041842220582,
+          -0.011516120023197749
+        ],
+        "o2_mass_err": 0.0,
+        "isolated_o2_L1": [
+          0.005121789837349766,
+          0.002537432009638281,
+          0.0012699853260672803,
+          0.0006354440544792139
+        ],
+        "isolated_o2_order_L1": [
+          1.013278890099043,
+          0.998557338273468,
+          0.9989748088693354
+        ]
+      },
+      "notes": [
+        "domain 100 m, dam at 50 m, h_L = 1 m, dry right",
+        "frictionless, t = 6 s, strip of 1 row with closed side walls"
+      ],
+      "figures": [
+        "artifacts\\figures\\bench_ritter.png"
+      ],
+      "seconds": 97.96758960000079
+    },
+    {
+      "key": "2b",
+      "name": "Smooth-wave self-convergence (formal order)",
+      "passed": true,
+      "criterion": "observed L1 order >= 0.8 (1st order) and >= 1.5 (MUSCL) on a smooth solution, finest pair",
+      "metrics": {
+        "grids": [
+          100,
+          200,
+          400,
+          800
+        ],
+        "reference_grid": 6400,
+        "o1_L1": [
+          0.22042425179714767,
+          0.12430534922850292,
+          0.06637101840550856,
+          0.03438327832161992
+        ],
+        "o1_order_L1": [
+          0.8263945814886058,
+          0.9052630647673782,
+          0.9488463041555996
+        ],
+        "o2_L1": [
+          0.05536997134405204,
+          0.017133039996037644,
+          0.004641300372205641,
+          0.001171922956710355
+        ],
+        "o2_order_L1": [
+          1.6923226169063967,
+          1.8841801854150475,
+          1.9856513390050656
+        ]
+      },
+      "notes": [
+        "Gaussian hump (5 cm on 1 m) in a 100 m closed channel, t = 3 s (before shock formation); errors against cell averages of a 6400-cell MUSCL reference, normalised by the perturbation magnitude",
+        "This is where the spec's 0.8 / 1.5 order thresholds are mathematically meaningful; the dam-break solutions contain kinks, a dry front or a shock that cap attainable L1 order near 1 for any scheme."
+      ],
+      "figures": [],
+      "seconds": 66.13302789999943
+    },
+    {
+      "key": "3",
+      "name": "Stoker dam-break (wet bed)",
+      "passed": true,
+      "criterion": "operational thresholds (h_dry=1e-3): L1 error decreases monotonically under refinement for both orders and MUSCL beats 1st order at the finest grid; scheme-isolated (h_dry=1e-6, KP eps=1e-24): observed L1 order >= 0.7 (1st) and >= 0.9 (MUSCL). The spec's 0.8 / 1.5 thresholds are enforced on the smooth problem (2b): this solution contains a shock, which caps any scheme's L1 order at 1",
+      "metrics": {
+        "grids": [
+          200,
+          400,
+          800,
+          1600
+        ],
+        "o1_L1": [
+          0.013476186662658186,
+          0.007892721203112256,
+          0.004437212309315786,
+          0.0025438034741661992
+        ],
+        "o1_L2": [
+          0.025408615728381285,
+          0.01901441017489242,
+          0.011803593303726274,
+          0.008198910121867846
+        ],
+        "o1_order_L1": [
+          0.7718176224066976,
+          0.8308692052927422,
+          0.8026663670100812
+        ],
+        "o1_order_L2": [
+          0.4182245915190431,
+          0.6878670691487089,
+          0.5257220675945286
+        ],
+        "o1_mass_err": 0.0,
+        "isolated_o1_L1": [
+          0.013476186662658186,
+          0.007892721203112256,
+          0.004437212309315786,
+          0.0025438034741661992
+        ],
+        "isolated_o1_order_L1": [
+          0.7718176224066976,
+          0.8308692052927422,
+          0.8026663670100812
+        ],
+        "o2_L1": [
+          0.0048980494189044144,
+          0.002488419320577253,
+          0.0011845584425100556,
+          0.0005924483198265084
+        ],
+        "o2_L2": [
+          0.01563985740669242,
+          0.011641273421108423,
+          0.006648496888384471,
+          0.004710226287901475
+        ],
+        "o2_order_L1": [
+          0.9769777172797367,
+          1.0708802342588406,
+          0.9995881624024199
+        ],
+        "o2_order_L2": [
+          0.4259784781344063,
+          0.8081487672055632,
+          0.49723183754960915
+        ],
+        "o2_mass_err": 4.4408920832350593e-16,
+        "isolated_o2_L1": [
+          0.0048980494189044144,
+          0.002488419320577253,
+          0.0011845584425100556,
+          0.0005924483198265084
+        ],
+        "isolated_o2_order_L1": [
+          0.9769777172797367,
+          1.0708802342588406,
+          0.9995881624024199
+        ]
+      },
+      "notes": [
+        "domain 100 m, dam at 50 m, h_L = 1 m, h_R = 0.1 m",
+        "frictionless, t = 6 s, strip of 1 row with closed side walls"
+      ],
+      "figures": [
+        "artifacts\\figures\\bench_stoker.png"
+      ],
+      "seconds": 76.4624597999973
+    },
+    {
+      "key": "4",
+      "name": "Thacker planar oscillation in a paraboloid",
+      "passed": true,
+      "criterion": "field-scale bowl, configured order (2): relative L2 error of h < 5% after 3 periods and mass drift < 1e-10",
+      "metrics": {
+        "field_o1_n": 200,
+        "field_o1_dx_m": 20.0,
+        "field_o1_period_s": 1003.0333403553236,
+        "field_o1_relL2_per_period": [
+          0.11893396986943112,
+          0.22029838316772068,
+          0.312496860794821
+        ],
+        "field_o1_mass_err": 0.0,
+        "field_o1_clip_m3": 0.0,
+        "field_o2_n": 200,
+        "field_o2_dx_m": 20.0,
+        "field_o2_period_s": 1003.0333403553236,
+        "field_o2_relL2_per_period": [
+          0.009851442356275343,
+          0.012601888223781157,
+          0.016156535187974903
+        ],
+        "field_o2_mass_err": 0.0,
+        "field_o2_clip_m3": 0.0,
+        "lab_o2_n": 200,
+        "lab_o2_dx_m": 0.02,
+        "lab_o2_period_s": 4.485701465466374,
+        "lab_o2_relL2_per_period": [
+          0.052247642977089045,
+          0.09252213466431447,
+          0.13984026463023488
+        ],
+        "lab_o2_mass_err": 0.0,
+        "lab_o2_clip_m3": 0.0,
+        "lab_o2_hdry1e-6_n": 200,
+        "lab_o2_hdry1e-6_dx_m": 0.02,
+        "lab_o2_hdry1e-6_period_s": 4.485701465466374,
+        "lab_o2_hdry1e-6_relL2_per_period": [
+          0.009554223040642781,
+          0.012622710520427276,
+          0.01687231554181534
+        ],
+        "lab_o2_hdry1e-6_mass_err": 0.0,
+        "lab_o2_hdry1e-6_clip_m3": 0.0
+      },
+      "notes": [
+        "field scale: a = 1000 m, h0 = 2 m, eta = 500 m, 200x200 cells (dx = 20 m), h_dry = 1 mm, frictionless, closed edges",
+        "lab scale (a = 1 m, h0 = 0.1 m, key lab_o2) is reported for reference: there the 1 mm dry threshold is 1% of the whole water column and dominates the error; the full suite also runs it with h_dry = 1e-6 m (key lab_o2_hdry1e-6) to show that the scheme itself converges",
+        "first order is too diffusive for this test (reported above); the engine defaults to MUSCL for this reason"
+      ],
+      "figures": [
+        "artifacts\\figures\\bench_thacker.png"
+      ],
+      "seconds": 418.95257349999883
+    },
+    {
+      "key": "5",
+      "name": "Steady flow over a bump (sub-, trans-, trans+shock)",
+      "passed": true,
+      "criterion": "relative L1 error of h below 1% / 2% / 5% and steady discharge within 5% of q",
+      "metrics": {
+        "subcritical": {
+          "relL1_h": 0.00015681415022561422,
+          "max_rel_q_error": 0.002138699000831571
+        },
+        "transcritical": {
+          "relL1_h": 0.0027415846506493786,
+          "max_rel_q_error": 0.004160994925016341
+        },
+        "shock": {
+          "relL1_h": 0.0024334380024390047,
+          "max_rel_q_error": 0.010849682914410946
+        }
+      },
+      "notes": [
+        "25 m channel, N=125, order 2, frictionless, run to t=400 s"
+      ],
+      "figures": [
+        "artifacts\\figures\\bench_bump.png"
+      ],
+      "seconds": 771.9706966000012
+    },
+    {
+      "key": "6",
+      "name": "Rainfall-runoff on a tilted plane (kinematic wave)",
+      "passed": true,
+      "criterion": "for the configured order (2): equilibrium discharge within 2%, rising-limb RMSE < 10% of q_eq, mass error < 1e-10",
+      "metrics": {
+        "t_equilibrium_s": 478.3224327444235,
+        "default_order": 2,
+        "o1_equilibrium_rel_error": 0.0001390365622324155,
+        "o1_rising_limb_nrmse": 0.12490251025993257,
+        "o1_mass_err": 1.512885983111582e-16,
+        "o2_equilibrium_rel_error": 0.000253156108985797,
+        "o2_rising_limb_nrmse": 0.00818371428512319,
+        "o2_mass_err": 1.2571604866899507e-15
+      },
+      "notes": [
+        "L=200.0 m, S0=0.05, n=0.03, i=100 mm/h, N=400 (bed step S0*dx = 0.025 m vs kinematic equilibrium depth 0.0133 m)",
+        "First-order hydrostatic reconstruction under-represents the slope force when the bed step between cells exceeds the flow depth (thin rain-on-grid sheets on steep cells); the MUSCL variant reconstructs the bed linearly and removes most of this. Order-1 numbers are reported for transparency."
+      ],
+      "figures": [
+        "artifacts\\figures\\bench_plane.png"
+      ],
+      "seconds": 61.178513300001214
+    },
+    {
+      "key": "7",
+      "name": "1-D/2-D coupling mass closure (overtopping and return flow)",
+      "passed": true,
+      "criterion": "exchange term alone conserves volume to < 1e-12 of the exchanged volume with no negative state; full event mass error < 1e-10; exchange occurred in both directions",
+      "metrics": {
+        "exchange_only_worst_rel": 1.874986533122373e-13,
+        "exchange_only_negative_state": false,
+        "event_mass_err": 2.440050804794501e-15,
+        "exchanged_2d_to_1d_m3": 190199.07382745115,
+        "exchanged_1d_to_2d_m3": 190248.56944684574,
+        "peak_2d_volume_m3": 120941.2819407313,
+        "final_2d_volume_m3": 49.49561939455208
+      },
+      "notes": [
+        "2 km x 1 km floodplain (20 m cells), 15 m trapezoidal channel with 2 m banks, triangular inflow hydrograph (5 m^3/s base, 180 m^3/s peak at 30 min), downstream stage 1 m above bed, 3 h simulated"
+      ],
+      "figures": [
+        "artifacts\\figures\\bench_coupling.png"
+      ],
+      "seconds": 63.554400899996836
+    },
+    {
+      "key": "8",
+      "name": "Mass conservation, closed domain, design storm (coupled, infiltration, storage)",
+      "passed": true,
+      "criterion": "relative mass error < 1e-3 at the end of the run (fp64; the full suite also reports fp32)",
+      "metrics": {
+        "fp64_mass_err": 5.6905180687376e-15,
+        "fp64_rain_m3": 8153914.276361306,
+        "fp64_infiltration_m3": 2647789.3966854005,
+        "fp64_stored_m3": 2264267.0799286957,
+        "fp64_exchanged_2d_to_1d_m3": 1145287.1300692356,
+        "fp64_exchanged_1d_to_2d_m3": 391676.768337985,
+        "fp64_steps": 40994,
+        "fp64_wall_s": 294.6292108000016,
+        "fp64_clip_m3": 0.0,
+        "fp32_mass_err": 5.7335285918703134e-05,
+        "fp32_rain_m3": 8154704.017207202,
+        "fp32_infiltration_m3": 2647791.285012949,
+        "fp32_stored_m3": 2264533.680033011,
+        "fp32_exchanged_2d_to_1d_m3": 1145431.5381724862,
+        "fp32_exchanged_1d_to_2d_m3": 391716.565173081,
+        "fp32_steps": 40994,
+        "fp32_wall_s": 227.60362990000067,
+        "fp32_clip_m3": 0.0
+      },
+      "notes": [
+        "400x325 @ 20 m synthetic domain, all 2-D edges and 1-D ends closed, 100-yr 6 h storm x RCP8.5 factor, Horton infiltration, bund and park retention"
+      ],
+      "figures": [],
+      "seconds": 524.404791500001
+    }
+  ]
+}
