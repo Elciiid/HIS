@@ -39,7 +39,7 @@ def scenario_figures(cfg, scen: api.Scenario, engine: str = "both", site: api.Si
         results["engine"] = api.simulate(site, scen)
     if engine in ("predict", "both"):
         try:
-            results["surrogate"] = api.predict(site, scen)
+            results["surrogate"] = api.predict(site, scen, detail="full")
         except FileNotFoundError as e:
             if engine == "predict":
                 raise

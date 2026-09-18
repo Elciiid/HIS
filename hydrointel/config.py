@@ -243,6 +243,11 @@ class RunConfig:
         fields that do not change results (outdir, device)."""
         d = self.to_dict()
         d.pop("outdir"); d.pop("device")
+        # one storm at a time is the reference numerics and predates the batch setting:
+        # leave it out so existing datasets and models keep their hashes. A batch > 1
+        # shares a time step, changes the results, and so does enter the hash.
+        if d["data"].get("batch") == 1:
+            d["data"].pop("batch")
         if sections:
             d = {k: d[k] for k in sorted(set(sections) | {"seed", "quick"})}
         blob = json.dumps(d, sort_keys=True, separators=(",", ":"))
@@ -300,7 +305,7 @@ def quick_config(cfg: RunConfig | None = None) -> RunConfig:
     cfg.domain.street_width_m = 80.0
     cfg.domain.channel_node_spacing_m = 160.0
     cfg.data.n_sims = 8
-    cfg.data.batch = 4
+    cfg.data.batch = 1
     cfg.data.coarsen = 1
     cfg.forcing.storm_duration_h = 0.5
     cfg.forcing.spinup_h = 0.1

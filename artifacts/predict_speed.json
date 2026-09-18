@@ -1,0 +1,101 @@
+{
+  "provenance": {
+    "source": "SYNTHETIC",
+    "config_hash": "b1b3f877c0ab3ef6",
+    "seed": 20260917,
+    "git_commit": "1bf166f-dirty",
+    "timestamp": "2026-09-18T20:31:49Z",
+    "device": "cuda",
+    "precision": "fp64",
+    "engine": "surrogate",
+    "notes": [
+      "surrogate prediction cost, untrained (timing only)"
+    ]
+  },
+  "weights": "untrained (timing only)",
+  "grid": {
+    "nx": 400,
+    "ny": 325,
+    "dx": 20.0
+  },
+  "device": "cuda",
+  "encode_batch": 4,
+  "rows": [
+    {
+      "detail": "summary",
+      "batch": 1,
+      "skipped": false,
+      "call_s": 0.5704816000070423,
+      "s_per_candidate": 0.5704816000070423,
+      "calls": 3,
+      "host_result_gb": null,
+      "peak_gpu_mb": 491.33935546875
+    },
+    {
+      "detail": "summary",
+      "batch": 8,
+      "skipped": false,
+      "call_s": 3.907560299994657,
+      "s_per_candidate": 0.4884450374993321,
+      "calls": 3,
+      "host_result_gb": null,
+      "peak_gpu_mb": 1873.1162109375
+    },
+    {
+      "detail": "summary",
+      "batch": 32,
+      "skipped": false,
+      "call_s": 15.320084499995573,
+      "s_per_candidate": 0.47875264062486167,
+      "calls": 3,
+      "host_result_gb": null,
+      "peak_gpu_mb": 1948.85302734375
+    },
+    {
+      "detail": "summary",
+      "batch": 64,
+      "skipped": false,
+      "call_s": 30.496555799996713,
+      "s_per_candidate": 0.47650868437494864,
+      "calls": 3,
+      "host_result_gb": null,
+      "peak_gpu_mb": 2047.01611328125
+    },
+    {
+      "detail": "full",
+      "batch": 1,
+      "skipped": false,
+      "call_s": 0.5994346000079531,
+      "s_per_candidate": 0.5994346000079531,
+      "calls": 3,
+      "host_result_gb": 0.05085021257400513,
+      "peak_gpu_mb": 491.33935546875
+    },
+    {
+      "detail": "full",
+      "batch": 8,
+      "skipped": false,
+      "call_s": 4.142751999999746,
+      "s_per_candidate": 0.5178439999999682,
+      "calls": 3,
+      "host_result_gb": 0.406801700592041,
+      "peak_gpu_mb": 1872.6220703125
+    },
+    {
+      "detail": "full",
+      "batch": 32,
+      "skipped": false,
+      "call_s": 16.39086679999309,
+      "s_per_candidate": 0.5122145874997841,
+      "calls": 3,
+      "host_result_gb": 1.627206802368164,
+      "peak_gpu_mb": 1948.33984375
+    },
+    {
+      "detail": "full",
+      "batch": 64,
+      "skipped": true,
+      "reason": "needs 3.3 GB of host RAM for the histories; 6.1 GB free"
+    }
+  ]
+}

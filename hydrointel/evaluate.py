@@ -184,12 +184,12 @@ def evaluate(cfg: RunConfig, device=None, n_probe: int | None = None) -> Path:
         smp = SMP.draw(sid, dom, cfg.data, cfg.seed, "test")
         site, scen = site_from_sample(smp, dom, ctx)
         if warm is None:
-            api.predict(site, scen)                            # warm-up (kernel selection, allocations)
+            api.predict(site, scen, detail="full")          # warm-up (kernel selection, allocations)
             warm = True
         if ctx.device.type == "cuda":
             torch.cuda.synchronize()
         t0 = time.perf_counter()
-        pred = api.predict(site, scen)
+        pred = api.predict(site, scen, detail="full")
         if ctx.device.type == "cuda":
             torch.cuda.synchronize()
         wall = time.perf_counter() - t0
@@ -215,7 +215,7 @@ def evaluate(cfg: RunConfig, device=None, n_probe: int | None = None) -> Path:
             eng.update({"wall_s": time.perf_counter() - t0, "mass_err": res.mass_balance_error})
             torch.save(eng, cache)
         t0 = time.perf_counter()
-        pred = api.predict(site, scen)
+        pred = api.predict(site, scen, detail="full")
         wall = time.perf_counter() - t0
         sc = score(pred, eng, dom, f, pts, builder)
         rows.append({"sim": f"probe{k}", "kind": "edge_probe", "rp": smp.return_period_yr, "baseline": False,
@@ -223,7 +223,13 @@ def evaluate(cfg: RunConfig, device=None, n_probe: int | None = None) -> Path:
                      "engine_mass_err": eng["mass_err"], "surrogate_mass_err": pred.mass_balance_error,
                      "in_distribution": pred.in_distribution, **sc})
     directional = storage_direction_check(ctx)
-    report = write_validation_report(cfg, ctx, rows, directional, out, mdir)
+    from . import evaluate_effects as EE
+    eff = EE.run(cfg, ctx, test.ids, mdir, edge_probe(0, dom, cfg, cfg.seed))
+    eng_check = EE.storage_check_engine(ctx, mdir)
+    prov = ctx.provenance("surrogate", ("domain", "solver", "forcing", "data", "model", "train"))
+    write_json(out / "intervention_effects.json", {"effects": eff, "storage_check_engine": eng_check,
+                                                    "storage_check_surrogate": directional}, prov)
+    report = write_validation_report(cfg, ctx, rows, directional, out, mdir, effects=(eff, eng_check))
     return report
 
 
@@ -241,7 +247,7 @@ def storage_direction_check(ctx) -> dict:
     S = base.storage_depth.numpy().copy()
     S[blob] = np.maximum(S[blob], 0.6)
     more = base.replace(storage_depth=torch.as_tensor(S))
-    a, b = api.predict(base, scen), api.predict(more, scen)
+    a, b = api.predict([base, more], scen, detail="full")
     d = (b.depth_max - a.depth_max).numpy()
     vol_a, vol_b = float(a.depth_series.sum()), float(b.depth_series.sum())
     res = {"scenario": "RP100 RCP4.5/SSP2 2050, storage raised to 0.6 m within 1.5 km of the city core",
@@ -310,7 +316,7 @@ def limitations(cfg: RunConfig, ctx) -> list[str]:
     return out
 
 
-def write_validation_report(cfg, ctx, rows, directional, out: Path, mdir: Path) -> Path:
+def write_validation_report(cfg, ctx, rows, directional, out: Path, mdir: Path, effects=None) -> Path:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -318,6 +324,21 @@ def write_validation_report(cfg, ctx, rows, directional, out: Path, mdir: Path) 
     test = [r for r in rows if r["kind"] == "test"]
     probes = [r for r in rows if r["kind"] == "edge_probe"]
     s = markdown_header(prov, "Validation report: GeoKAN-PINO surrogate vs. held-out engine runs")
+    # the gate first: nothing below matters for Part B if the surrogate gets the
+    # direction of an intervention wrong
+    ok = bool(directional.get("passed"))
+    s += (f"## {'PASSED' if ok else 'FAILED'}: storage-direction sign test (hard gate for Part B)\n\n"
+          "Adding retention storage around the city core must not raise predicted flooding beyond the tolerance "
+          "established for the engine: at most 5 mm inside the storage footprint, 2 cm anywhere on land, more than "
+          "1 cm on at most 0.1% of land, and total flood volume must fall.\n\n"
+          f"Measured: footprint max rise {directional['footprint_max_increase_m'] * 1000:.1f} mm, land max rise "
+          f"{directional['land_max_increase_m'] * 1000:.1f} mm, share of land rising > 1 cm "
+          f"{directional['land_fraction_increase_gt_1cm'] * 100:.3f}%, volume ratio "
+          f"{directional['total_depth_volume_ratio']:.4f}.\n\n")
+    if not ok:
+        s += ("**This surrogate does not reliably get the direction of an intervention's effect right. Part B must "
+              "not be built against it: every recommendation it produced would rest on effects the model cannot "
+              "sign correctly, however good the accuracy numbers below look.**\n\n")
     s += (f"Test set: **{len(test)} simulations** held out by scenario (whole storms, stratified by return period), "
           f"plus {len(probes)} edge-of-envelope probe runs. All numbers below are computed by `evaluate.py`.\n\n")
 
@@ -360,6 +381,18 @@ def write_validation_report(cfg, ctx, rows, directional, out: Path, mdir: Path) 
         s += (f"| {n} | {np.mean(ns) if ns else float('nan'):.3f} | {np.median(ns) if ns else float('nan'):.3f} | "
               f"{np.mean(pt):.2f} | {np.mean(pd_):.3f} |\n")
     s += "\nNSE is undefined (NaN) where the engine hydrograph is constant (e.g. a point that stays dry).\n\n"
+    # baseline versus modified states: accuracy on the storms Part B's designs look like
+    s += "### Baseline states against modified states (test set)\n\n"
+    s += "| group | n | depth RMSE wet [m] | peak-depth abs. error p90 [m] | CSI @ 0.3 m |\n|---|---|---|---|---|\n"
+    for nm, rs in (("baseline site (no intervention)", [r for r in test if r["baseline"]]),
+                   ("modified site", [r for r in test if not r["baseline"]])):
+        if rs:
+            s += (f"| {nm} | {len(rs)} | {_pool(rs, ('depth_wet', 'rmse')):.4g} | "
+                  f"{_pool(rs, ('peak_abs_err', 'p90')):.4g} | {_pool(rs, ('csi', '0.3', 'csi')):.3f} |\n")
+    s += "\n"
+    if effects is not None:
+        from .evaluate_effects import report as effects_report
+        s += effects_report(effects[0], effects[1], directional)
     # speed
     ew = np.median([r["engine_wall_s"] for r in rows])
     sw = np.median([r["surrogate_wall_s"] for r in rows])

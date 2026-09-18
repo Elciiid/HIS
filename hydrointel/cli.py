@@ -3,6 +3,9 @@
     python -m hydrointel.cli benchmark [--fast]
     python -m hydrointel.cli precision-study
     python -m hydrointel.cli batch-study
+    python -m hydrointel.cli grouping-study
+    python -m hydrointel.cli predict-speed
+    python -m hydrointel.cli cost
     python -m hydrointel.cli generate  [--quick]
     python -m hydrointel.cli train     [--quick] [--resume]
     python -m hydrointel.cli evaluate  [--quick] [--calibrate]
@@ -95,6 +98,30 @@ def cmd_batch_study(cfg, args) -> int:
     return 0
 
 
+def cmd_grouping_study(cfg, args) -> int:
+    from .benchmarks.grouping import run_study
+    _eta("grouped-batching study", None)
+    d = run_study(cfg)
+    print(f"report: {Path(cfg.outdir) / 'grouping_study.md'}")
+    print(f"grouped batching: speedup {d['speedup']:.2f}x, accuracy {'met' if d['accuracy_met'] else 'NOT met'} "
+          f"-> {'USE' if d['use_grouped_batching'] else 'one storm at a time'}")
+    return 0
+
+
+def cmd_predict_speed(cfg, args) -> int:
+    from .benchmarks.predict_speed import run_study
+    _eta("surrogate prediction cost", None)
+    d = run_study(cfg)
+    print(f"report: {Path(cfg.outdir) / 'predict_speed.md'}  (weights: {d['weights']})")
+    return 0
+
+
+def cmd_cost(cfg, args) -> int:
+    from .benchmarks.cost import write
+    print(f"report: {write(cfg)}")
+    return 0
+
+
 def cmd_generate(cfg, args) -> int:
     from .data.generate import generate
     from .api import dataset_dir
@@ -168,6 +195,9 @@ def main(argv=None) -> int:
     sub = p.add_subparsers(dest="command", required=True)
     b = sub.add_parser("benchmark"); b.add_argument("--fast", action="store_true"); b.add_argument("--quick", action="store_true")
     ps = sub.add_parser("precision-study"); ps.add_argument("--quick", action="store_true")
+    sub.add_parser("grouping-study")
+    sub.add_parser("predict-speed")
+    sub.add_parser("cost")
     bs = sub.add_parser("batch-study")
     bs.add_argument("--quick", action="store_true")
     bs.add_argument("--stage", choices=["all", "scaling", "full", "profile"], default="all")
@@ -205,7 +235,8 @@ def main(argv=None) -> int:
         setattr(args, name, getattr(args, name, default))
     t0 = time.perf_counter()
     rc = {"benchmark": cmd_benchmark, "precision-study": cmd_precision_study,
-          "batch-study": cmd_batch_study, "generate": cmd_generate,
+          "batch-study": cmd_batch_study, "grouping-study": cmd_grouping_study,
+          "predict-speed": cmd_predict_speed, "cost": cmd_cost, "generate": cmd_generate,
           "train": cmd_train, "evaluate": cmd_evaluate, "figures": cmd_figures, "all": cmd_all}[args.command](cfg, args)
     print(f"done in {(time.perf_counter() - t0) / 60:.1f} min")
     return rc

@@ -151,7 +151,7 @@ def test_predict_and_simulate_interchangeable_when_model_exists():
     tol = json.loads(tol_path.read_text())
     scen = api.Scenario(50, "RCP4.5", "SSP2", 2050, True, 0.0)
     site = api.baseline_site(scen)
-    p, s = api.predict(site, scen), api.simulate(site, scen)
+    p, s = api.predict(site, scen, detail="full"), api.simulate(site, scen)
     for name in ("depth_max", "depth_series", "u", "v", "channel_eta", "channel_q", "times"):
         assert getattr(p, name).shape == getattr(s, name).shape, name
     assert type(p) is type(s)
@@ -160,3 +160,107 @@ def test_predict_and_simulate_interchangeable_when_model_exists():
     # tolerance established by evaluate.py on held-out runs (x3 margin for a single scenario)
     assert rmse <= 3 * tol["depth_max_rmse_m"], (rmse, tol)
     assert p.provenance.engine == "surrogate" and s.provenance.engine == "engine"
+
+
+# ---------------------------------------------------------------------------
+# batched prediction, output detail, disbenefit (Part B's call shape)
+# ---------------------------------------------------------------------------
+def _quick_surrogate():
+    cfg = quick_config()
+    cfg.outdir = str(REPO_ARTIFACTS)
+    from hydrointel.model.geokan_pino import model_dir
+    if not (model_dir(cfg) / "model.pt").exists():
+        pytest.skip("no trained quick-mode surrogate in ./artifacts/quick (run `cli --outdir artifacts/quick all --quick`)")
+    api.configure(cfg, CPU)
+    return cfg
+
+
+@pytest.fixture(scope="module")
+def population():
+    _quick_surrogate()
+    scen = api.Scenario(50, "RCP4.5", "SSP2", 2050, True, 0.0)
+    base = api.baseline_site(scen)
+    dom = api.context().domain
+    land = ~(dom.sea | dom.channel)
+    S = base.storage_depth.numpy().copy()
+    S[land & (np.arange(S.size).reshape(S.shape) % 7 == 0)] += 0.5
+    n = base.manning.numpy() * 1.2
+    g = base.channel_gamma.numpy() * 1.5
+    sites = [base, base.replace(storage_depth=torch.as_tensor(S)), base.replace(manning=torch.as_tensor(n)),
+             base.replace(channel_gamma=torch.as_tensor(g))]
+    return scen, sites, api.predict(sites, scen)
+
+
+def test_predict_accepts_a_population(population):
+    scen, sites, many = population
+    assert isinstance(many, list) and len(many) == len(sites)
+    assert all(isinstance(r, api.FloodSummary) for r in many)
+    assert api.predict([], scen) == []
+    assert isinstance(api.predict(sites[0], scen), api.FloodSummary)      # single signature still works
+
+
+def test_batched_and_single_candidates_agree(population):
+    """The population call must give each candidate the answer it gets alone."""
+    scen, sites, many = population
+    for k, (s, m) in enumerate(zip(sites, many)):
+        one = api.predict(s, scen)
+        # float32 kernels on different batch shapes: round-off, not a modelling difference
+        assert torch.allclose(m.depth_max, one.depth_max, atol=1e-4), k
+        assert torch.allclose(m.speed_max, one.speed_max, atol=1e-4), k
+        assert torch.allclose(m.reach_peak_stage, one.reach_peak_stage, atol=1e-4), k
+        assert torch.allclose(m.reach_peak_discharge, one.reach_peak_discharge, rtol=1e-4, atol=1e-3), k
+        for name in m.point_level:
+            assert torch.allclose(m.point_level[name], one.point_level[name], atol=1e-4), (k, name)
+        assert m.mass_balance_error == pytest.approx(one.mass_balance_error, rel=1e-3, abs=1e-6)
+        assert m.max_depth_increase_m == pytest.approx(one.max_depth_increase_m, abs=1e-4)
+
+
+def test_summary_is_the_full_result_reduced(population):
+    """Summary mode must carry exactly what full mode would give, minus the histories."""
+    scen, sites, many = population
+    full = api.predict(sites, scen, detail="full")
+    dom = api.context().domain
+    from hydrointel.viz.depthmap import monitoring_points
+    pts = monitoring_points(dom)
+    for s, f in zip(many, full):
+        assert isinstance(f, api.FloodResult) and f.depth_series.ndim == 3
+        assert not hasattr(s, "depth_series") and not hasattr(s, "u")
+        assert torch.allclose(s.depth_max, f.depth_max, atol=1e-4)
+        assert torch.allclose(s.speed_max, f.speed_max, atol=1e-4)
+        assert torch.allclose(f.depth_max, f.depth_series.amax(0), atol=1e-6)
+        spd = torch.sqrt(f.u ** 2 + f.v ** 2).amax(0)
+        assert torch.allclose(f.speed_max, spd, atol=1e-4)
+        assert set(s.point_level) == {p["name"] for p in pts}
+        for p in pts:
+            level = torch.as_tensor(dom.dem2d[p["j"], p["i"]], dtype=torch.float32) + f.depth_series[:, p["j"], p["i"]]
+            assert torch.allclose(s.point_level[p["name"]], level, atol=1e-4), p["name"]
+        assert s.reach_peak_stage.shape == (dom.network.n_reaches,)
+        assert s.reach_peak_discharge.shape == (dom.network.n_reaches,)
+        assert float(s.reach_peak_stage.max()) == pytest.approx(float(f.channel_eta.max()), abs=1e-4)
+        assert s.infiltrated_volume_m3 == pytest.approx(f.infiltrated_volume_m3, rel=1e-4)
+        assert s.stored_volume_m3 == pytest.approx(f.stored_volume_m3, rel=1e-4)
+        assert s.provenance is not None and s.provenance.engine == "surrogate"
+
+
+def test_disbenefit_fields_are_consistent(population):
+    """max_depth_increase_m and area_worsened_ha against baseline(scenario), both modes."""
+    scen, sites, many = population
+    full = api.predict(sites, scen, detail="full")
+    ref = api.baseline(scen)
+    dom = api.context().domain
+    land = ~(dom.sea | dom.channel)
+    for r in (*many, *full):
+        assert r.max_depth_increase_m is not None and r.max_depth_increase_m >= 0.0
+        assert r.area_worsened_ha is not None and r.area_worsened_ha >= 0.0
+        d = (r.depth_max - ref.depth_max).numpy()
+        assert r.max_depth_increase_m == pytest.approx(max(float(d[land].max()), 0.0), abs=1e-4)
+        assert r.area_worsened_ha == pytest.approx(
+            float(np.sum(d[land] > api.WORSENED_THRESHOLD_M)) * dom.dx ** 2 / 1e4, abs=dom.dx ** 2 / 1e4)
+    # the baseline cannot be worse than itself (beyond float32 round-off)
+    assert many[0].max_depth_increase_m < 1e-4 and many[0].area_worsened_ha == 0.0
+
+
+def test_predict_rejects_unknown_detail(population):
+    scen, sites, _ = population
+    with pytest.raises(ValueError, match="detail"):
+        api.predict(sites[:1], scen, detail="everything")

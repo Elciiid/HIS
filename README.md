@@ -149,13 +149,20 @@ Each item below is marked `TODO` in the code.
 
 ```python
 from hydrointel import api
-api.configure()                       # or api.configure(RunConfig.load("my.yaml"))
+api.configure()                            # or api.configure(RunConfig.load("my.yaml"))
 scen = api.Scenario(return_period_yr=50, rcp="RCP8.5", ssp="SSP5", horizon_year=2050, tide_on=True)
-site = api.baseline_site(scen)        # SiteState with no interventions (SSP land surface)
-fast = api.predict(site, scen)        # surrogate
-truth = api.simulate(site, scen)      # engine
-before = api.baseline(scen)           # no-intervention reference (surrogate by default)
+site = api.baseline_site(scen)             # SiteState with no interventions (SSP land surface)
+population = [site.replace(storage_depth=S) for S in candidate_fields]
+scores = api.predict(population, scen)     # one call for a whole generation -> [FloodSummary]
+one = api.predict(site, scen)              # single candidate, same batched path
+maps = api.predict(site, scen, detail="full")               # FloodResult with (nt, ny, nx) histories
+truth = api.simulate(site, scen, compare_to_baseline=True)  # engine, for final verification
+before = api.baseline(scen)                # no-intervention reference (surrogate by default)
 ```
+
+- **Call shape.** `predict` takes one `SiteState` or a sequence of them against one `Scenario`. The scenario's forcing is encoded once per call, and candidates are encoded in groups that fit the GPU. The measured cost per candidate is in `artifacts/predict_speed.md`.
+- **Output detail.** `detail="summary"` is the default. It returns the peak depth field, the peak velocity-magnitude field, water-level series at the monitoring points, 1-D peak stage and discharge per reach, volumes, the mass-balance error, `in_distribution` and provenance, and never builds the full field histories. `detail="full"` returns the `FloodResult` that `simulate` returns.
+- **Disbenefit.** Every prediction carries `max_depth_increase_m` (the largest rise in peak depth on land relative to `baseline(scenario)`) and `area_worsened_ha` (land where peak depth rose by more than 1 cm). A design can improve the city overall and still deepen one street; Part B must constrain on these, not discover them later. The baseline is cached per scenario.
 
 - **Interventions are physical fields.** They enter the engine as four fields: retention storage `S`, infiltration multiplier `κ`, Manning `n`, and channel conveyance `γ`. **Storage removes water from the surface and never alters the DEM** (enforced by `tests/test_api_contract.py`).
 - **Stay inside the training envelope.** `FloodResult.in_distribution` and `distribution_warnings` report whether a query leaves the sampled ranges recorded in `dataset_card.md`. Part B must clip its search to that envelope.

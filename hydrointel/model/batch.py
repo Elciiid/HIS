@@ -146,6 +146,56 @@ class SampleBuilder:
                          fo.ssp.drainage_investment_factor, None, coarsen_mean(manning, f))
         return b, fo, meta
 
+    # inputs that depend on the candidate site; everything else depends only on the scenario
+    PER_CANDIDATE = ("feat2", "n_edge2", "manning2", "feat1", "edge1", "bed1", "dx1", "n1")
+
+    def from_sites(self, sites, scenario):
+        """Model inputs for many candidate sites under one scenario, stacked on a
+        leading dimension. The forcing (hyetograph, tide, inflow, scenario scalars) is
+        built once and shared: it is what makes the candidates comparable."""
+        from ..api import context
+        from ..data.dataset import scalar_features as sf
+        from ..engine import build_forcing
+        ctx = context()
+        dom, cfg, f = self.domain, self.cfg, self.f
+        fo = build_forcing(cfg, scenario.return_period_yr, scenario.rcp, scenario.ssp, scenario.horizon_year,
+                           scenario.tide_on, scenario.storm_tide_offset_h, dom.nx * dom.ny * dom.dx ** 2 / 1e6)
+        lu = ctx.landuse(scenario.ssp, scenario.horizon_year)
+        lu_frac = torch.as_tensor(coarsen_mean(np.eye(LU.N_CLASSES)[lu].transpose(2, 0, 1), f))
+        steps = cfg.model.forcing_steps
+        grid = np.linspace(0, fo.t_end, steps)
+        rain = fo.rain.series(fo.t_end, steps)
+        series = np.stack([rain / self.scales.rain_scale, [fo.tide(t) for t in grid],
+                           np.array([fo.inflow(t) for t in grid]) / self.scales.inflow_scale])
+        meta = {"return_period_yr": scenario.return_period_yr, "rcp": scenario.rcp, "ssp": scenario.ssp,
+                "horizon_year": scenario.horizon_year, "tide_on": scenario.tide_on,
+                "storm_tide_offset_h": scenario.storm_tide_offset_h}
+        scal = sf(meta, {"slr_m": fo.slr_m, "rain_factor": fo.rain_factor})
+        npf = lambda a: a.detach().cpu().numpy().astype(np.float64) if torch.is_tensor(a) else np.asarray(a, float)
+        per = []
+        for site in sites:
+            storage, kappa, manning, gamma = (npf(a) for a in (site.storage_depth, site.infil_multiplier,
+                                                               site.manning, site.channel_gamma))
+            mc = coarsen_mean(manning, f)
+            rec_like = {"fields": {"manning": torch.as_tensor(mc), "storage": torch.as_tensor(coarsen_mean(storage, f)),
+                                   "kappa": torch.as_tensor(coarsen_mean(kappa, f)), "landuse_frac": lu_frac}}
+            per.append(self._common(node_dynamic(rec_like), gamma, series, rain, scal, fo.t_end,
+                                    fo.ssp.drainage_investment_factor, None, mc))
+        b = dict(per[0])
+        for k in self.PER_CANDIDATE:
+            b[k] = torch.stack([p[k] for p in per])
+        b["sec1"] = Sections(*(torch.stack([getattr(p["sec1"], a) for p in per]) for a in ("b", "m", "yb", "ts")))
+        return b, fo, meta
+
+    @classmethod
+    def select(cls, b: dict, s: slice) -> dict:
+        """The candidates ``s`` of a stacked input, sharing the scenario parts."""
+        out = dict(b)
+        for k in cls.PER_CANDIDATE:
+            out[k] = b[k][s]
+        out["sec1"] = Sections(*(getattr(b["sec1"], a)[s] for a in ("b", "m", "yb", "ts")))
+        return out
+
     # ------------------------------------------------------------------
     def upsample(self, a: torch.Tensor) -> torch.Tensor:
         """Bilinear upsampling of (nt, ny_c, nx_c) to the model grid (edge-padded)."""

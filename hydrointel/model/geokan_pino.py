@@ -77,17 +77,18 @@ class SpectralMix(nn.Module):
 
     def forward(self, x: torch.Tensor, ny: int, nx: int) -> torch.Tensor:
         with torch.autocast(device_type=x.device.type, enabled=False):
-            xf = x.float()
-            g = xf.T.reshape(-1, ny, nx)
+            xf = x.float()                                             # (..., N, d)
+            lead, d = xf.shape[:-2], xf.shape[-1]
+            g = xf.transpose(-1, -2).reshape(*lead, d, ny, nx)
             spec = torch.fft.rfft2(g, norm="ortho")
             m = min(self.m, ny // 2, nx // 2 + 1)
             idx_y = torch.cat([torch.arange(m), torch.arange(ny - m, ny)]).to(x.device)
-            sub = spec[:, idx_y, :m]                                   # (d, 2m, m)
+            sub = spec[..., idx_y, :m]                                 # (..., d, 2m, m)
             w = torch.view_as_complex(self.w[:, :, :2 * m, :m].contiguous())
-            mixed = torch.einsum("iyx,oiyx->oyx", sub, w)
+            mixed = torch.einsum("...iyx,oiyx->...oyx", sub, w)
             out = torch.zeros_like(spec)
-            out[:, idx_y, :m] = mixed
-            back = torch.fft.irfft2(out, s=(ny, nx), norm="ortho").reshape(x.shape[1], -1).T
+            out[..., idx_y, :m] = mixed
+            back = torch.fft.irfft2(out, s=(ny, nx), norm="ortho").reshape(*lead, d, -1).transpose(-1, -2)
             return xf + self.norm(F.gelu(back + self.lin(xf)))
 
 
@@ -104,18 +105,20 @@ class Block(nn.Module):
         self.n1 = nn.LayerNorm(d)
 
     def forward(self, x2, x1, g, gr: Graph, e2, e1):
-        m2 = self.e2(torch.cat([x2[gr.e2_src], x2[gr.e2_dst], e2], -1))
-        agg2 = m2.new_zeros(x2.shape[0], m2.shape[1]).index_add_(0, gr.e2_dst, m2)
-        m1 = self.e1(torch.cat([x1[gr.e1_src], x1[gr.e1_dst], e1], -1))
-        agg1 = m1.new_zeros(x1.shape[0], m1.shape[1]).index_add_(0, gr.e1_dst, m1)
-        a2, a1 = x2[gr.c_node2], x1[gr.c_node1]
-        to1 = self.c21(torch.cat([a2, a1, gr.c_static], -1))
-        to2 = self.c12(torch.cat([a1, a2, gr.c_static], -1))
-        agg12 = to1.new_zeros(x1.shape[0], to1.shape[1]).index_add_(0, gr.c_node1, to1)
-        agg2 = agg2.index_add(0, gr.c_node2, to2.to(agg2.dtype))
-        g2 = g.expand(x2.shape[0], -1)
-        x2n = self.n2(x2 + self.u2(torch.cat([x2, agg2, g2], -1)))
-        x1n = self.n1(x1 + self.u1(torch.cat([x1, agg1, agg12, g.expand(x1.shape[0], -1)], -1)))
+        # nodes live on dim -2, so a leading batch of candidates passes straight through
+        at = lambda x, idx: x.index_select(-2, idx)
+        m2 = self.e2(torch.cat([at(x2, gr.e2_src), at(x2, gr.e2_dst), e2], -1))
+        agg2 = m2.new_zeros(*x2.shape[:-1], m2.shape[-1]).index_add_(-2, gr.e2_dst, m2)
+        m1 = self.e1(torch.cat([at(x1, gr.e1_src), at(x1, gr.e1_dst), e1], -1))
+        agg1 = m1.new_zeros(*x1.shape[:-1], m1.shape[-1]).index_add_(-2, gr.e1_dst, m1)
+        a2, a1 = at(x2, gr.c_node2), at(x1, gr.c_node1)
+        cs = gr.c_static.expand(*a2.shape[:-1], gr.c_static.shape[-1])
+        to1 = self.c21(torch.cat([a2, a1, cs], -1))
+        to2 = self.c12(torch.cat([a1, a2, cs], -1))
+        agg12 = to1.new_zeros(*x1.shape[:-1], to1.shape[-1]).index_add_(-2, gr.c_node1, to1)
+        agg2 = agg2.index_add(-2, gr.c_node2, to2.to(agg2.dtype))
+        x2n = self.n2(x2 + self.u2(torch.cat([x2, agg2, g.expand(*x2.shape[:-1], g.shape[-1])], -1)))
+        x1n = self.n1(x1 + self.u1(torch.cat([x1, agg1, agg12, g.expand(*x1.shape[:-1], g.shape[-1])], -1)))
         return x2n, x1n
 
 
@@ -144,10 +147,11 @@ class GeoKANPINO(nn.Module):
     # ------------------------------------------------------------ encode
     def encode(self, b: dict):
         gr = self.graph
-        g = self.forcing(b["series"], b["scalars"])
-        x2 = self.enc2(torch.cat([b["feat2"], g.expand(gr.n2, -1)], -1))
-        x1 = self.enc1(torch.cat([b["feat1"], g.expand(gr.n1, -1)], -1))
-        e2 = torch.cat([gr.e2_static, b["n_edge2"][:, None]], -1)
+        g = self.forcing(b["series"], b["scalars"])            # one scenario: shared by every candidate
+        f2, f1, ne = b["feat2"], b["feat1"], b["n_edge2"]
+        x2 = self.enc2(torch.cat([f2, g.expand(*f2.shape[:-1], g.shape[-1])], -1))
+        x1 = self.enc1(torch.cat([f1, g.expand(*f1.shape[:-1], g.shape[-1])], -1))
+        e2 = torch.cat([gr.e2_static.expand(*ne.shape, gr.e2_static.shape[-1]), ne[..., None]], -1)
         e1 = b["edge1"]
         half = len(self.blocks) // 2
         for k, blk in enumerate(self.blocks):
@@ -161,8 +165,9 @@ class GeoKANPINO(nn.Module):
 
     def volumes(self, x2, x1, g):
         """Predicted event totals [m^3]: (infiltrated, stored, net boundary inflow)."""
-        out = self.vol_head(torch.cat([g, x2.mean(0), x1.mean(0)]))
-        return torch.stack([F.softplus(out[0]), F.softplus(out[1]), out[2]]) * self.scales_v()
+        lead = x2.shape[:-2]
+        out = self.vol_head(torch.cat([g.expand(*lead, g.shape[-1]), x2.mean(-2), x1.mean(-2)], -1))
+        return torch.stack([F.softplus(out[..., 0]), F.softplus(out[..., 1]), out[..., 2]], -1) * self.scales_v()
 
     def scales_v(self) -> float:
         return float(getattr(self.scales, "V_scale", 1.0))
@@ -181,20 +186,27 @@ class GeoKANPINO(nn.Module):
         infl = interp_series(b["series"][2], t[..., 0], te)[..., None]
         return torch.cat([tstar, four, rain, cum, tide, infl], -1)
 
+    @staticmethod
+    def _with_time(x, tf):
+        """Latent (..., N, d) joined with time features (Q, N, f) -> (..., Q, N, d + f)."""
+        lead = x.shape[:-2]
+        xq = x.unsqueeze(-3).expand(*lead, tf.shape[0], *x.shape[-2:])
+        return torch.cat([xq, tf.expand(*lead, *tf.shape)], -1)
+
     def _dec2(self, x2, b, tstar):
-        raw = self.dec2(torch.cat([x2.expand(tstar.shape[0], -1, -1), self.time_features(tstar, b)], -1))
+        raw = self.dec2(self._with_time(x2, self.time_features(tstar, b)))
         return torch.stack([F.softplus(raw[..., 0]), raw[..., 1], raw[..., 2]], -1)
 
     def _dec1(self, x1, b, tstar):
-        raw = self.dec1(torch.cat([x1.expand(tstar.shape[0], -1, -1), self.time_features(tstar, b)], -1))
+        raw = self.dec1(self._with_time(x1, self.time_features(tstar, b)))
         return torch.stack([F.softplus(raw[..., 0]), raw[..., 1]], -1)
 
     def decode(self, x2, x1, b, t_s: torch.Tensor, need_dt: bool = False):
         """t_s: (Q,) seconds. Returns non-dimensional fields (Q, N, C) and, if requested,
         their derivatives with respect to t* (forward-mode AD)."""
         sc = self.scales
-        ts2 = (t_s / sc.T0)[:, None, None].expand(-1, x2.shape[0], 1).contiguous()
-        ts1 = (t_s / sc.T0)[:, None, None].expand(-1, x1.shape[0], 1).contiguous()
+        ts2 = (t_s / sc.T0)[:, None, None].expand(-1, x2.shape[-2], 1).contiguous()
+        ts1 = (t_s / sc.T0)[:, None, None].expand(-1, x1.shape[-2], 1).contiguous()
         if need_dt:
             o2, d2 = torch.func.jvp(lambda s: self._dec2(x2, b, s), (ts2,), (torch.ones_like(ts2),))
             o1, d1 = torch.func.jvp(lambda s: self._dec1(x1, b, s), (ts1,), (torch.ones_like(ts1),))
@@ -202,9 +214,9 @@ class GeoKANPINO(nn.Module):
         if torch.is_grad_enabled():
             return self._dec2(x2, b, ts2), self._dec1(x1, b, ts1), None, None
         # inference: decode a few output times at a time to bound memory
-        k = max(1, int(self.decode_chunk_nodes // max(x2.shape[0], 1)))
-        o2 = torch.cat([self._dec2(x2, b, ts2[i:i + k]) for i in range(0, ts2.shape[0], k)])
-        o1 = torch.cat([self._dec1(x1, b, ts1[i:i + k]) for i in range(0, ts1.shape[0], k)])
+        k = max(1, int(self.decode_chunk_nodes // max(x2.shape[-2], 1)))
+        o2 = torch.cat([self._dec2(x2, b, ts2[i:i + k]) for i in range(0, ts2.shape[0], k)], -3)
+        o1 = torch.cat([self._dec1(x1, b, ts1[i:i + k]) for i in range(0, ts1.shape[0], k)], -3)
         return o2, o1, None, None
 
     def dimensional(self, o2, o1):
@@ -217,31 +229,118 @@ class GeoKANPINO(nn.Module):
         return h, u, v, y1, q1
 
     # ------------------------------------------------------------ inference
+    def _builder(self, ctx):
+        """Input builder, reused across calls: Part B calls predict many thousands of times."""
+        from .batch import SampleBuilder
+        key = id(ctx)
+        if getattr(self, "_builder_key", None) != key:
+            self._builder_cache = SampleBuilder.from_context(ctx, self)
+            self._builder_key = key
+        return self._builder_cache
+
     @torch.no_grad()
     def predict_result(self, site, scenario, ctx, output_interval_s=None):
-        from ..api import FloodResult
-        from .batch import SampleBuilder
+        """One candidate, full output (kept for callers of the original interface)."""
+        return self.predict_many([site], scenario, ctx, output_interval_s, detail="full")[0]
+
+    @torch.no_grad()
+    def predict_many(self, sites, scenario, ctx, output_interval_s=None, detail: str = "summary",
+                     encode_batch: int | None = None):
+        """Evaluate many candidate sites against one scenario.
+
+        The scenario's forcing is encoded once. Candidates are encoded together in
+        groups of ``encode_batch`` (the graph encoder needs ~0.5 GB per candidate at
+        full resolution, so all of a 64-member population cannot sit on a 6 GB card at
+        once), then decoded in chunks of output times.
+
+        ``detail="summary"`` never materialises the (nt, ny, nx) histories: every
+        time chunk updates running maxima and point series and is then dropped. It
+        saves memory and host transfer, not decoder arithmetic -- a peak depth needs
+        the decoder evaluated at every output time either way.
+        """
+        from ..api import FloodResult, FloodSummary
+        from ..solver.swe1d import Sections
+        from ..viz.depthmap import monitoring_points
+        if detail not in ("full", "summary"):
+            raise ValueError(f"detail must be 'full' or 'summary', not {detail!r}")
         self.eval()
-        builder = SampleBuilder.from_context(ctx, self)
-        b, fo, meta = builder.from_site(site, scenario)
-        x2, x1, _ = self.encode(b)
+        builder = self._builder(ctx)
+        dom, gr, sc = builder.domain, self.graph, self.scales
+        b, fo, _ = builder.from_sites(sites, scenario)
+        dev = b["feat2"].device
         times = fo.times(output_interval_s or ctx.cfg.solver.output_interval_s)
-        t = torch.as_tensor(times, dtype=torch.float32, device=x2.device)
-        o2, o1, _, _ = self.decode(x2, x1, b, t)
-        h, u, v, y1, q1 = self.dimensional(o2, o1)
-        gr = self.graph
-        up = lambda a: builder.upsample(a.reshape(len(times), gr.ny, gr.nx))
-        H, U, V = up(h), up(u), up(v)
-        eta1 = b["bed1"][None] + y1
-        vols = self.volumes(x2, x1, self.forcing(b["series"], b["scalars"]))
-        err = builder.implied_mass_error(h, y1, b, vols)
-        return FloodResult(depth_max=H.amax(0).cpu(), depth_series=H.cpu(), u=U.cpu(), v=V.cpu(),
-                           channel_eta=eta1.cpu(), channel_q=q1.cpu(), times=t.cpu(),
-                           infiltrated_volume_m3=float(vols[0]), stored_volume_m3=float(vols[1]),
-                           mass_balance_error=float(err), provenance=None, in_distribution=False,
-                           extras={"forcing": fo, "boundary_net_in_m3": float(vols[2]),
-                                   "note": "volumes are surrogate estimates of the engine ledger; "
-                                           "their error is reported in validation_report.md"})
+        t = torch.as_tensor(times, dtype=torch.float32, device=dev)
+        pts = monitoring_points(dom)
+        pj = torch.as_tensor([p["j"] for p in pts], device=dev)
+        pi = torch.as_tensor([p["i"] for p in pts], device=dev)
+        z_pts = torch.as_tensor(dom.dem2d[pj.cpu().numpy(), pi.cpu().numpy()], dtype=torch.float32, device=dev)
+        reach_of = torch.as_tensor(builder.base_topo.reach_of[builder.interior], device=dev)
+        n_reach = dom.network.n_reaches
+        area_c = builder.cell_c ** 2
+        rain_vol = float(b["rain_mmh"].sum()) / 1000.0 / 3600.0 * (b["t_end"] / len(b["rain_mmh"])) \
+            * dom.nx * dom.ny * dom.dx ** 2
+        eb = max(1, int(encode_batch or getattr(self, "encode_batch", 4)))
+        out = []
+        for s0 in range(0, len(sites), eb):
+            bs = builder.select(b, slice(s0, s0 + eb))
+            nb = bs["feat2"].shape[0]
+            x2, x1, g = self.encode(bs)
+            vols = self.volumes(x2, x1, g)                                     # (nb, 3)
+            n2, n1 = x2.shape[-2], x1.shape[-2]
+            qk = max(1, int(self.decode_chunk_nodes // (n2 * nb)))
+            dmax = smax = None
+            p_depth, h_sum, y1s, q1s = [], [], [], []
+            if detail == "full":     # filled chunk by chunk: no second copy at the end
+                full = [torch.empty((nb, len(times), dom.ny, dom.nx), dtype=torch.float32) for _ in range(3)]
+            for q0 in range(0, len(times), qk):
+                ts = t[q0:q0 + qk] / sc.T0
+                o2 = self._dec2(x2, bs, ts[:, None, None].expand(-1, n2, 1))  # (nb, qc, n2, 3)
+                o1 = self._dec1(x1, bs, ts[:, None, None].expand(-1, n1, 1))
+                h, u, v, y1, q1 = self.dimensional(o2, o1)
+                qc = h.shape[1]
+                up = lambda a: builder.upsample(a.reshape(nb * qc, gr.ny, gr.nx)).reshape(nb, qc, dom.ny, dom.nx)
+                H, U, V = up(h), up(u), up(v)
+                spd = torch.sqrt(U * U + V * V)
+                dmax = H.amax(1) if dmax is None else torch.maximum(dmax, H.amax(1))
+                smax = spd.amax(1) if smax is None else torch.maximum(smax, spd.amax(1))
+                p_depth.append(H[:, :, pj, pi])
+                h_sum.append(h.sum(-1))
+                y1s.append(y1)
+                q1s.append(q1)
+                if detail == "full":
+                    for acc, a in zip(full, (H, U, V)):
+                        acc[:, q0:q0 + qc] = a.float().cpu()
+            y1 = torch.cat(y1s, 1)                                             # (nb, nt, n1)
+            q1 = torch.cat(q1s, 1)
+            eta1 = bs["bed1"][:, None] + y1
+            sec = Sections(*(getattr(bs["sec1"], a)[:, None] for a in ("b", "m", "yb", "ts")))
+            vol = torch.cat(h_sum, 1) * area_c + (sec.area(y1) * bs["dx1"][:, None]).sum(-1)
+            net = rain_vol + vols[:, 2] - vols[:, 0] - vols[:, 1]
+            gross = rain_vol + vols[:, 2].abs() + vols[:, 0] + vols[:, 1]
+            err = (vol[:, -1] - vol[:, 0] - net).abs() / torch.clamp(gross, min=1.0)
+            peak_stage = torch.stack([eta1[..., reach_of == r].amax((-1, -2)) for r in range(n_reach)], -1)
+            peak_q = torch.stack([q1[..., reach_of == r].abs().amax((-1, -2)) for r in range(n_reach)], -1)
+            p_depth = torch.cat(p_depth, 1)                                    # (nb, nt, P)
+            for k in range(nb):
+                common = dict(infiltrated_volume_m3=float(vols[k, 0]), stored_volume_m3=float(vols[k, 1]),
+                              mass_balance_error=float(err[k]), provenance=None, in_distribution=False)
+                ex = {"forcing": fo, "boundary_net_in_m3": float(vols[k, 2]),
+                      "note": "volumes are surrogate estimates of the engine ledger; "
+                              "their error is reported in validation_report.md"}
+                if detail == "full":
+                    out.append(FloodResult(
+                        depth_max=dmax[k].cpu(), depth_series=full[0][k], u=full[1][k], v=full[2][k],
+                        channel_eta=eta1[k].cpu(), channel_q=q1[k].cpu(), times=t.cpu(),
+                        speed_max=smax[k].cpu(), extras=ex, **common))
+                else:
+                    level = (z_pts[None] + p_depth[k]).cpu()
+                    out.append(FloodSummary(
+                        depth_max=dmax[k].cpu(), speed_max=smax[k].cpu(), times=t.cpu(),
+                        point_level={p["name"]: level[:, j] for j, p in enumerate(pts)},
+                        reach_peak_stage=peak_stage[k].cpu(), reach_peak_discharge=peak_q[k].cpu(),
+                        extras=ex, **common))
+            del x2, x1
+        return out
 
 
 def model_dir(cfg) -> Path:
