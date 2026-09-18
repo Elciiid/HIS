@@ -22,6 +22,13 @@ Discretisation
   special-casing.
 * Semi-implicit Manning friction, CFL time step on wet cells, and the same
   conservative outflow limiter as the 2-D solver.
+
+Batching: pass a list of networks and the state carries a leading batch
+dimension, (B, n_cells). The members must share a discretisation -- the same
+cells, faces, spacing, bank crests and roughness -- because they are the same
+river; only the bed and the bottom width may differ, which is exactly what a
+per-reach conveyance factor gamma changes. The time step is shared across the
+batch and all accounting is per member.
 """
 from __future__ import annotations
 
@@ -166,24 +173,44 @@ class Step1DVolumes:
 
 
 class SWE1D:
-    def __init__(self, net: ChannelNetwork, cfg: SolverConfig, device=None, dtype=torch.float64,
+    # structural arrays every batch member must share: same river, same discretisation
+    SHARED = ("kind", "reach_of", "ghost_src", "ghost_sign", "face_l", "face_r", "n", "m", "zbank",
+              "dx", "x", "y", "chain")
+
+    def __init__(self, net: ChannelNetwork | list, cfg: SolverConfig, device=None, dtype=torch.float64,
                  inflow=None, stage=None):
-        """``inflow(t)`` -> m^3/s at every inflow end; ``stage(t)`` -> water level at stage ends."""
-        net.validate()
-        self.net, self.cfg = net, cfg
+        """``inflow(t)`` -> m^3/s at every inflow end; ``stage(t)`` -> water level at stage ends.
+        Both may return one value per member. Passing a list of networks batches the run."""
+        batched = isinstance(net, (list, tuple))
+        nets = list(net) if batched else [net]
+        if not nets:
+            raise ValueError("SWE1D needs at least one channel network")
+        for n in nets:
+            n.validate()
+        self.net, self.cfg = nets[0], cfg
+        self.batch = len(nets) if batched else None
+        self.bshape = () if self.batch is None else (self.batch,)
         self.device = device or torch.device("cpu")
         self.dtype = dtype
-        self.topo = tp = build_topology(net)
+        topos = [build_topology(n) for n in nets]
+        self.topo = tp = topos[0]
+        for k, other in enumerate(topos[1:], start=1):
+            for name in self.SHARED:
+                if not np.array_equal(getattr(other, name), getattr(tp, name)):
+                    raise ValueError(f"batched channel network {k} differs from member 0 in '{name}'; only the bed "
+                                     "and the bottom width may vary between members (that is what gamma changes)")
+        pick = lambda name: np.stack([getattr(o, name) for o in topos]) if batched else getattr(tp, name)
+        z_np, b_np = pick("z"), pick("b")
         T = lambda a, dt=dtype: torch.as_tensor(a, dtype=dt, device=self.device)
-        self.z, self.nman, self.dx = T(tp.z), T(tp.n), T(tp.dx)
-        yb = np.maximum(tp.zbank - tp.z, 0.2)
-        ts = cfg.slot_width_frac * (tp.b + 2 * tp.m * yb)
-        self.sec = Sections(T(tp.b), T(tp.m), T(yb), T(ts))
+        self.z, self.nman, self.dx = T(z_np), T(tp.n), T(tp.dx)
+        yb = np.maximum(tp.zbank - z_np, 0.2)
+        ts = cfg.slot_width_frac * (b_np + 2 * tp.m * yb)
+        self.sec = Sections(T(b_np), T(tp.m), T(yb), T(ts))
         fl, fr = tp.face_l, tp.face_r
-        zf = np.maximum(tp.z[fl], tp.z[fr])
+        zf = np.maximum(z_np[..., fl], z_np[..., fr])
         bank_f = 0.5 * (tp.zbank[fl] + tp.zbank[fr])
         ybf = np.maximum(bank_f - zf, 0.1)
-        bf, mf = 0.5 * (tp.b[fl] + tp.b[fr]), 0.5 * (tp.m[fl] + tp.m[fr])
+        bf, mf = 0.5 * (b_np[..., fl] + b_np[..., fr]), 0.5 * (tp.m[fl] + tp.m[fr])
         self.fsec = Sections(T(bf), T(mf), T(ybf), T(cfg.slot_width_frac * (bf + 2 * mf * ybf)))
         self.fl, self.fr = T(fl, torch.long), T(fr, torch.long)
         self.is_ghost = T(tp.kind >= 2, torch.bool)
@@ -211,11 +238,12 @@ class SWE1D:
 
     def set_level(self, eta):
         y = torch.clamp(torch.as_tensor(eta, dtype=self.dtype, device=self.device) - self.z, min=0.0)
-        self.A = self.sec.area(y)
+        self.A = self.sec.area(y).expand(self.bshape + (self.topo.n_cells,)).clone()
         self.Q = torch.zeros_like(self.A)
 
     def volume(self) -> torch.Tensor:
-        return (self.A * self.dx)[self.interior].to(torch.float64).sum()
+        """Channel volume; 0-d unbatched, one entry per member when batched."""
+        return (self.A * self.dx * self.interior).to(torch.float64).sum(-1)
 
     def velocity(self, A, Q, sec: Sections | None = None):
         y = (sec or self.sec).depth(A)
@@ -235,10 +263,11 @@ class SWE1D:
     # --------------------------------------------------------------- ghosts
     def _fill_ghosts(self, A, Q, q_in, eta_sea):
         g = self.cfg.g
-        As, Qs = A[self.g_src], Q[self.g_src]
-        sec_g = Sections(self.sec.b[self.g_idx], self.sec.m[self.g_idx], self.sec.yb[self.g_idx], self.sec.ts[self.g_idx])
+        As, Qs = A[..., self.g_src], Q[..., self.g_src]
+        gi = self.g_idx
+        sec_g = Sections(self.sec.b[..., gi], self.sec.m[..., gi], self.sec.yb[..., gi], self.sec.ts[..., gi])
         ys = sec_g.depth(As)
-        zg = self.z[self.g_idx]
+        zg = self.z[..., gi]
         # outward-normal velocity of the interior neighbour
         un = self.g_sign * self.velocity(As, Qs, sec_g)
         wet_i = ys >= self.cfg.h_dry
@@ -259,56 +288,71 @@ class SWE1D:
         Q_in = -self.g_sign * q_in
         Ag = torch.where(self.g_stage, Ast, torch.where(self.g_inflow, A_in, As))
         Qg = torch.where(self.g_stage, Q_st, torch.where(self.g_inflow, Q_in, -Qs))
-        A = A.index_put((self.g_idx,), Ag)
-        Q = Q.index_put((self.g_idx,), Qg)
+        A = A.index_copy(-1, gi, Ag.expand_as(As).contiguous())
+        Q = Q.index_copy(-1, gi, Qg.expand_as(Qs).contiguous())
         return A, Q
 
     # ----------------------------------------------------------------- step
+    def _pack(self, values) -> torch.Tensor:
+        """Stack per-member quantities into (len(values),) + batch_shape + (1,)."""
+        tgt = self.bshape + (1,)
+        want = self.batch or 1
+        out = []
+        for v in values:
+            x = torch.as_tensor(v, dtype=self.dtype, device=self.device)
+            if x.numel() == 1:
+                out.append(x.reshape((1,) * len(tgt)).expand(tgt))
+            elif x.numel() == want:
+                out.append(x.reshape(tgt))
+            else:
+                raise ValueError(f"expected 1 or {want} values per step quantity, got {x.numel()}")
+        return torch.stack(out)
+
     def step(self, dt: float, t: float) -> Step1DVolumes:
-        q_in = float(self.inflow(t)) if self.inflow is not None else 0.0
-        eta = float(self.stage(t)) if self.stage is not None else 0.0
-        sc = torch.tensor([dt, q_in, eta], dtype=self.dtype, device=self.device)
-        A, Q, b_in, b_out, clip = self._core(self.A, self.Q, sc)
+        q_in = self.inflow(t) if self.inflow is not None else 0.0
+        eta = self.stage(t) if self.stage is not None else 0.0
+        sc = torch.tensor(dt, dtype=self.dtype, device=self.device)
+        A, Q, b_in, b_out, clip = self._core(self.A, self.Q, sc, self._pack([q_in, eta]))
         self.A, self.Q = A, Q
         return Step1DVolumes(b_in, b_out, clip)
 
-    def _step_core(self, A, Q, sc):
-        dt, q_in, eta = sc[0], sc[1], sc[2]
+    def _step_core(self, A, Q, dt, pm):
+        q_in, eta = pm[0], pm[1]
         g, f64 = self.cfg.g, torch.float64
         A, Q = self._fill_ghosts(A, Q, q_in, eta)
         y = self.sec.depth(A)
         u = self.velocity(A, Q)
         fl, fr, fs = self.fl, self.fr, self.fsec
-        zL, zR = self.z[fl], self.z[fr]
+        zL, zR = self.z[..., fl], self.z[..., fr]
         zf = torch.maximum(zL, zR)
-        yL = torch.clamp(zL + y[fl] - zf, min=0.0)
-        yR = torch.clamp(zR + y[fr] - zf, min=0.0)
+        yL = torch.clamp(zL + y[..., fl] - zf, min=0.0)
+        yR = torch.clamp(zR + y[..., fr] - zf, min=0.0)
         AL, AR = fs.area(yL), fs.area(yR)
-        uL, uR = u[fl], u[fr]
+        uL, uR = u[..., fl], u[..., fr]
         pL, pR = g * fs.i1(yL), g * fs.i1(yR)
         cL = torch.sqrt(g * AL / fs.top_width(yL))
         cR = torch.sqrt(g * AR / fs.top_width(yR))
         F1, F2 = hll_1d(AL, AL * uL, pL, cL, AR, AR * uR, pR, cR, uL, uR)
         # conservative outflow limiter (donor = upwind cell; ghosts unlimited)
         vol = A * self.dx
-        out = torch.zeros_like(A).index_add(0, fl, torch.relu(F1)).index_add(0, fr, torch.relu(-F1))
+        out = torch.zeros_like(A).index_add(-1, fl, torch.relu(F1)).index_add(-1, fr, torch.relu(-F1))
         need = out * dt
         theta = torch.where(need > vol, vol / torch.where(need > 0, need, torch.ones_like(need)), torch.ones_like(A))
         theta = torch.where(self.is_ghost, torch.ones_like(theta), theta)
-        s = torch.where(F1 > 0, theta[fl], theta[fr])
+        s = torch.where(F1 > 0, theta[..., fl], theta[..., fr])
         F1 = F1 * s
-        dA = torch.zeros_like(A).index_add(0, fl, -F1).index_add(0, fr, F1)
-        dQ = torch.zeros_like(A).index_add(0, fl, -(F2 - pL)).index_add(0, fr, F2 - pR)
+        dA = torch.zeros_like(A).index_add(-1, fl, -F1).index_add(-1, fr, F1)
+        dQ = torch.zeros_like(A).index_add(-1, fl, -(F2 - pL)).index_add(-1, fr, F2 - pR)
         A1 = A + dt * dA / self.dx
         Q1 = Q + dt * dQ / self.dx
         neg = torch.clamp(-A1, min=0.0)
-        clip = (neg * self.dx)[self.interior].to(f64).sum()
+        clip = (neg * self.dx * self.interior).to(f64).sum(-1)
         A1 = A1 + neg
         # boundary exchange: faces touching a ghost cell
         gl, gr = self.is_ghost[fl], self.is_ghost[fr]
         zero = torch.zeros_like(F1)
-        b_in = torch.where(gl, torch.relu(F1), zero).sum() + torch.where(gr, torch.relu(-F1), zero).sum()
-        b_out = torch.where(gl, torch.relu(-F1), zero).sum() + torch.where(gr, torch.relu(F1), zero).sum()
+        b_in = torch.where(gl, torch.relu(F1), zero).sum(-1) + torch.where(gr, torch.relu(-F1), zero).sum(-1)
+        b_out = torch.where(gl, torch.relu(-F1), zero).sum(-1) + torch.where(gr, torch.relu(F1), zero).sum(-1)
         b_in, b_out = b_in.to(f64) * dt.to(f64), b_out.to(f64) * dt.to(f64)
         # semi-implicit friction
         y1 = self.sec.depth(A1)

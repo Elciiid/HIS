@@ -18,6 +18,14 @@ Numerics (each item is load-bearing):
 * Sources: rainfall, Horton infiltration capped by available water, and a
   sub-grid retention store S that fills before a cell contributes runoff.
   Storage never alters the bed elevation.
+
+Batching: the state may carry a leading batch dimension, (B, ny, nx), so B
+storms advance together on one set of kernels. Every routine addresses the grid
+through its last two dimensions, so the batched and single-storm paths are the
+same code. The bed is shared by the batch; roughness, retention, infiltration,
+rainfall and boundary values may all differ per member. The time step is shared:
+``max_dt`` reduces over the batch as well as the grid, so every member advances
+on the smallest step any of them needs. All volume accounting is per member.
 """
 from __future__ import annotations
 
@@ -105,14 +113,18 @@ class StepVolumes:
 class SWE2D:
     def __init__(self, z, manning, dx: float, cfg: SolverConfig, bcs: dict[str, EdgeBC],
                  device=None, dtype=torch.float64, storage=None, horton: Horton | None = None,
-                 rain_weight=None, dy: float | None = None):
+                 rain_weight=None, dy: float | None = None, batch: int | None = None):
+        """``batch`` advances B storms together over the shared bed ``z``; the per-cell
+        fields (manning, storage, horton) are then expected with a leading B."""
         self.cfg = cfg
         self.device = device or torch.device("cpu")
         self.dtype = dtype
         t = lambda a: torch.as_tensor(a, dtype=dtype, device=self.device).clone() if not torch.is_tensor(a) \
             else a.to(device=self.device, dtype=dtype).clone()
         self.z = t(z)
-        self.ny, self.nx = self.z.shape
+        self.batch = batch
+        self.bshape = () if batch is None else (int(batch),)
+        self.ny, self.nx = self.z.shape[-2:]
         self.n = t(manning) if (torch.is_tensor(manning) or hasattr(manning, "shape")) \
             else torch.full_like(self.z, float(manning))
         self.dx, self.dy = float(dx), float(dy if dy is not None else dx)
@@ -124,7 +136,7 @@ class SWE2D:
         self.storage = t(storage) if storage is not None else None
         self.horton = horton
         self.rain_weight = t(rain_weight) if rain_weight is not None else None
-        zeros = torch.zeros_like(self.z)
+        zeros = torch.zeros(self.bshape + (self.ny, self.nx), dtype=dtype, device=self.device)
         self.h, self.hu, self.hv = zeros.clone(), zeros.clone(), zeros.clone()
         self.s_filled = zeros.clone()
         self.infil_cum = zeros.clone()
@@ -138,8 +150,10 @@ class SWE2D:
         self.hu = torch.zeros_like(self.h) if hu is None else torch.as_tensor(hu, dtype=self.dtype, device=self.device).clone()
         self.hv = torch.zeros_like(self.h) if hv is None else torch.as_tensor(hv, dtype=self.dtype, device=self.device).clone()
 
-    def set_level(self, eta: float, mask=None):
-        h = torch.clamp(eta - self.z, min=0.0)
+    def set_level(self, eta, mask=None):
+        if torch.is_tensor(eta) or hasattr(eta, "shape"):
+            eta = torch.as_tensor(eta, dtype=self.dtype, device=self.device).reshape(self.bshape + (1, 1))
+        h = torch.clamp(eta - self.z, min=0.0).expand(self.bshape + (self.ny, self.nx))
         if mask is not None:
             h = torch.where(torch.as_tensor(mask, device=self.device), h, torch.zeros_like(h))
         self.set_state(h)
@@ -153,12 +167,15 @@ class SWE2D:
         return u, v
 
     def volume(self) -> torch.Tensor:
-        return self.h.to(torch.float64).sum() * self.area
+        """Surface-water volume; 0-d unbatched, one entry per member when batched."""
+        return self.h.to(torch.float64).sum(dim=(-2, -1)) * self.area
 
     def storage_volume(self) -> torch.Tensor:
-        return self.s_filled.to(torch.float64).sum() * self.area
+        return self.s_filled.to(torch.float64).sum(dim=(-2, -1)) * self.area
 
     # ------------------------------------------------------------- time step
+    # The reduction is global, over the batch as well as the grid: a batched run
+    # advances every member on the smallest step any member needs.
     def _max_rate(self, h, hu, hv):
         u, v = self.velocities(h, hu, hv)
         c = torch.sqrt(self.g * h)
@@ -237,46 +254,67 @@ class SWE2D:
         hx, ux, vx, zx = pad_axis(self.bcs, h, u, v, self.z, vals, self.ng, "x", self.g, self.cfg.h_dry)
         X = self._sweep(hx, ux, vx, zx)
         hy, uy, vy, zy = pad_axis(self.bcs, h, u, v, self.z, vals, self.ng, "y", self.g, self.cfg.h_dry)
-        Y = self._sweep(hy.T, vy.T, uy.T, zy.T)
+        tr = lambda a: a.transpose(-1, -2)          # x <-> y; batch dims untouched
+        Y = self._sweep(tr(hy), tr(vy), tr(uy), tr(zy))
         # conservative positivity limiter: a cell may not export more than it holds this step
         Fx, Gy = X[0], Y[0]
         out = ((torch.relu(Fx[..., 1:]) + torch.relu(-Fx[..., :-1])) / self.dx
-               + (torch.relu(Gy[..., 1:]) + torch.relu(-Gy[..., :-1])).T / self.dy)
+               + tr(torch.relu(Gy[..., 1:]) + torch.relu(-Gy[..., :-1])) / self.dy)
         need = out * dt
         theta = torch.where(need > h, h / torch.where(need > 0, need, torch.ones_like(need)), torch.ones_like(h))
         sx = self._donor_scale(Fx, theta)
-        sy = self._donor_scale(Gy, theta.T)
+        sy = self._donor_scale(Gy, tr(theta))
         a1, a2, a3 = self._assemble(Fx * sx, X[1], X[2] * sx, X[3], X[4], X[5], self.dx)
         b1, b2, b3 = self._assemble(Gy * sy, Y[1], Y[2] * sy, Y[3], Y[4], Y[5], self.dy)
-        dh = a1 + b1.T
-        dhu = a2 + b3.T
-        dhv = a3 + b2.T
+        dh = a1 + tr(b1)
+        dhu = a2 + tr(b3)
+        dhv = a3 + tr(b2)
         Fx, Gy = Fx * sx, Gy * sy
-        # gross boundary inflow / outflow rates (m^3/s), face by face
-        w, e, so, no = Fx[:, 0], Fx[:, -1], Gy[:, 0], Gy[:, -1]
-        qin = (torch.relu(w).sum() + torch.relu(-e).sum()) * self.dy + (torch.relu(so).sum() + torch.relu(-no).sum()) * self.dx
-        qout = (torch.relu(-w).sum() + torch.relu(e).sum()) * self.dy + (torch.relu(-so).sum() + torch.relu(no).sum()) * self.dx
+        # gross boundary inflow / outflow rates (m^3/s), face by face, per batch member
+        w, e, so, no = Fx[..., 0], Fx[..., -1], Gy[..., 0], Gy[..., -1]
+        qin = ((torch.relu(w).sum(-1) + torch.relu(-e).sum(-1)) * self.dy
+               + (torch.relu(so).sum(-1) + torch.relu(-no).sum(-1)) * self.dx)
+        qout = ((torch.relu(-w).sum(-1) + torch.relu(e).sum(-1)) * self.dy
+                + (torch.relu(-so).sum(-1) + torch.relu(no).sum(-1)) * self.dx)
         return dh, dhu, dhv, torch.stack([qin, qout])
 
     # ------------------------------------------------------------ one step
-    def step(self, dt: float, t: float, rain_rate: float = 0.0) -> StepVolumes:
-        sc = torch.tensor([dt, t, rain_rate] + edge_values(self.bcs, t) + edge_values(self.bcs, t + dt),
-                          dtype=self.dtype, device=self.device)
-        out = self._core(self.h, self.hu, self.hv, self.s_filled, self.infil_cum, sc)
+    def _pack(self, values) -> torch.Tensor:
+        """Stack per-member quantities into (len(values),) + batch_shape + (1, 1), so each
+        one broadcasts over the grid. A scalar applies to every member."""
+        tgt = self.bshape + (1, 1)
+        want = self.batch or 1
+        out = []
+        for v in values:
+            x = torch.as_tensor(v, dtype=self.dtype, device=self.device)
+            if x.numel() == 1:
+                out.append(x.reshape((1,) * len(tgt)).expand(tgt))
+            elif x.numel() == want:
+                out.append(x.reshape(tgt))
+            else:
+                raise ValueError(f"expected 1 or {want} values per step quantity, got {x.numel()}")
+        return torch.stack(out)
+
+    def step(self, dt: float, t: float, rain_rate=0.0) -> StepVolumes:
+        sc = torch.tensor([dt, t], dtype=self.dtype, device=self.device)
+        pm = self._pack([rain_rate] + edge_values(self.bcs, t) + edge_values(self.bcs, t + dt))
+        out = self._core(self.h, self.hu, self.hv, self.s_filled, self.infil_cum, sc, pm)
         self.h, self.hu, self.hv, self.s_filled, self.infil_cum = out[:5]
         return StepVolumes(*out[5:])
 
-    def _step_core(self, h0, hu0, hv0, s_filled, infil_cum, sc):
-        """Pure tensor update (compiled on CUDA). sc = [dt, t, rain, bc(t) x4, bc(t+dt) x4]."""
-        dt, t, rain_rate = sc[0], sc[1], sc[2]
-        vals0 = dict(zip(EDGES, sc[3:7]))
-        vals1 = dict(zip(EDGES, sc[7:11]))
+    def _step_core(self, h0, hu0, hv0, s_filled, infil_cum, sc, pm):
+        """Pure tensor update (compiled on CUDA).
+        sc = [dt, t] (shared); pm = [rain, bc(t) x4, bc(t+dt) x4] (per member)."""
+        dt, t = sc[0], sc[1]
+        rain_rate = pm[0]
+        vals0 = dict(zip(EDGES, pm[1:5]))
+        vals1 = dict(zip(EDGES, pm[5:9]))
         f64 = torch.float64
         d = self.rhs(h0, hu0, hv0, vals0, dt)
         h1, hu1, hv1 = h0 + dt * d[0], hu0 + dt * d[1], hv0 + dt * d[2]
         qin = d[3]
         neg = torch.clamp(-h1, min=0.0)
-        clip = neg.to(f64).sum() * self.area
+        clip = neg.to(f64).sum(dim=(-2, -1)) * self.area
         h1 = h1 + neg
         if self.order == 2:
             d2 = self.rhs(h1, hu1, hv1, vals1, dt)
@@ -285,19 +323,19 @@ class SWE2D:
             hv1 = 0.5 * (hv0 + hv1 + dt * d2[2])
             qin = 0.5 * (qin + d2[3])
             neg = torch.clamp(-h1, min=0.0)
-            clip = clip + neg.to(f64).sum() * self.area
+            clip = clip + neg.to(f64).sum(dim=(-2, -1)) * self.area
             h1 = h1 + neg
         bnd = qin.to(f64) * dt.to(f64)          # [in, out]
 
         # --- rainfall, infiltration, retention storage ---------------------
         if self.rain_weight is None:
             h1 = h1 + rain_rate * dt
-            rain_v = (rain_rate * dt).to(f64) * (self.nx * self.ny * self.area)
+            rain_v = (rain_rate * dt).to(f64).reshape(self.bshape) * (self.nx * self.ny * self.area)
         else:
             add = rain_rate * dt * self.rain_weight
             h1 = h1 + add
-            rain_v = add.to(f64).sum() * self.area
-        inf_v = torch.zeros((), dtype=f64, device=h1.device)
+            rain_v = add.to(f64).sum(dim=(-2, -1)) * self.area
+        inf_v = torch.zeros(self.bshape, dtype=f64, device=h1.device)
         if self.horton is not None:
             pot = self.horton.rate(t) * dt
             take_surf = torch.minimum(pot, h1)
@@ -311,7 +349,7 @@ class SWE2D:
                 s_filled = s_filled - take_store
                 taken = taken + take_store
             infil_cum = infil_cum + taken
-            inf_v = taken.to(f64).sum() * self.area
+            inf_v = taken.to(f64).sum(dim=(-2, -1)) * self.area
         if self.storage is not None:
             room = torch.clamp(self.storage - s_filled, min=0.0)
             fill = torch.minimum(room, h1)

@@ -1,0 +1,104 @@
+{
+  "provenance": {
+    "source": "SYNTHETIC",
+    "config_hash": "95f82786e6a18b05",
+    "seed": 20260917,
+    "git_commit": "467edf6-dirty",
+    "timestamp": "2026-09-18T09:07:26Z",
+    "device": "cuda",
+    "precision": "fp64",
+    "engine": "engine",
+    "notes": [
+      "batched dataset-generation throughput study"
+    ]
+  },
+  "grid": {
+    "nx": 400,
+    "ny": 325,
+    "dx": 20.0
+  },
+  "device": "cuda",
+  "total_gpu_mb": 6143.6875,
+  "memory_budget_mb": 3071.84375,
+  "stage": "full",
+  "scaling": [],
+  "chosen_batch": 8,
+  "full_length": {
+    "batch": 8,
+    "n_storms": 8,
+    "t_end_s": 30600.0,
+    "runs": [
+      {
+        "n": 8,
+        "loop_wall_s": 3622.0878760999985,
+        "steps": 90682,
+        "max_mass_error": 5.692594613382808e-15,
+        "peak_gpu_mb": 503.43798828125
+      }
+    ],
+    "total_loop_s": 3622.0878760999985,
+    "s_per_storm": 452.7609845124998,
+    "peak_gpu_mb": 503.43798828125,
+    "max_mass_error": 5.692594613382808e-15,
+    "sequential": [
+      {
+        "i": 0,
+        "loop_wall_s": 384.1549769999983,
+        "steps": 42494,
+        "mass_error": 2.655233278210598e-16,
+        "peak_depth_diff_m": 0.11504536867141724,
+        "peak_gpu_mb": 257.06201171875
+      },
+      {
+        "i": 1,
+        "loop_wall_s": 359.3613525999972,
+        "steps": 42200,
+        "mass_error": 1.0807275977912651e-15,
+        "peak_depth_diff_m": 0.1290254220366478,
+        "peak_gpu_mb": 64.68359375
+      }
+    ],
+    "s_per_storm_sequential": 371.75816479999776,
+    "speedup": 0.8210914312775426,
+    "worst_peak_depth_diff_m": 0.1290254220366478,
+    "peak_depth_bound_m": 0.001,
+    "shared_timestep_within_bound": false
+  },
+  "profile": [
+    {
+      "batch": 1,
+      "dt_2d": 0.3361804998712614,
+      "dt_1d": 0.2591047501118737,
+      "exchange": 1.9891962497968052,
+      "step_2d": 6.272208500067791,
+      "step_1d": 1.9143270001222845,
+      "accounting": 0.08750624987442279,
+      "total": 10.858523249844438,
+      "per_storm": 10.858523249844438
+    },
+    {
+      "batch": 8,
+      "dt_2d": 1.4066774998900655,
+      "dt_1d": 0.30179150011463207,
+      "exchange": 2.1043074997214717,
+      "step_2d": 38.361359250047826,
+      "step_1d": 2.2929167500478798,
+      "accounting": 0.12439024996638182,
+      "total": 44.59144274978826,
+      "per_storm": 5.573930343723532
+    }
+  ],
+  "speedup_short_window": null,
+  "projection": {
+    "60": 7.5460164085416634,
+    "150": 18.86504102135416,
+    "300": 37.73008204270832,
+    "400": 50.30677605694443
+  },
+  "projection_sequential": {
+    "60": 6.195969413333296,
+    "150": 15.48992353333324,
+    "300": 30.97984706666648,
+    "400": 41.30646275555531
+  }
+}

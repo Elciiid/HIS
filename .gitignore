@@ -13,3 +13,7 @@ artifacts/*
 !artifacts/config_benchmark.json
 !artifacts/precision_study.md
 !artifacts/precision_study.json
+!artifacts/batch_throughput.md
+!artifacts/batch_throughput.json
+!artifacts/batch_measured.json
+!artifacts/batch_study.log

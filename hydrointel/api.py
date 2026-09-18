@@ -199,6 +199,77 @@ def simulate(site: SiteState, scenario: Scenario, output_interval_s: float | Non
                 **exposure_metrics(h.amax(0), scenario)})
 
 
+def simulate_batch(sites: list[SiteState], scenarios: list[Scenario],
+                   output_interval_s: float | None = None) -> list[FloodResult]:
+    """Run B storms together on one set of kernels and return one FloodResult each.
+
+    The members share the terrain and the storm time base; everything else -- site
+    state, return period, climate pathway, tide -- is per member, as is the mass
+    balance, which is asserted per member so one bad storm cannot hide inside a
+    batch average. They also share a time step (the smallest any member needs), so
+    a batched run is not bit-identical to running the storms one at a time; see
+    tests/test_batched_solver.py for the measured size of that difference.
+    """
+    from .engine import build_engine_batch, build_forcing
+    ctx = context()
+    cfg, dom = ctx.cfg, ctx.domain
+    if len(sites) != len(scenarios):
+        raise ValueError(f"{len(sites)} sites but {len(scenarios)} scenarios")
+    if not sites:
+        return []
+    if len(sites) == 1:
+        # a batch of one is the plain solver: use the path the benchmark suite verifies
+        return [simulate(sites[0], scenarios[0], output_interval_s)]
+    checks = []
+    for s, sc in zip(sites, scenarios):
+        _validate_scenario(sc)
+        checks.append(check_site(s, sc))
+    area = dom.nx * dom.ny * dom.dx ** 2 / 1e6
+    fos = [build_forcing(cfg, sc.return_period_yr, sc.rcp, sc.ssp, sc.horizon_year, sc.tide_on,
+                         sc.storm_tide_offset_h, area) for sc in scenarios]
+    lus = [ctx.landuse(sc.ssp, sc.horizon_year) for sc in scenarios]
+    eng, bf = build_engine_batch(cfg, dom, fos, [_np(s.storage_depth) for s in sites],
+                                 [_np(s.infil_multiplier) for s in sites], [_np(s.manning) for s in sites],
+                                 [_np(s.channel_gamma) for s in sites], lus, device=ctx.device)
+    snaps = []
+    times = bf.times(output_interval_s or cfg.solver.output_interval_s)
+    err = eng.run(bf.t_end, out_times=times, on_snapshot=snaps.append,
+                  label=f"batch of {len(sites)}: " + "; ".join(_label(sc) for sc in scenarios[:4]))
+    interior = torch.as_tensor(eng.one.topo.kind <= 1)
+    st = lambda k: torch.as_tensor(np.stack([getattr(s, k) for s in snaps]))
+    h_all, u_all, v_all = st("h"), st("u"), st("v")
+    eta_all, q_all = st("eta1")[:, :, interior], st("q1")[:, :, interior]
+    t_all = torch.as_tensor(np.array([x.t for x in snaps]))
+    src = eng.mb.sources()
+    storage_v = eng.two.storage_volume().detach().cpu().numpy()
+    prov = ctx.provenance("engine")
+    out = []
+    for b, (sc, fo) in enumerate(zip(scenarios, fos)):
+        s_b = {k: float(v[b]) for k, v in src.items()}
+        h = h_all[:, b]
+        out.append(FloodResult(
+            depth_max=h.amax(0), depth_series=h, u=u_all[:, b], v=v_all[:, b],
+            channel_eta=eta_all[:, b], channel_q=q_all[:, b], times=t_all,
+            infiltrated_volume_m3=s_b["infiltration"], stored_volume_m3=float(storage_v[b]),
+            mass_balance_error=float(err[b]), provenance=prov,
+            in_distribution=checks[b][0], distribution_warnings=checks[b][1],
+            extras={"forcing": fo, "batch_index": b, "batch_size": len(sites),
+                    # steps and wall time belong to the whole batch; the exchange totals are this member's
+                    "run_log": dataclasses.replace(eng.log, exchanged_in_m3=float(eng.log.exchanged_in_m3[b]),
+                                                   exchanged_out_m3=float(eng.log.exchanged_out_m3[b]),
+                                                   series=[]),
+                    "mass_series": [{k: (v[b] if getattr(v, "ndim", 0) else v) for k, v in rec.items()}
+                                    for rec in eng.mb.series],
+                    "sources": s_b, "channel_cells": np.nonzero(eng.one.topo.kind <= 1)[0],
+                    "topology": eng.one.topo,
+                    "ledger": [{k: (v[b] if getattr(v, "ndim", 0) else v) for k, v in x.ledger.items()}
+                               for x in snaps],
+                    "boundary_in_m3": s_b["bnd2d_in"] + s_b["bnd1d_in"],
+                    "boundary_out_m3": s_b["bnd2d_out"] + s_b["bnd1d_out"],
+                    **exposure_metrics(h.amax(0), sc)}))
+    return out
+
+
 def predict(site: SiteState, scenario: Scenario, output_interval_s: float | None = None) -> FloodResult:
     """Evaluate the trained GeoKAN-PINO surrogate. Raises if no trained model exists."""
     ctx = context()

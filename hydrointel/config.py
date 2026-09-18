@@ -162,6 +162,13 @@ class ForcingConfig:
 @dataclass
 class DataConfig:
     n_sims: int = 400
+    # Storms advanced together on one set of kernels. Default 1 -- batching OFF -- on
+    # measurement, not on principle. Over a full storm a batch of 8 was 1.22x SLOWER
+    # per storm (453 s against 372 s): the shared time step made it run 1.89x more
+    # steps than a member needs alone, which more than cancelled the 1.84x it gained
+    # per step. It also moved peak depths by ~120 mm. Raise it only for a batch of
+    # storms with similar time-step demand; see artifacts/batch_throughput.md.
+    batch: int = 1
     test_frac: float = 0.15
     val_frac: float = 0.10
     coarsen: int = 2
@@ -293,6 +300,7 @@ def quick_config(cfg: RunConfig | None = None) -> RunConfig:
     cfg.domain.street_width_m = 80.0
     cfg.domain.channel_node_spacing_m = 160.0
     cfg.data.n_sims = 8
+    cfg.data.batch = 4
     cfg.data.coarsen = 1
     cfg.forcing.storm_duration_h = 0.5
     cfg.forcing.spinup_h = 0.1

@@ -8,7 +8,12 @@ Each edge (west/east/south/north) carries an ``EdgeBC``:
                 (subcritical in- and outflow), zero-gradient if supercritical out
   discharge     imposed inflow per unit width q(t) [m^2/s] (positive = into domain)
 
-``value`` may be a float or a callable of time returning a float.
+``value`` may be a float or a callable of time returning a float. For a batched
+run it may also return one value per batch member (array or 1-D tensor); the
+solver reshapes it to broadcast over the grid.
+
+Every routine here addresses the grid through the last two dimensions, so the
+same code serves a single (ny, nx) state and a batched (B, ny, nx) one.
 """
 from __future__ import annotations
 
@@ -31,11 +36,13 @@ class EdgeBC:
         if self.kind in ("stage", "discharge") and self.value is None:
             raise ValueError(f"boundary kind '{self.kind}' needs a value")
 
-    def at(self, t: float) -> float:
-        return float(self.value(t)) if callable(self.value) else float(self.value)
+    def at(self, t: float):
+        """Boundary value at time t: a float, or one value per batch member."""
+        v = self.value(t) if callable(self.value) else self.value
+        return v if (torch.is_tensor(v) or hasattr(v, "shape")) else float(v)
 
 
-def edge_values(bcs: dict[str, EdgeBC], t: float) -> list[float]:
+def edge_values(bcs: dict[str, EdgeBC], t: float) -> list:
     return [bcs[e].at(t) if bcs[e].kind in ("stage", "discharge") else 0.0 for e in EDGES]
 
 
@@ -80,19 +87,24 @@ def pad_axis(bcs: dict[str, EdgeBC], h, u, v, z, vals, ng: int, axis: str, g: fl
     the wall mass flux is exactly zero. Stage and discharge ghosts repeat one state."""
     if axis == "x":
         lo, hi = "west", "east"
-        dim = 1
+        dim = -1
         un_c, ut_c = u, v
     else:
         lo, hi = "south", "north"
-        dim = 0
+        dim = -2
         un_c, ut_c = v, u
     n = h.shape[dim]
-    size = (-1, ng) if dim == 1 else (ng, -1)
+
+    def widen(a):
+        """Repeat a one-cell-thick ghost slab out to ``ng`` layers, at whatever rank."""
+        shp = list(a.shape)
+        shp[dim] = ng
+        return a.expand(*shp)
 
     def mirror(a, side):
         # plain slicing + flip (index tensors trip an Inductor scheduler bug)
         if n < ng:
-            return a.narrow(dim, 0 if side == lo else n - 1, 1).expand(*size)
+            return widen(a.narrow(dim, 0 if side == lo else n - 1, 1))
         if side == lo:
             return a.narrow(dim, 0, ng).flip(dim)          # outermost ghost = layer ng-1
         return a.narrow(dim, n - ng, ng).flip(dim)         # adjacent ghost = layer n-1
@@ -108,11 +120,17 @@ def pad_axis(bcs: dict[str, EdgeBC], h, u, v, z, vals, ng: int, axis: str, g: fl
         un, ut = sgn * take(un_c, side), take(ut_c, side)
         hg, ung, utg, zg = edge_ghost(bc, hh, un, ut, zz, vals[side], g, h_dry)
         if take is first:
-            hg, ung, utg, zg = (t.expand(*size) for t in (hg, ung, utg, zg))
+            hg, ung, utg, zg = (widen(x) for x in (hg, ung, utg, zg))
         un_back = sgn * ung
         comps = (hg, un_back, utg, zg) if axis == "x" else (hg, utg, un_back, zg)
         parts[side] = comps
-    out = []
-    for k, a in enumerate((h, u, v, z)):
-        out.append(torch.cat([parts[lo][k], a, parts[hi][k]], dim=dim))
+    out = [torch.cat(_align((parts[lo][k], a, parts[hi][k]), dim), dim=dim) for k, a in enumerate((h, u, v, z))]
     return out
+
+
+def _align(tensors, dim: int):
+    """Broadcast ``tensors`` against each other on every dimension but ``dim``, so they
+    can be concatenated. A per-member boundary value may batch a field the interior
+    does not (the bed is shared by every member; the tidal stage is not)."""
+    flat = torch.broadcast_shapes(*(t.shape[:dim] + t.shape[dim:][1:] for t in tensors))
+    return [t.expand(*flat[:len(flat) + dim + 1], t.shape[dim], *flat[len(flat) + dim + 1:]) for t in tensors]

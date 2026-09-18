@@ -1,0 +1,698 @@
+========================================================================
+ hydrointel batch-study   config hash 37e84636c5330217   device cuda
+========================================================================
+{
+ "data": {
+  "baseline_frac": 0.15,
+  "batch": 8,
+  "coarsen": 2,
+  "gamma_range": [
+   0.8,
+   2.0
+  ],
+  "horizon_range": [
+   2030,
+   2100
+  ],
+  "kappa_range": [
+   1.0,
+   6.0
+  ],
+  "manning_perturb": 0.25,
+  "n_sims": 400,
+  "offset_range_h": [
+   -6.0,
+   6.0
+  ],
+  "return_periods": [
+   10,
+   25,
+   50,
+   100
+  ],
+  "storage_range_m": [
+   0.0,
+   1.5
+  ],
+  "test_frac": 0.15,
+  "tide_on_prob": 0.8,
+  "val_frac": 0.1
+ },
+ "device": "auto",
+ "domain": {
+  "block_raise_range_m": [
+   0.2,
+   0.4
+  ],
+  "building_raise_m": 0.3,
+  "cell_m": 20.0,
+  "channel_incision_range_m": [
+   2.5,
+   4.0
+  ],
+  "channel_manning": 0.03,
+  "channel_node_spacing_m": 100.0,
+  "channel_side_slope": 1.5,
+  "channel_width_m": 60.0,
+  "creek_incision_range_m": [
+   1.0,
+   2.0
+  ],
+  "creek_width_m": 25.0,
+  "floodplain_rise_m": 6.0,
+  "floodplain_width_range_m": [
+   1500.0,
+   3000.0
+  ],
+  "hill_height_range_m": [
+   20.0,
+   40.0
+  ],
+  "inland_elev_range_m": [
+   15.0,
+   25.0
+  ],
+  "lx_m": 8000.0,
+  "ly_m": 6500.0,
+  "meander_amp_m": 450.0,
+  "micro_noise_amp_m": 0.1,
+  "n_creeks": 2,
+  "n_hills": 3,
+  "offshore_elev_m": -1.0,
+  "offshore_width_m": 300.0,
+  "plain_top_m": 2.0,
+  "plain_width_m": 2000.0,
+  "river_entry_x_frac": 0.72,
+  "river_mouth_x_frac": 0.52,
+  "smoothing_passes": 1,
+  "street_spacing_m": 100.0,
+  "street_width_m": 20.0,
+  "urban_radius_m": 1600.0
+ },
+ "forcing": {
+  "apply_arf": true,
+  "catchment": {
+   "area_km2": 120.0,
+   "baseflow_m3s": 15.0,
+   "runoff_coeff": 0.45,
+   "storage_k_h": 2.0,
+   "tc_h": 3.0
+  },
+  "idf": {
+   "a": 609.0,
+   "b": 0.18,
+   "c": 12.0,
+   "e": 0.7
+  },
+  "peak_position": 0.5,
+  "spinup_h": 0.5,
+  "storm_duration_h": 6.0,
+  "storm_step_min": 5.0,
+  "tide": {
+   "constituents": {
+    "K1": {
+     "amp_m": 0.26,
+     "period_h": 23.9344697,
+     "phase_deg": 60.0
+    },
+    "M2": {
+     "amp_m": 0.36,
+     "period_h": 12.4206012,
+     "phase_deg": 0.0
+    },
+    "O1": {
+     "amp_m": 0.2,
+     "period_h": 25.8193417,
+     "phase_deg": 110.0
+    },
+    "S2": {
+     "amp_m": 0.14,
+     "period_h": 12.0,
+     "phase_deg": 30.0
+    }
+   },
+   "msl_offset_m": 0.0
+  }
+ },
+ "model": {
+  "degree": 5,
+  "forcing_steps": 96,
+  "latent": 32,
+  "n_blocks": 4,
+  "spectral_modes": 12,
+  "time_fourier": 8
+ },
+ "outdir": "artifacts",
+ "quick": false,
+ "seed": 20260917,
+ "solver": {
+  "cfl": 0.45,
+  "cfl_1d": 0.45,
+  "compile": true,
+  "dt_max": 5.0,
+  "dt_min": 0.0001,
+  "exchange_limit": 0.5,
+  "exchange_relax": 0.5,
+  "flux": "hllc",
+  "g": 9.81,
+  "h_dry": 0.001,
+  "kp_eps": 1e-12,
+  "mass_tol": 0.001,
+  "output_interval_s": 900.0,
+  "precision": "fp64",
+  "recession_h": 2.0,
+  "slot_width_frac": 0.015,
+  "spatial_order": 2,
+  "weir_cw": 1.7
+ },
+ "train": {
+  "amp": true,
+  "balance_alpha": 0.9,
+  "balance_every": 50,
+  "ckpt_every": 1000,
+  "curriculum_frac": 0.15,
+  "grad_clip": 1.0,
+  "log_every": 25,
+  "lr": 0.002,
+  "query_times": 6,
+  "ramp_frac": 0.1,
+  "steps": 40000,
+  "val_every": 500,
+  "weight_decay": 1e-06
+ }
+}
+[ETA] batch throughput study: no earlier timing on record; progress lines report measured ETAs as work proceeds
+2026-09-18 08:56:51,593 WARNING hydrointel.io: no artifacts\inputs\manifest.json found: running on SYNTHETIC terrain. Results are not predictions for any real place.
+2026-09-18 08:56:53,291 INFO hydrointel.domain: synthetic domain 400 x 325 @ 20 m, 5426 pits filled
+remark: coaeheh3tcxmeaoylj4xqwzac7yodxfkmwxyht2pfjna7j2egelf.py:18:0: 9 instructions in function
+remark: crv6ea2lvrr744lftxleu2t6kpln74olytzh4pcqcov6avwhzcsa.py:18:0: 78 instructions in function
+remark: crv6ea2lvrr744lftxleu2t6kpln74olytzh4pcqcov6avwhzcsa.py:18:0: 48 instructions in function
+remark: c44jevsq6glgobsqmzj2wiwd6xtuxgaeefg3jnfv2bdtdxm6xx7x.py:18:0: 321 instructions in function
+remark: c44jevsq6glgobsqmzj2wiwd6xtuxgaeefg3jnfv2bdtdxm6xx7x.py:18:0: 93 instructions in function
+remark: cskibhwcij4las3kh5vngidf3qq2xgklvcnj4q4faiawtwcysu3y.py:18:0: 498 instructions in function
+remark: cskibhwcij4las3kh5vngidf3qq2xgklvcnj4q4faiawtwcysu3y.py:18:0: 136 instructions in function
+remark: cipgij4u5opyba27gnv75tvnwypmubm3rzcsre6hzzab5m4bodi2.py:18:0: 573 instructions in function
+remark: cipgij4u5opyba27gnv75tvnwypmubm3rzcsre6hzzab5m4bodi2.py:18:0: 158 instructions in function
+remark: cawxok4gqdjca553umv7ertbouomfcnktljt6dod7tf3xadsal47.py:18:0: 673 instructions in function
+remark: cawxok4gqdjca553umv7ertbouomfcnktljt6dod7tf3xadsal47.py:18:0: 181 instructions in function
+remark: cmsmaxn2thsajbv52rrhprapshaakopxlmpb32yekmyg5367agl4.py:18:0: 182 instructions in function
+remark: cmsmaxn2thsajbv52rrhprapshaakopxlmpb32yekmyg5367agl4.py:18:0: 55 instructions in function
+remark: c5ylr6vfvv3zz3hkup35jykyhvzs6wyfwpxl3wrihpqyafowjhxn.py:18:0: 984 instructions in function
+remark: c5ylr6vfvv3zz3hkup35jykyhvzs6wyfwpxl3wrihpqyafowjhxn.py:18:0: 230 instructions in function
+remark: cl4fkuudujxjhgl5lc3rskr2oz6be54msfwvem4inipqfebqp3wt.py:18:0: 1318 instructions in function
+remark: cl4fkuudujxjhgl5lc3rskr2oz6be54msfwvem4inipqfebqp3wt.py:18:0: 314 instructions in function
+remark: czcpyxz43c5odfy46ryghura4c2upcpyt3oo6rp4nnqa733muca2.py:18:0: 1230 instructions in function
+remark: czcpyxz43c5odfy46ryghura4c2upcpyt3oo6rp4nnqa733muca2.py:18:0: 324 instructions in function
+remark: clwgw7dx5eszev4h5f47hu4jz7x7an7hk6dlnsjgxeuz6ycwtuti.py:18:0: 1322 instructions in function
+remark: clwgw7dx5eszev4h5f47hu4jz7x7an7hk6dlnsjgxeuz6ycwtuti.py:18:0: 345 instructions in function
+remark: c4kvej4b7up6ipsrtfo6tuteaoql6imd5s4vxxpks2dr7wgcjxrf.py:18:0: 602 instructions in function
+remark: c4kvej4b7up6ipsrtfo6tuteaoql6imd5s4vxxpks2dr7wgcjxrf.py:18:0: 173 instructions in function
+remark: cig64no4bfrhbx2pzd6phkci3p3qtl7hxwlcsevrqoghc5c7qinq.py:18:0: 205 instructions in function
+remark: cig64no4bfrhbx2pzd6phkci3p3qtl7hxwlcsevrqoghc5c7qinq.py:18:0: 61 instructions in function
+remark: cvsvd7oomzzsadcz4bjega4l3jrt52l5eu6ie5rxmeoorabfc6bn.py:18:0: 212 instructions in function
+remark: cdjbbmh6lb6wp44foor6yw3hzt32zyzkgspudgqi4pwiujdz7xzt.py:18:0: 216 instructions in function
+remark: clxrmytpwae2fzu5vkpdmw3pntuu6cfntitbcfaa5ptvzmrmdrfy.py:18:0: 271 instructions in function
+remark: clxrmytpwae2fzu5vkpdmw3pntuu6cfntitbcfaa5ptvzmrmdrfy.py:18:0: 587 instructions in function
+remark: clxrmytpwae2fzu5vkpdmw3pntuu6cfntitbcfaa5ptvzmrmdrfy.py:18:0: 587 instructions in function
+remark: clxrmytpwae2fzu5vkpdmw3pntuu6cfntitbcfaa5ptvzmrmdrfy.py:18:0: 593 instructions in function
+remark: clxrmytpwae2fzu5vkpdmw3pntuu6cfntitbcfaa5ptvzmrmdrfy.py:18:0: 224 instructions in function
+remark: clxrmytpwae2fzu5vkpdmw3pntuu6cfntitbcfaa5ptvzmrmdrfy.py:18:0: 224 instructions in function
+remark: cvwhlwbipjzxtngd7at56aqn4ta67txgwpzf56mg6b6rqm36hzjs.py:18:0: 1277 instructions in function
+remark: cvwhlwbipjzxtngd7at56aqn4ta67txgwpzf56mg6b6rqm36hzjs.py:18:0: 2472 instructions in function
+remark: cvwhlwbipjzxtngd7at56aqn4ta67txgwpzf56mg6b6rqm36hzjs.py:18:0: 2408 instructions in function
+remark: cvwhlwbipjzxtngd7at56aqn4ta67txgwpzf56mg6b6rqm36hzjs.py:18:0: 2378 instructions in function
+remark: cvwhlwbipjzxtngd7at56aqn4ta67txgwpzf56mg6b6rqm36hzjs.py:18:0: 1206 instructions in function
+remark: cvwhlwbipjzxtngd7at56aqn4ta67txgwpzf56mg6b6rqm36hzjs.py:18:0: 1198 instructions in function
+remark: crcmal2tjs5mzi7ual6kbhbp42t7a7kap42577pxvbg5yvcabvii.py:18:0: 215 instructions in function
+remark: chwa3zeexd55mrrrzn67moqb4gwiwmb2hqcokehkkrurpwwwatcl.py:18:0: 218 instructions in function
+remark: cqt6rusngbmewd5zd4utrl6e6lrqc4rclil2zat5vkxgs3a5eyo4.py:18:0: 110 instructions in function
+remark: cqt6rusngbmewd5zd4utrl6e6lrqc4rclil2zat5vkxgs3a5eyo4.py:18:0: 69 instructions in function
+remark: cwcmnw5xtj6rogskap6x2qdsvlj2qlyuc5yywf7dfbuwszklppxx.py:18:0: 684 instructions in function
+remark: cwcmnw5xtj6rogskap6x2qdsvlj2qlyuc5yywf7dfbuwszklppxx.py:18:0: 185 instructions in function
+remark: cgpfejy5owr4zc6s4ndswndit2ehg36qbz7bwrjg6bneimvmz3xg.py:18:0: 714 instructions in function
+remark: cgpfejy5owr4zc6s4ndswndit2ehg36qbz7bwrjg6bneimvmz3xg.py:18:0: 194 instructions in function
+remark: crepzjpextpcsf4ykhwiio6qew53lq7krbwhkrp7roarsl4x7cgw.py:18:0: 345 instructions in function
+remark: crepzjpextpcsf4ykhwiio6qew53lq7krbwhkrp7roarsl4x7cgw.py:18:0: 93 instructions in function
+remark: ctikt2jageyxgdmdu3qh23b47t3htlsd3ehdu6csz46gxccd6fyb.py:18:0: 370 instructions in function
+remark: ctikt2jageyxgdmdu3qh23b47t3htlsd3ehdu6csz46gxccd6fyb.py:18:0: 106 instructions in function
+remark: cbhwoupihmrki5754rsjfg5gkskynvgt5cxvdzswmekkjobnwt2u.py:18:0: 892 instructions in function
+remark: cbhwoupihmrki5754rsjfg5gkskynvgt5cxvdzswmekkjobnwt2u.py:18:0: 227 instructions in function
+remark: cjngza3x7drggrkj7oasl5mos7mepf4wtvugciclb7eg5nurudem.py:18:0: 1503 instructions in function
+remark: cjngza3x7drggrkj7oasl5mos7mepf4wtvugciclb7eg5nurudem.py:18:0: 389 instructions in function
+remark: cvyp6o7e2t5wnp6sca5as3rsrmtuegmlvcfuk3apojqemuwgydp3.py:18:0: 570 instructions in function
+remark: cvyp6o7e2t5wnp6sca5as3rsrmtuegmlvcfuk3apojqemuwgydp3.py:18:0: 156 instructions in function
+remark: cg43h7jmjq755rlvhelimq77xuiiinbwdq4ftihrofwwq4a4qann.py:18:0: 655 instructions in function
+remark: cg43h7jmjq755rlvhelimq77xuiiinbwdq4ftihrofwwq4a4qann.py:18:0: 187 instructions in function
+remark: c6utn2yjiayinandzv5ffa7pad63qqqrpkp7e4xmgsopol2dq3sq.py:18:0: 51 instructions in function
+remark: c2n3qk2f3mntapaj4fpaya3jpbv4g5kh43jwk7ykhlo2pwtvekrd.py:18:0: 3171 instructions in function
+remark: <unknown>:0:0: 187 instructions in function
+remark: c2n3qk2f3mntapaj4fpaya3jpbv4g5kh43jwk7ykhlo2pwtvekrd.py:18:0: 6238 instructions in function
+remark: <unknown>:0:0: 187 instructions in function
+remark: c2n3qk2f3mntapaj4fpaya3jpbv4g5kh43jwk7ykhlo2pwtvekrd.py:18:0: 6145 instructions in function
+remark: <unknown>:0:0: 187 instructions in function
+remark: c2n3qk2f3mntapaj4fpaya3jpbv4g5kh43jwk7ykhlo2pwtvekrd.py:18:0: 6129 instructions in function
+remark: <unknown>:0:0: 187 instructions in function
+remark: c2n3qk2f3mntapaj4fpaya3jpbv4g5kh43jwk7ykhlo2pwtvekrd.py:18:0: 3077 instructions in function
+remark: <unknown>:0:0: 187 instructions in function
+remark: c2n3qk2f3mntapaj4fpaya3jpbv4g5kh43jwk7ykhlo2pwtvekrd.py:18:0: 3075 instructions in function
+remark: <unknown>:0:0: 187 instructions in function
+remark: c4xjmcn7tm7arjg4wmmrnxtxb6cqm7wqkje64llnt2iew2koxbmy.py:18:0: 189 instructions in function
+remark: cr2tzh47kirlgw6hvrax6nxqsen6av4cercyurnjkes3feon2uh6.py:18:0: 308 instructions in function
+remark: cbjpcsbfm7vyv4gmaqlevy3f56im5uuahrzkbc4hkys3n7vyhtka.py:18:0: 87 instructions in function
+remark: c2t6lkrdo34mibw2km7fijehltrpsmncrpreoq26lke24on3yrk2.py:18:0: 47 instructions in function
+2026-09-18 08:57:55,875 INFO hydrointel.bench: warmed up batch 1 in 62 s (compilation, excluded from the timings)
+2026-09-18 09:15:05,692 INFO hydrointel.bench: batch 1: 1029.5 s for 16 storms (64.3 s/storm), peak 147.0068359375 MB
+remark: ctdke5xr4o2oy2up3pwreperb5r4glahowqxz5excj24oju3rydw.py:18:0: 219 instructions in function
+remark: ctdke5xr4o2oy2up3pwreperb5r4glahowqxz5excj24oju3rydw.py:18:0: 63 instructions in function
+remark: ctvbd3sklu4v3oeeqepx6mwxgine7p3d7nlgvdnvf5busnclptbv.py:18:0: 192 instructions in function
+remark: cygc3fo7jy4wc6bcl6hx2y6vhsmp3m6odf3qbjjc5kfn7bbo6w5e.py:18:0: 114 instructions in function
+remark: cs6ghvogad6pvrv64zkok3f5zkwcjsbvkp4ost5sm2nnsjfhv4gw.py:18:0: 18 instructions in function
+remark: cbqzjjbkykiyb4i4i4eutib5vjczfblcf7wn7czuwpmfa2vma73c.py:18:0: 25 instructions in function
+remark: cbqzjjbkykiyb4i4i4eutib5vjczfblcf7wn7czuwpmfa2vma73c.py:18:0: 16 instructions in function
+remark: cbvg2stxedpojffds4xh22sspgwgrb53allkyt62axniszme3poa.py:18:0: 25 instructions in function
+remark: cbvg2stxedpojffds4xh22sspgwgrb53allkyt62axniszme3poa.py:18:0: 16 instructions in function
+remark: cffwrs3k5q32jawbccapkk2q5kjczaghxiw22m3kjm6roaoo7pok.py:18:0: 86 instructions in function
+remark: cffwrs3k5q32jawbccapkk2q5kjczaghxiw22m3kjm6roaoo7pok.py:18:0: 56 instructions in function
+remark: c5tvkfxjgxq6h54quodjxvhsrfm3qfjzjhwnmr3iuukotqixmztl.py:18:0: 369 instructions in function
+remark: c5tvkfxjgxq6h54quodjxvhsrfm3qfjzjhwnmr3iuukotqixmztl.py:18:0: 104 instructions in function
+remark: cepl72ykg7bmlhmraad5ge3ojb3dpgem3hkjcxnp2z5d6bglm4ja.py:18:0: 518 instructions in function
+remark: cepl72ykg7bmlhmraad5ge3ojb3dpgem3hkjcxnp2z5d6bglm4ja.py:18:0: 141 instructions in function
+remark: cmtuokdoaf5uudrowhomydhmndu5rvp34w2tuws2ztzkwshthvj3.py:18:0: 660 instructions in function
+remark: cmtuokdoaf5uudrowhomydhmndu5rvp34w2tuws2ztzkwshthvj3.py:18:0: 178 instructions in function
+remark: ci33u5am4ntce6mier3jiyxc6detozcdhs6b3xlhxa5zuyoyr7pc.py:18:0: 797 instructions in function
+remark: ci33u5am4ntce6mier3jiyxc6detozcdhs6b3xlhxa5zuyoyr7pc.py:18:0: 212 instructions in function
+remark: cwn4uk4dyqlpajvcg7xjnpdphrcnbrqyiprprnfwkewdyncau5k3.py:18:0: 254 instructions in function
+remark: cwn4uk4dyqlpajvcg7xjnpdphrcnbrqyiprprnfwkewdyncau5k3.py:18:0: 71 instructions in function
+remark: c5zixye2w7lhtadcm4jahp2aye3qfhoozdc7ag4qan4bvvdeezch.py:18:0: 1065 instructions in function
+remark: c5zixye2w7lhtadcm4jahp2aye3qfhoozdc7ag4qan4bvvdeezch.py:18:0: 256 instructions in function
+remark: cojk7ycwf2loiernvlkabapnsupmz2jhuqpgwmrxuvad4dvqzrni.py:18:0: 1291 instructions in function
+remark: cojk7ycwf2loiernvlkabapnsupmz2jhuqpgwmrxuvad4dvqzrni.py:18:0: 337 instructions in function
+remark: ci24mas3zbbkr3on5r3u2mg5ln3s4e34vl4vyg4smv3rsmb46nyj.py:18:0: 1365 instructions in function
+remark: ci24mas3zbbkr3on5r3u2mg5ln3s4e34vl4vyg4smv3rsmb46nyj.py:18:0: 356 instructions in function
+remark: c4da53odnwox4nxvuitjvit4fp2pu5thlvsqdb5wbnwzzlna2xor.py:18:0: 1467 instructions in function
+remark: c4da53odnwox4nxvuitjvit4fp2pu5thlvsqdb5wbnwzzlna2xor.py:18:0: 2880 instructions in function
+remark: c4da53odnwox4nxvuitjvit4fp2pu5thlvsqdb5wbnwzzlna2xor.py:18:0: 2873 instructions in function
+remark: c4da53odnwox4nxvuitjvit4fp2pu5thlvsqdb5wbnwzzlna2xor.py:18:0: 2886 instructions in function
+remark: c4da53odnwox4nxvuitjvit4fp2pu5thlvsqdb5wbnwzzlna2xor.py:18:0: 1420 instructions in function
+remark: c4da53odnwox4nxvuitjvit4fp2pu5thlvsqdb5wbnwzzlna2xor.py:18:0: 1542 instructions in function
+remark: cl4pt24u52dvfrxop2iljgqdxulz3qyqmzsqt2qaqkgbeoma5nhw.py:18:0: 649 instructions in function
+remark: cl4pt24u52dvfrxop2iljgqdxulz3qyqmzsqt2qaqkgbeoma5nhw.py:18:0: 1245 instructions in function
+remark: cl4pt24u52dvfrxop2iljgqdxulz3qyqmzsqt2qaqkgbeoma5nhw.py:18:0: 1205 instructions in function
+remark: cl4pt24u52dvfrxop2iljgqdxulz3qyqmzsqt2qaqkgbeoma5nhw.py:18:0: 1237 instructions in function
+remark: cl4pt24u52dvfrxop2iljgqdxulz3qyqmzsqt2qaqkgbeoma5nhw.py:18:0: 558 instructions in function
+remark: cl4pt24u52dvfrxop2iljgqdxulz3qyqmzsqt2qaqkgbeoma5nhw.py:18:0: 626 instructions in function
+remark: cly3t2vn65vv2soufm3gufoyucpdvqqxp5yg3rptxhi4pjakkol6.py:18:0: 324 instructions in function
+remark: cly3t2vn65vv2soufm3gufoyucpdvqqxp5yg3rptxhi4pjakkol6.py:18:0: 89 instructions in function
+remark: cddyq7vrqiavd5l66oozasinjflzxui7ocziex2vxvfemvmlxewe.py:18:0: 383 instructions in function
+remark: cyvp2h5m5xo7ugbgjrbk66z3vm5igafrsty2vbtxjqakr2w6wg6t.py:18:0: 35 instructions in function
+remark: cnb4yxnde6tj6dhycldqjbaykijrf3sls5umrrm4sftjhted7wyw.py:18:0: 383 instructions in function
+remark: c2rrrcagye56xk2timbui3oauyntnqrpn4h773lr4lsnb7q5zwso.py:18:0: 321 instructions in function
+remark: c2rrrcagye56xk2timbui3oauyntnqrpn4h773lr4lsnb7q5zwso.py:18:0: 693 instructions in function
+remark: c2rrrcagye56xk2timbui3oauyntnqrpn4h773lr4lsnb7q5zwso.py:18:0: 689 instructions in function
+remark: c2rrrcagye56xk2timbui3oauyntnqrpn4h773lr4lsnb7q5zwso.py:18:0: 685 instructions in function
+remark: c2rrrcagye56xk2timbui3oauyntnqrpn4h773lr4lsnb7q5zwso.py:18:0: 251 instructions in function
+remark: c2rrrcagye56xk2timbui3oauyntnqrpn4h773lr4lsnb7q5zwso.py:18:0: 348 instructions in function
+remark: cq2qmve2k5sqbdlhuqcueynp563bmq7u4x57wvp4gr7cnyitzngo.py:18:0: 1268 instructions in function
+remark: cq2qmve2k5sqbdlhuqcueynp563bmq7u4x57wvp4gr7cnyitzngo.py:18:0: 2486 instructions in function
+remark: cq2qmve2k5sqbdlhuqcueynp563bmq7u4x57wvp4gr7cnyitzngo.py:18:0: 2486 instructions in function
+remark: cq2qmve2k5sqbdlhuqcueynp563bmq7u4x57wvp4gr7cnyitzngo.py:18:0: 2487 instructions in function
+remark: cq2qmve2k5sqbdlhuqcueynp563bmq7u4x57wvp4gr7cnyitzngo.py:18:0: 1234 instructions in function
+remark: cq2qmve2k5sqbdlhuqcueynp563bmq7u4x57wvp4gr7cnyitzngo.py:18:0: 1414 instructions in function
+remark: cosgu7lsgl5t75mzxp26gjmwxncagcu6mwdnxfs7cquys56ysvyi.py:18:0: 227 instructions in function
+remark: czgdkvl2re3gmx6x7fwqwckuni5bsymjjmon4bjro3zfobv5y4gy.py:18:0: 229 instructions in function
+remark: ckmmhfwpgkfl5sbrjq4nlr5kwohzgzug25rfoz2kutci4hwmooys.py:18:0: 118 instructions in function
+remark: ckmmhfwpgkfl5sbrjq4nlr5kwohzgzug25rfoz2kutci4hwmooys.py:18:0: 77 instructions in function
+remark: cc6fvuqiyzabhgmeyt2i35hjquiwgfnef26ewslo7ju2wk7cxdhe.py:18:0: 704 instructions in function
+remark: cc6fvuqiyzabhgmeyt2i35hjquiwgfnef26ewslo7ju2wk7cxdhe.py:18:0: 190 instructions in function
+remark: c3jl23sh72jrq6kcdheasrvsxzo4zmyfunkupxwcg5sk2maemqro.py:18:0: 737 instructions in function
+remark: c3jl23sh72jrq6kcdheasrvsxzo4zmyfunkupxwcg5sk2maemqro.py:18:0: 199 instructions in function
+remark: cbrchpnghmhmix7b4t3g2b7apmvvicqwsqupgrkber6e7anc72g3.py:18:0: 401 instructions in function
+remark: cbrchpnghmhmix7b4t3g2b7apmvvicqwsqupgrkber6e7anc72g3.py:18:0: 110 instructions in function
+remark: c2ylf4rz6lfx6un4wa4jsxeonwkl3krjlzz62h6f2mrxtmyxq53b.py:18:0: 474 instructions in function
+remark: c2ylf4rz6lfx6un4wa4jsxeonwkl3krjlzz62h6f2mrxtmyxq53b.py:18:0: 131 instructions in function
+remark: c3grlnemsv37j5damyyftpdp362saojhb3e5bsbuvbglamzx4dyz.py:18:0: 955 instructions in function
+remark: c3grlnemsv37j5damyyftpdp362saojhb3e5bsbuvbglamzx4dyz.py:18:0: 246 instructions in function
+remark: cyx5mrgssbg2i2klroyxjusxmshow62eac42db3k4nzjwk2eg3nj.py:18:0: 1618 instructions in function
+remark: cyx5mrgssbg2i2klroyxjusxmshow62eac42db3k4nzjwk2eg3nj.py:18:0: 417 instructions in function
+remark: cjef5hxoxqril3bjdghytnj5gygfrheletgqolshbglwrbg2h7ow.py:18:0: 671 instructions in function
+remark: cjef5hxoxqril3bjdghytnj5gygfrheletgqolshbglwrbg2h7ow.py:18:0: 182 instructions in function
+remark: chshfv76siabog6twilkeamyg6znimzm2v7uu3i6ypdazz42iqkl.py:18:0: 706 instructions in function
+remark: chshfv76siabog6twilkeamyg6znimzm2v7uu3i6ypdazz42iqkl.py:18:0: 1358 instructions in function
+remark: chshfv76siabog6twilkeamyg6znimzm2v7uu3i6ypdazz42iqkl.py:18:0: 1318 instructions in function
+remark: chshfv76siabog6twilkeamyg6znimzm2v7uu3i6ypdazz42iqkl.py:18:0: 1350 instructions in function
+remark: chshfv76siabog6twilkeamyg6znimzm2v7uu3i6ypdazz42iqkl.py:18:0: 615 instructions in function
+remark: chshfv76siabog6twilkeamyg6znimzm2v7uu3i6ypdazz42iqkl.py:18:0: 691 instructions in function
+remark: caoda4mu6rju2fiekmhtymxjt2bcb67rvhbf3ucxu3tkply7ythy.py:18:0: 350 instructions in function
+remark: caoda4mu6rju2fiekmhtymxjt2bcb67rvhbf3ucxu3tkply7ythy.py:18:0: 642 instructions in function
+remark: caoda4mu6rju2fiekmhtymxjt2bcb67rvhbf3ucxu3tkply7ythy.py:18:0: 719 instructions in function
+remark: caoda4mu6rju2fiekmhtymxjt2bcb67rvhbf3ucxu3tkply7ythy.py:18:0: 753 instructions in function
+remark: caoda4mu6rju2fiekmhtymxjt2bcb67rvhbf3ucxu3tkply7ythy.py:18:0: 288 instructions in function
+remark: caoda4mu6rju2fiekmhtymxjt2bcb67rvhbf3ucxu3tkply7ythy.py:18:0: 328 instructions in function
+remark: cgumcvtjn25yoj34qsijebtgb2w2jcpecpylmbedcezvfam5ulbg.py:18:0: 222 instructions in function
+remark: cizpg7pwohsyoscm2zv6us472ajjbp5asvkdttzaeud3hbs5yqvs.py:18:0: 34 instructions in function
+remark: chlarp74imnwqxcqf2kddw757ioqpnd6kdrcz4aobrvcx4ipiaxc.py:18:0: 226 instructions in function
+remark: c6axg3xsiw7kvfkxox26t7gbdzajhix65y7ylig2f6ebpp4bltle.py:18:0: 73 instructions in function
+remark: c5cbd5o2flwrgnqlajjvpxfjvesiu4quagfo2e644fh5vt6jqssr.py:18:0: 3139 instructions in function
+remark: <unknown>:0:0: 187 instructions in function
+remark: c5cbd5o2flwrgnqlajjvpxfjvesiu4quagfo2e644fh5vt6jqssr.py:18:0: 6407 instructions in function
+remark: <unknown>:0:0: 187 instructions in function
+remark: c5cbd5o2flwrgnqlajjvpxfjvesiu4quagfo2e644fh5vt6jqssr.py:18:0: 6407 instructions in function
+remark: <unknown>:0:0: 187 instructions in function
+remark: c5cbd5o2flwrgnqlajjvpxfjvesiu4quagfo2e644fh5vt6jqssr.py:18:0: 6569 instructions in function
+remark: <unknown>:0:0: 187 instructions in function
+remark: c5cbd5o2flwrgnqlajjvpxfjvesiu4quagfo2e644fh5vt6jqssr.py:18:0: 3105 instructions in function
+remark: <unknown>:0:0: 187 instructions in function
+remark: c5cbd5o2flwrgnqlajjvpxfjvesiu4quagfo2e644fh5vt6jqssr.py:18:0: 3384 instructions in function
+remark: <unknown>:0:0: 187 instructions in function
+remark: c2ffzzxonsaa4n6lsxmf7sxlojvisyhyr5rwkmpwsc2y2eai5msd.py:18:0: 189 instructions in function
+remark: cfus26a2qpsqbhwgydxkm5xuzavbsv2yknw2iljcht7al3zsaiib.py:18:0: 308 instructions in function
+remark: cf4ncsmiz752kikpxdj6welgyscituhuwoqhgvxosyw76mpmlyk7.py:18:0: 94 instructions in function
+remark: cnm5uc35tsjkzd22bubijxhxiq5wqizquup3qfdma2cbu6gx3f6c.py:18:0: 53 instructions in function
+2026-09-18 09:16:23,301 INFO hydrointel.bench: warmed up batch 2 in 78 s (compilation, excluded from the timings)
+2026-09-18 09:32:47,672 INFO hydrointel.bench: batch 2: 984.1 s for 16 storms (61.5 s/storm), peak 254.95654296875 MB
+remark: cjnl5t4as6n622miwueofpjo35z2u4yfylwyvn6w7lzb5jpwrfev.py:18:0: 219 instructions in function
+remark: cjnl5t4as6n622miwueofpjo35z2u4yfylwyvn6w7lzb5jpwrfev.py:18:0: 63 instructions in function
+remark: c6mgmm6htj6l34rhvhkyuqrrmnrl7wyynubkgk4lnvyl24bkpafa.py:18:0: 192 instructions in function
+remark: crnpzazph3q6ees2psfvb5wheb7dqmyfk6n7tkoaoxfwntwhhh6u.py:18:0: 82 instructions in function
+remark: co7eazvm5ibtniubsvsvnkfam6wyixk3yf5wh3hb5qv4eoxhq3af.py:18:0: 18 instructions in function
+remark: cst6teplqbnkzm2lrk25uogkhwlbwsrbcxd5x353dhg3nmridanv.py:18:0: 25 instructions in function
+remark: cst6teplqbnkzm2lrk25uogkhwlbwsrbcxd5x353dhg3nmridanv.py:18:0: 16 instructions in function
+remark: c3hnf7tjft22qgqeycddeb6nds2dl3hgdsrcam5g5p2tiugzpwx3.py:18:0: 25 instructions in function
+remark: c3hnf7tjft22qgqeycddeb6nds2dl3hgdsrcam5g5p2tiugzpwx3.py:18:0: 16 instructions in function
+remark: cxv6lfzm2jru2dbqo5k2ynuvv6rvqphcqn6s4yu3f22zfpw3d5we.py:18:0: 86 instructions in function
+remark: cxv6lfzm2jru2dbqo5k2ynuvv6rvqphcqn6s4yu3f22zfpw3d5we.py:18:0: 56 instructions in function
+remark: cqehp7qlrp7ec2v3kam4lzw64dxogshjw6crpzlg6ssfwqybzlue.py:18:0: 369 instructions in function
+remark: cqehp7qlrp7ec2v3kam4lzw64dxogshjw6crpzlg6ssfwqybzlue.py:18:0: 104 instructions in function
+remark: ccyrbdemf6xxr2hftxxvth4v4boi4nrq6ddlpmor5kzu2drii6ve.py:18:0: 518 instructions in function
+remark: ccyrbdemf6xxr2hftxxvth4v4boi4nrq6ddlpmor5kzu2drii6ve.py:18:0: 141 instructions in function
+remark: ckcqcipbikeiyzp72j5zvsk6dy3t4ozbjawmuu47dcgcqjgwdeyx.py:18:0: 660 instructions in function
+remark: ckcqcipbikeiyzp72j5zvsk6dy3t4ozbjawmuu47dcgcqjgwdeyx.py:18:0: 178 instructions in function
+remark: cgvgoi6itcz7ogs2ik4a525tp5ch2mdtiokhktpywgzksegj6ple.py:18:0: 797 instructions in function
+remark: cgvgoi6itcz7ogs2ik4a525tp5ch2mdtiokhktpywgzksegj6ple.py:18:0: 212 instructions in function
+remark: cirl5paz5xpu7csz7jyexz24bttvhzvkizkrq5rtvqxesqm677dq.py:18:0: 252 instructions in function
+remark: cirl5paz5xpu7csz7jyexz24bttvhzvkizkrq5rtvqxesqm677dq.py:18:0: 71 instructions in function
+remark: czxkzb63dghjbve2jcy4coilxklhbhpkr7yjqc7icdodkpifnrnc.py:18:0: 1065 instructions in function
+remark: czxkzb63dghjbve2jcy4coilxklhbhpkr7yjqc7icdodkpifnrnc.py:18:0: 256 instructions in function
+remark: cyqdg3aqrou6xdqx7hrmxlc6fbudi4egtfyag4ug4ouvgpvms6xj.py:18:0: 1291 instructions in function
+remark: cyqdg3aqrou6xdqx7hrmxlc6fbudi4egtfyag4ug4ouvgpvms6xj.py:18:0: 337 instructions in function
+remark: cauidqd6u7i2cplr6xtvwibzfywtpyoo6rqusjj4bs6pw6cbh6tn.py:18:0: 1365 instructions in function
+remark: cauidqd6u7i2cplr6xtvwibzfywtpyoo6rqusjj4bs6pw6cbh6tn.py:18:0: 356 instructions in function
+remark: cdrsseuc2hz35uid5272x6npvls5dgakvibftm5yozpyhu54j4ax.py:18:0: 1467 instructions in function
+remark: cdrsseuc2hz35uid5272x6npvls5dgakvibftm5yozpyhu54j4ax.py:18:0: 2880 instructions in function
+remark: cdrsseuc2hz35uid5272x6npvls5dgakvibftm5yozpyhu54j4ax.py:18:0: 2869 instructions in function
+remark: cdrsseuc2hz35uid5272x6npvls5dgakvibftm5yozpyhu54j4ax.py:18:0: 2886 instructions in function
+remark: cdrsseuc2hz35uid5272x6npvls5dgakvibftm5yozpyhu54j4ax.py:18:0: 1420 instructions in function
+remark: cdrsseuc2hz35uid5272x6npvls5dgakvibftm5yozpyhu54j4ax.py:18:0: 1547 instructions in function
+remark: cqfv3lzsdukcd3jtfp46id6njxyrmkvgmkn4g7gog7jwkm75dogx.py:18:0: 649 instructions in function
+remark: cqfv3lzsdukcd3jtfp46id6njxyrmkvgmkn4g7gog7jwkm75dogx.py:18:0: 1245 instructions in function
+remark: cqfv3lzsdukcd3jtfp46id6njxyrmkvgmkn4g7gog7jwkm75dogx.py:18:0: 1189 instructions in function
+remark: cqfv3lzsdukcd3jtfp46id6njxyrmkvgmkn4g7gog7jwkm75dogx.py:18:0: 1237 instructions in function
+remark: cqfv3lzsdukcd3jtfp46id6njxyrmkvgmkn4g7gog7jwkm75dogx.py:18:0: 558 instructions in function
+remark: cqfv3lzsdukcd3jtfp46id6njxyrmkvgmkn4g7gog7jwkm75dogx.py:18:0: 629 instructions in function
+remark: ckbuixx6k57cizmd2jinmqaycv2jjev64xybg4sdn6qtcamw6pv5.py:18:0: 324 instructions in function
+remark: ckbuixx6k57cizmd2jinmqaycv2jjev64xybg4sdn6qtcamw6pv5.py:18:0: 89 instructions in function
+remark: cby4iksneot3mhaaoh464ejyitggnsdxedffjn7ztcrnmf6wiwxf.py:18:0: 383 instructions in function
+remark: cdpgnqp7lzyemb67jbalntos5w5hvavo67cou7fqubdree5jdzfz.py:18:0: 35 instructions in function
+remark: cry5hdi6huhzds3jkmyeqwurcooxzfalptoogjt4ae4lni2thlk2.py:18:0: 383 instructions in function
+remark: cmsrdg3h6hmjsydz2cwasehi7baa2ujtc6gumejlsq34bzchr744.py:18:0: 322 instructions in function
+remark: cmsrdg3h6hmjsydz2cwasehi7baa2ujtc6gumejlsq34bzchr744.py:18:0: 694 instructions in function
+remark: cmsrdg3h6hmjsydz2cwasehi7baa2ujtc6gumejlsq34bzchr744.py:18:0: 687 instructions in function
+remark: cmsrdg3h6hmjsydz2cwasehi7baa2ujtc6gumejlsq34bzchr744.py:18:0: 685 instructions in function
+remark: cmsrdg3h6hmjsydz2cwasehi7baa2ujtc6gumejlsq34bzchr744.py:18:0: 251 instructions in function
+remark: cmsrdg3h6hmjsydz2cwasehi7baa2ujtc6gumejlsq34bzchr744.py:18:0: 359 instructions in function
+remark: cnq7jud4erxnozn4p4uitio2nniyzs5ux53jziqug7tv7in66sfg.py:18:0: 1268 instructions in function
+remark: cnq7jud4erxnozn4p4uitio2nniyzs5ux53jziqug7tv7in66sfg.py:18:0: 2486 instructions in function
+remark: cnq7jud4erxnozn4p4uitio2nniyzs5ux53jziqug7tv7in66sfg.py:18:0: 2470 instructions in function
+remark: cnq7jud4erxnozn4p4uitio2nniyzs5ux53jziqug7tv7in66sfg.py:18:0: 2487 instructions in function
+remark: cnq7jud4erxnozn4p4uitio2nniyzs5ux53jziqug7tv7in66sfg.py:18:0: 1234 instructions in function
+remark: cnq7jud4erxnozn4p4uitio2nniyzs5ux53jziqug7tv7in66sfg.py:18:0: 1418 instructions in function
+remark: cgvual5kf34x6rc7sl3fzn54ahnplypllifuvaazmsbinz6fgxsa.py:18:0: 227 instructions in function
+remark: c5lxzkt6ogekrgmcocrcnzhnrfp355xcu4ar4nuc3on2rbyf36ws.py:18:0: 229 instructions in function
+remark: czsqvqt6vsojg2i5xhkvm6sjjlksmplfmrvweovfjoljhhedbhup.py:18:0: 118 instructions in function
+remark: czsqvqt6vsojg2i5xhkvm6sjjlksmplfmrvweovfjoljhhedbhup.py:18:0: 77 instructions in function
+remark: cbeqway4zs47geveg6txv7vzebyrsevanhtcvjroa54rhmmnml5h.py:18:0: 704 instructions in function
+remark: cbeqway4zs47geveg6txv7vzebyrsevanhtcvjroa54rhmmnml5h.py:18:0: 190 instructions in function
+remark: ccctlgk2o76ssuq3sm7eflytzvamebhsp3zv555sugiyrvorksa2.py:18:0: 737 instructions in function
+remark: ccctlgk2o76ssuq3sm7eflytzvamebhsp3zv555sugiyrvorksa2.py:18:0: 199 instructions in function
+remark: cvszy553le55o333amq7kdm4bc7ntf2ovn25zlbe5x4ztunk34de.py:18:0: 401 instructions in function
+remark: cvszy553le55o333amq7kdm4bc7ntf2ovn25zlbe5x4ztunk34de.py:18:0: 110 instructions in function
+remark: cz5qabwvh6hjprogcrnbw5pjvnuflzqcsge77xw3actpwea5idnk.py:18:0: 474 instructions in function
+remark: cz5qabwvh6hjprogcrnbw5pjvnuflzqcsge77xw3actpwea5idnk.py:18:0: 131 instructions in function
+remark: c2lcaffg4hwc4ers4laxjisjrdtdau44ys4x2qtryf7s7eutztpf.py:18:0: 955 instructions in function
+remark: c2lcaffg4hwc4ers4laxjisjrdtdau44ys4x2qtryf7s7eutztpf.py:18:0: 246 instructions in function
+remark: c2227cwppwy53unkrhgxldgbvbprdx54j7l2pszyutdm7vpwddpd.py:18:0: 1618 instructions in function
+remark: c2227cwppwy53unkrhgxldgbvbprdx54j7l2pszyutdm7vpwddpd.py:18:0: 417 instructions in function
+remark: cdaaulabwb24o2w4enewhyzbiadqadmw2pvt2isvyrp6f4qbbbit.py:18:0: 671 instructions in function
+remark: cdaaulabwb24o2w4enewhyzbiadqadmw2pvt2isvyrp6f4qbbbit.py:18:0: 182 instructions in function
+remark: cxbulqwadcyndplrgsocf47jgorehqhv2crougyqpjc3yoob5stm.py:18:0: 706 instructions in function
+remark: cxbulqwadcyndplrgsocf47jgorehqhv2crougyqpjc3yoob5stm.py:18:0: 1358 instructions in function
+remark: cxbulqwadcyndplrgsocf47jgorehqhv2crougyqpjc3yoob5stm.py:18:0: 1302 instructions in function
+remark: cxbulqwadcyndplrgsocf47jgorehqhv2crougyqpjc3yoob5stm.py:18:0: 1350 instructions in function
+remark: cxbulqwadcyndplrgsocf47jgorehqhv2crougyqpjc3yoob5stm.py:18:0: 615 instructions in function
+remark: cxbulqwadcyndplrgsocf47jgorehqhv2crougyqpjc3yoob5stm.py:18:0: 694 instructions in function
+remark: cz4crpf7pyau3gbiztwqc4acz2jrx3cmhey2as37ya4dxl7meqk3.py:18:0: 350 instructions in function
+remark: cz4crpf7pyau3gbiztwqc4acz2jrx3cmhey2as37ya4dxl7meqk3.py:18:0: 639 instructions in function
+remark: cz4crpf7pyau3gbiztwqc4acz2jrx3cmhey2as37ya4dxl7meqk3.py:18:0: 719 instructions in function
+remark: cz4crpf7pyau3gbiztwqc4acz2jrx3cmhey2as37ya4dxl7meqk3.py:18:0: 743 instructions in function
+remark: cz4crpf7pyau3gbiztwqc4acz2jrx3cmhey2as37ya4dxl7meqk3.py:18:0: 288 instructions in function
+remark: cz4crpf7pyau3gbiztwqc4acz2jrx3cmhey2as37ya4dxl7meqk3.py:18:0: 329 instructions in function
+remark: c4avdxaidjks76stfsjfp2rgoyqjsvl2qned35gk2pbnu6deskoq.py:18:0: 222 instructions in function
+remark: caxih66gwcipr6riodqjltjd3wt7r2l6wx6kwury3nespoy4iut5.py:18:0: 34 instructions in function
+remark: clpmx56xajyrbwam2kktzxkosm65ikuje6cyujfitewtq7wcsdzb.py:18:0: 226 instructions in function
+remark: c5hm6recpffpewmny2n2t2meefcgssifz3yj2tmwq536egr7xikc.py:18:0: 73 instructions in function
+remark: cn6j3uqo3osz6qcmcermzry2viz4lj2m7skpmfpnsacy44pavv44.py:18:0: 3139 instructions in function
+remark: <unknown>:0:0: 187 instructions in function
+remark: cn6j3uqo3osz6qcmcermzry2viz4lj2m7skpmfpnsacy44pavv44.py:18:0: 6407 instructions in function
+remark: <unknown>:0:0: 187 instructions in function
+remark: cn6j3uqo3osz6qcmcermzry2viz4lj2m7skpmfpnsacy44pavv44.py:18:0: 6399 instructions in function
+remark: <unknown>:0:0: 187 instructions in function
+remark: cn6j3uqo3osz6qcmcermzry2viz4lj2m7skpmfpnsacy44pavv44.py:18:0: 6569 instructions in function
+remark: <unknown>:0:0: 187 instructions in function
+remark: cn6j3uqo3osz6qcmcermzry2viz4lj2m7skpmfpnsacy44pavv44.py:18:0: 3105 instructions in function
+remark: <unknown>:0:0: 187 instructions in function
+remark: cn6j3uqo3osz6qcmcermzry2viz4lj2m7skpmfpnsacy44pavv44.py:18:0: 3386 instructions in function
+remark: <unknown>:0:0: 187 instructions in function
+remark: cryzd3z6jwtyftjoqvcruxdwo3zaeps4l7vyyivb3oewdugyum3w.py:18:0: 189 instructions in function
+remark: cwcvyhxqfnysd4pyqqllr4pvtinpdw2sr6wrjgeyojnun2ahgjq7.py:18:0: 308 instructions in function
+remark: csjfidrbz5zhcslzh6tkw4ty5csj6mjlzvdfxr7aqbremppferex.py:18:0: 94 instructions in function
+remark: ckvjgspnkqlspenrqja7f2pedazqxmsykg2evojbvopk6neyumcx.py:18:0: 53 instructions in function
+2026-09-18 09:34:04,997 INFO hydrointel.bench: warmed up batch 4 in 77 s (compilation, excluded from the timings)
+2026-09-18 09:45:27,032 INFO hydrointel.bench: batch 4: 681.9 s for 16 storms (42.6 s/storm), peak 337.09375 MB
+remark: cyprzwyxoptoj3meabdqdqveyo6nxdwgg4bi2ifwxr5emo5vsjrt.py:18:0: 219 instructions in function
+remark: cyprzwyxoptoj3meabdqdqveyo6nxdwgg4bi2ifwxr5emo5vsjrt.py:18:0: 63 instructions in function
+remark: cmufzjw5gtwqwd52irsfmlkfh5kv6acyxetqtzrnfxngcuwwrxij.py:18:0: 213 instructions in function
+remark: cre5up764byg5i7v7nz5tqapqltcf2sqcwfbliy4rlkmk2ulfbn3.py:18:0: 41 instructions in function
+remark: cbz6uxqzvv5vziyn6kotvfdvvq3jputtgr4xdowbkl7hponxp7kk.py:18:0: 85 instructions in function
+remark: chssblpsodwelnkur63i7fftnlfqtopim4xeqlm7a2ds3iixdds3.py:18:0: 18 instructions in function
+remark: c5lkfxdbhpkqiknb7uknwzsdjiyafudowocdkp34u6elgf3iymwj.py:18:0: 25 instructions in function
+remark: c5lkfxdbhpkqiknb7uknwzsdjiyafudowocdkp34u6elgf3iymwj.py:18:0: 16 instructions in function
+remark: ccinavh3dkuwfud45d5xikrbncxgpkhzsioz7jf76nvfmfruvlim.py:18:0: 25 instructions in function
+remark: ccinavh3dkuwfud45d5xikrbncxgpkhzsioz7jf76nvfmfruvlim.py:18:0: 16 instructions in function
+remark: cavffpfl73eelqfbszmjbxjxg73gwtp2lxmzyh6wsnrfwrpzlw3v.py:18:0: 86 instructions in function
+remark: cavffpfl73eelqfbszmjbxjxg73gwtp2lxmzyh6wsnrfwrpzlw3v.py:18:0: 56 instructions in function
+remark: cizp5sgfasv3m7tfigrz7yudnks2uw5i52vl35e64d7bgv3wmevp.py:18:0: 369 instructions in function
+remark: cizp5sgfasv3m7tfigrz7yudnks2uw5i52vl35e64d7bgv3wmevp.py:18:0: 104 instructions in function
+remark: cegkabr6fcxih2h7dn6le77phlhnc2526zmly2d6ptdirbei3kbx.py:18:0: 518 instructions in function
+remark: cegkabr6fcxih2h7dn6le77phlhnc2526zmly2d6ptdirbei3kbx.py:18:0: 141 instructions in function
+remark: cgqc4hmf7rgd6kwmrv7btbyngfdv2jknujddbuwxrugzaefqynjj.py:18:0: 660 instructions in function
+remark: cgqc4hmf7rgd6kwmrv7btbyngfdv2jknujddbuwxrugzaefqynjj.py:18:0: 178 instructions in function
+remark: caeqeuumm4vjtz4c4hn7jaus7drqjcapdzph3fzikz3wrsiqru4i.py:18:0: 797 instructions in function
+remark: caeqeuumm4vjtz4c4hn7jaus7drqjcapdzph3fzikz3wrsiqru4i.py:18:0: 212 instructions in function
+remark: cosxc5hozmfaex2fkwjqf26mj6nncoc5ntz7hehfpki6uvae6mvh.py:18:0: 251 instructions in function
+remark: cosxc5hozmfaex2fkwjqf26mj6nncoc5ntz7hehfpki6uvae6mvh.py:18:0: 71 instructions in function
+remark: cgfscbjntqphi3et6zr3xxscvhhfvw7ntwlepcp6zzygfhtmo7dr.py:18:0: 1065 instructions in function
+remark: cgfscbjntqphi3et6zr3xxscvhhfvw7ntwlepcp6zzygfhtmo7dr.py:18:0: 256 instructions in function
+remark: c2rbbcdwclqx5n7bo2v7gnsbun4ih2wneiy36qmq5ksr7tykcvmt.py:18:0: 1291 instructions in function
+remark: c2rbbcdwclqx5n7bo2v7gnsbun4ih2wneiy36qmq5ksr7tykcvmt.py:18:0: 337 instructions in function
+remark: c6vtgxxtgkvw5g5nbsizncnx3o74luvsaha63gr47vll37pnosa6.py:18:0: 1365 instructions in function
+remark: c6vtgxxtgkvw5g5nbsizncnx3o74luvsaha63gr47vll37pnosa6.py:18:0: 356 instructions in function
+remark: c52ttztvzczmftzvjchg4tylrbphwesq2sdm6dzqsuof4obhk2si.py:18:0: 1463 instructions in function
+remark: c52ttztvzczmftzvjchg4tylrbphwesq2sdm6dzqsuof4obhk2si.py:18:0: 2872 instructions in function
+remark: c52ttztvzczmftzvjchg4tylrbphwesq2sdm6dzqsuof4obhk2si.py:18:0: 2866 instructions in function
+remark: c52ttztvzczmftzvjchg4tylrbphwesq2sdm6dzqsuof4obhk2si.py:18:0: 2886 instructions in function
+remark: c52ttztvzczmftzvjchg4tylrbphwesq2sdm6dzqsuof4obhk2si.py:18:0: 1420 instructions in function
+remark: c52ttztvzczmftzvjchg4tylrbphwesq2sdm6dzqsuof4obhk2si.py:18:0: 1547 instructions in function
+remark: ceqi433x72ktvgn5x35spkjpr3wpmsdvuesmswdpbpe5a66s6rhg.py:18:0: 640 instructions in function
+remark: ceqi433x72ktvgn5x35spkjpr3wpmsdvuesmswdpbpe5a66s6rhg.py:18:0: 1228 instructions in function
+remark: ceqi433x72ktvgn5x35spkjpr3wpmsdvuesmswdpbpe5a66s6rhg.py:18:0: 1181 instructions in function
+remark: ceqi433x72ktvgn5x35spkjpr3wpmsdvuesmswdpbpe5a66s6rhg.py:18:0: 1237 instructions in function
+remark: ceqi433x72ktvgn5x35spkjpr3wpmsdvuesmswdpbpe5a66s6rhg.py:18:0: 558 instructions in function
+remark: ceqi433x72ktvgn5x35spkjpr3wpmsdvuesmswdpbpe5a66s6rhg.py:18:0: 629 instructions in function
+remark: czguwedgrsnluqueh6j6bxtpjp4lwuqklgi2ysopsc2ftngbdaql.py:18:0: 324 instructions in function
+remark: czguwedgrsnluqueh6j6bxtpjp4lwuqklgi2ysopsc2ftngbdaql.py:18:0: 89 instructions in function
+remark: cvnv6xsfz7ttvjxvif57mh556yu56luxsjanvyrkpqteifvll7xi.py:18:0: 383 instructions in function
+remark: cfpolwr7mscrqrrvf2qa5j7hwuzbl6wagzzzc5kxvgx2iob6gkrj.py:18:0: 35 instructions in function
+remark: c4vm2dkro7nqckepyiikxsxsqpk35uitmhrlquv5achisrzfzhdx.py:18:0: 383 instructions in function
+remark: cjxkkj73eaa3wthqu6q6f4gzhp3g43i5snvq6dd7e3zuv7oyy5pw.py:18:0: 319 instructions in function
+remark: cjxkkj73eaa3wthqu6q6f4gzhp3g43i5snvq6dd7e3zuv7oyy5pw.py:18:0: 687 instructions in function
+remark: cjxkkj73eaa3wthqu6q6f4gzhp3g43i5snvq6dd7e3zuv7oyy5pw.py:18:0: 688 instructions in function
+remark: cjxkkj73eaa3wthqu6q6f4gzhp3g43i5snvq6dd7e3zuv7oyy5pw.py:18:0: 685 instructions in function
+remark: cjxkkj73eaa3wthqu6q6f4gzhp3g43i5snvq6dd7e3zuv7oyy5pw.py:18:0: 251 instructions in function
+remark: cjxkkj73eaa3wthqu6q6f4gzhp3g43i5snvq6dd7e3zuv7oyy5pw.py:18:0: 359 instructions in function
+remark: c6iwke7x5eycnv3n7ibevjp32e3m75jurp4flb2ntyq2shclkbej.py:18:0: 1268 instructions in function
+remark: c6iwke7x5eycnv3n7ibevjp32e3m75jurp4flb2ntyq2shclkbej.py:18:0: 2486 instructions in function
+remark: c6iwke7x5eycnv3n7ibevjp32e3m75jurp4flb2ntyq2shclkbej.py:18:0: 2462 instructions in function
+remark: c6iwke7x5eycnv3n7ibevjp32e3m75jurp4flb2ntyq2shclkbej.py:18:0: 2487 instructions in function
+remark: c6iwke7x5eycnv3n7ibevjp32e3m75jurp4flb2ntyq2shclkbej.py:18:0: 1234 instructions in function
+remark: c6iwke7x5eycnv3n7ibevjp32e3m75jurp4flb2ntyq2shclkbej.py:18:0: 1418 instructions in function
+remark: cv4hhjzaqdlcnqpwcr2fj5imhxlsb62uhkv5rbendven3jxsrclw.py:18:0: 227 instructions in function
+remark: cjq6bczfj6dngnmjjcwu6vfoiywfu3p5w6ieyf4m4ycbw2dq4wro.py:18:0: 229 instructions in function
+remark: c36tp4uom4rfomw4jqrcki4xisrjjwebwie4kyrkpnhmon3iikoq.py:18:0: 118 instructions in function
+remark: c36tp4uom4rfomw4jqrcki4xisrjjwebwie4kyrkpnhmon3iikoq.py:18:0: 77 instructions in function
+remark: cv6nu3widhcjo4ot2fk2h77h3xpfqd3mufnaus64ftpspjtl56i3.py:18:0: 704 instructions in function
+remark: cv6nu3widhcjo4ot2fk2h77h3xpfqd3mufnaus64ftpspjtl56i3.py:18:0: 190 instructions in function
+remark: cscrwx7vbowyx5vr627k6vcyrkquqg4u5cb66mhaedfojegu2c6o.py:18:0: 737 instructions in function
+remark: cscrwx7vbowyx5vr627k6vcyrkquqg4u5cb66mhaedfojegu2c6o.py:18:0: 199 instructions in function
+remark: c3rhehlsyjtpu2ekdyfrkm5xr6fm3vfijcaenfqbtalc2wmdnxp4.py:18:0: 401 instructions in function
+remark: c3rhehlsyjtpu2ekdyfrkm5xr6fm3vfijcaenfqbtalc2wmdnxp4.py:18:0: 110 instructions in function
+remark: ctpx4u4yz2mfsz324uavwky4xlleujcqv7mt6bvm5fsrab2oseny.py:18:0: 474 instructions in function
+remark: ctpx4u4yz2mfsz324uavwky4xlleujcqv7mt6bvm5fsrab2oseny.py:18:0: 131 instructions in function
+remark: cpnbr53mvbaiz7fp23kxqonahjmaupsqhgkugmtylqvaewrxr4ge.py:18:0: 955 instructions in function
+remark: cpnbr53mvbaiz7fp23kxqonahjmaupsqhgkugmtylqvaewrxr4ge.py:18:0: 246 instructions in function
+remark: cov2x5azuvr7e5mybiqi2cedbncfn6ihuiuj6chqw4ohkjjwzcas.py:18:0: 1618 instructions in function
+remark: cov2x5azuvr7e5mybiqi2cedbncfn6ihuiuj6chqw4ohkjjwzcas.py:18:0: 417 instructions in function
+remark: cedi7mj7skviz3duelqhru75ghwr536rndnx72w3vppqdce4yw7c.py:18:0: 671 instructions in function
+remark: cedi7mj7skviz3duelqhru75ghwr536rndnx72w3vppqdce4yw7c.py:18:0: 182 instructions in function
+remark: ck6shvv4b6vuwzl6crmy46sp23nsjdtdtzovmto2ly2bqz24fcpm.py:18:0: 697 instructions in function
+remark: ck6shvv4b6vuwzl6crmy46sp23nsjdtdtzovmto2ly2bqz24fcpm.py:18:0: 1341 instructions in function
+remark: ck6shvv4b6vuwzl6crmy46sp23nsjdtdtzovmto2ly2bqz24fcpm.py:18:0: 1294 instructions in function
+remark: ck6shvv4b6vuwzl6crmy46sp23nsjdtdtzovmto2ly2bqz24fcpm.py:18:0: 1350 instructions in function
+remark: ck6shvv4b6vuwzl6crmy46sp23nsjdtdtzovmto2ly2bqz24fcpm.py:18:0: 615 instructions in function
+remark: ck6shvv4b6vuwzl6crmy46sp23nsjdtdtzovmto2ly2bqz24fcpm.py:18:0: 694 instructions in function
+remark: ckg4lvlphhuvt5doa7wr7b4z3j6i3q2fsqm4yzf4bkdexnlel6vs.py:18:0: 350 instructions in function
+remark: ckg4lvlphhuvt5doa7wr7b4z3j6i3q2fsqm4yzf4bkdexnlel6vs.py:18:0: 639 instructions in function
+remark: ckg4lvlphhuvt5doa7wr7b4z3j6i3q2fsqm4yzf4bkdexnlel6vs.py:18:0: 719 instructions in function
+remark: ckg4lvlphhuvt5doa7wr7b4z3j6i3q2fsqm4yzf4bkdexnlel6vs.py:18:0: 737 instructions in function
+remark: ckg4lvlphhuvt5doa7wr7b4z3j6i3q2fsqm4yzf4bkdexnlel6vs.py:18:0: 288 instructions in function
+remark: ckg4lvlphhuvt5doa7wr7b4z3j6i3q2fsqm4yzf4bkdexnlel6vs.py:18:0: 329 instructions in function
+remark: cfmwbhyx6hjcblnhf7n7nimt7qiaacpqso5nimmro6bgwa4lptng.py:18:0: 222 instructions in function
+remark: caflzbzpot2p4t342ujl3rgjvvpoevt2rt6g4qwnry7msv3yjslp.py:18:0: 34 instructions in function
+remark: cqjwu4bz3ydk7c3axlipnhdydod5f3itjhagtnl6f66azlyjwxxm.py:18:0: 226 instructions in function
+remark: cw3ym6xfasvnbqwyews33akmmqbkiihwrhcl7sou3jaoqygpjed5.py:18:0: 73 instructions in function
+remark: crpkpcsk5mnpvu7enio2pipwgpsmpt2vp3apnx6lkzytmgdebeoo.py:18:0: 3139 instructions in function
+remark: <unknown>:0:0: 187 instructions in function
+remark: crpkpcsk5mnpvu7enio2pipwgpsmpt2vp3apnx6lkzytmgdebeoo.py:18:0: 6407 instructions in function
+remark: <unknown>:0:0: 187 instructions in function
+remark: crpkpcsk5mnpvu7enio2pipwgpsmpt2vp3apnx6lkzytmgdebeoo.py:18:0: 6395 instructions in function
+remark: <unknown>:0:0: 187 instructions in function
+remark: crpkpcsk5mnpvu7enio2pipwgpsmpt2vp3apnx6lkzytmgdebeoo.py:18:0: 6569 instructions in function
+remark: <unknown>:0:0: 187 instructions in function
+remark: crpkpcsk5mnpvu7enio2pipwgpsmpt2vp3apnx6lkzytmgdebeoo.py:18:0: 3105 instructions in function
+remark: <unknown>:0:0: 187 instructions in function
+remark: crpkpcsk5mnpvu7enio2pipwgpsmpt2vp3apnx6lkzytmgdebeoo.py:18:0: 3386 instructions in function
+remark: <unknown>:0:0: 187 instructions in function
+remark: c5ar5za7g6l4xw5arhizeonfdis5k3v3lbgtqzrtpmbhic3nyuk4.py:18:0: 198 instructions in function
+remark: c3tndcx3k7zqce6jnyb6ax7exa3zamzkam3emcjyt2ghschblw2x.py:18:0: 322 instructions in function
+remark: cqxyyjxhjc3aiooqzmhxorl355mi5xyof75b6oy6sesg6lav6rmu.py:18:0: 77 instructions in function
+remark: cwhjgiy7fplzizcll5vacogjfqlow4clccwpg5iwrxtzkjzjeicl.py:18:0: 45 instructions in function
+2026-09-18 09:46:45,964 INFO hydrointel.bench: warmed up batch 8 in 79 s (compilation, excluded from the timings)
+2026-09-18 09:57:17,785 INFO hydrointel.bench: batch 8: 631.7 s for 16 storms (39.5 s/storm), peak 505.01123046875 MB
+remark: caekxplnllgh6owkypddktep2rquz4vydluuw5eipkfzgdah7buj.py:18:0: 219 instructions in function
+remark: caekxplnllgh6owkypddktep2rquz4vydluuw5eipkfzgdah7buj.py:18:0: 63 instructions in function
+remark: czwqcyjngc7mmsuoix6oar62eictmd42r3cufana3sptxgqfjr2d.py:18:0: 211 instructions in function
+remark: cwo25uucfhr2ldf3caqdwbdjuk6jnuom5oxn2nzthb7vsp3s4fax.py:18:0: 30 instructions in function
+remark: c2cfmgqixvntd4jly4howhncmabiws4hzyis3h5yqwn2m4l7a5v6.py:18:0: 18 instructions in function
+remark: c246qm72g3uc4ksnwef6zsdg3mv55r6mwdkay36hszam6jbw66qm.py:18:0: 25 instructions in function
+remark: c246qm72g3uc4ksnwef6zsdg3mv55r6mwdkay36hszam6jbw66qm.py:18:0: 16 instructions in function
+remark: cp2fikb73b3u6o5n7e672oax67z4si6whknspy366kvclxlt347e.py:18:0: 25 instructions in function
+remark: cp2fikb73b3u6o5n7e672oax67z4si6whknspy366kvclxlt347e.py:18:0: 16 instructions in function
+remark: ctpqrcvrol3zkdlzrlvfr4ugqtuzt6byumq5t2elfr77oki2dzra.py:18:0: 86 instructions in function
+remark: ctpqrcvrol3zkdlzrlvfr4ugqtuzt6byumq5t2elfr77oki2dzra.py:18:0: 56 instructions in function
+remark: cs4jc3ofe6rofqskrxakz3hch52lhtetbgjcm7btcd4nolcv2kvw.py:18:0: 369 instructions in function
+remark: cs4jc3ofe6rofqskrxakz3hch52lhtetbgjcm7btcd4nolcv2kvw.py:18:0: 104 instructions in function
+remark: c5koqiuedmsuy5vuvnpiw6zghqchdjrekwrn2s2zpsheiowjmvxt.py:18:0: 518 instructions in function
+remark: c5koqiuedmsuy5vuvnpiw6zghqchdjrekwrn2s2zpsheiowjmvxt.py:18:0: 141 instructions in function
+remark: c2rzugoldb45dtrafhtavar5ajwrqer3y5mhk3b7kdzix62mi7wz.py:18:0: 660 instructions in function
+remark: c2rzugoldb45dtrafhtavar5ajwrqer3y5mhk3b7kdzix62mi7wz.py:18:0: 178 instructions in function
+remark: cd2cu6sypfioitnbhn7x6vn47yactl4gjq3qr6rpyzlqhzbomelj.py:18:0: 797 instructions in function
+remark: cd2cu6sypfioitnbhn7x6vn47yactl4gjq3qr6rpyzlqhzbomelj.py:18:0: 212 instructions in function
+remark: czkvo6klm52o5fusd4jbqj54umppayz2jjm5oiz6llar4unzgr6x.py:18:0: 251 instructions in function
+remark: czkvo6klm52o5fusd4jbqj54umppayz2jjm5oiz6llar4unzgr6x.py:18:0: 71 instructions in function
+remark: clqsqihz4kilvrtzih5mpjwybtqcgxpvlbhv3z7oxn6z2y7xhr24.py:18:0: 1065 instructions in function
+remark: clqsqihz4kilvrtzih5mpjwybtqcgxpvlbhv3z7oxn6z2y7xhr24.py:18:0: 256 instructions in function
+remark: c26p56xd4cg5rvtdqpbca3ilxefkip3yv5nltlztotb4oakhn5pr.py:18:0: 1291 instructions in function
+remark: c26p56xd4cg5rvtdqpbca3ilxefkip3yv5nltlztotb4oakhn5pr.py:18:0: 337 instructions in function
+remark: chvv2fyet6a4mb3meofihlch52ybkkgzrg44ya4nzf4um44egghm.py:18:0: 1365 instructions in function
+remark: chvv2fyet6a4mb3meofihlch52ybkkgzrg44ya4nzf4um44egghm.py:18:0: 356 instructions in function
+remark: chkcqldwsetztgqcy3tynoo4h5v3xm5xjyxzlntwfiak66h25ub6.py:18:0: 1460 instructions in function
+remark: chkcqldwsetztgqcy3tynoo4h5v3xm5xjyxzlntwfiak66h25ub6.py:18:0: 2868 instructions in function
+remark: chkcqldwsetztgqcy3tynoo4h5v3xm5xjyxzlntwfiak66h25ub6.py:18:0: 2866 instructions in function
+remark: chkcqldwsetztgqcy3tynoo4h5v3xm5xjyxzlntwfiak66h25ub6.py:18:0: 2886 instructions in function
+remark: chkcqldwsetztgqcy3tynoo4h5v3xm5xjyxzlntwfiak66h25ub6.py:18:0: 1420 instructions in function
+remark: chkcqldwsetztgqcy3tynoo4h5v3xm5xjyxzlntwfiak66h25ub6.py:18:0: 1547 instructions in function
+remark: cktsde6jptucs3rz2oekgdulcqp5p4mdw5bkogk4dsyhwf462atg.py:18:0: 632 instructions in function
+remark: cktsde6jptucs3rz2oekgdulcqp5p4mdw5bkogk4dsyhwf462atg.py:18:0: 1212 instructions in function
+remark: cktsde6jptucs3rz2oekgdulcqp5p4mdw5bkogk4dsyhwf462atg.py:18:0: 1177 instructions in function
+remark: cktsde6jptucs3rz2oekgdulcqp5p4mdw5bkogk4dsyhwf462atg.py:18:0: 1237 instructions in function
+remark: cktsde6jptucs3rz2oekgdulcqp5p4mdw5bkogk4dsyhwf462atg.py:18:0: 558 instructions in function
+remark: cktsde6jptucs3rz2oekgdulcqp5p4mdw5bkogk4dsyhwf462atg.py:18:0: 629 instructions in function
+remark: cqwz2ufs6gj5xopjfajqfawosc2wr7zxxnrflacfuhc3u7htck2o.py:18:0: 324 instructions in function
+remark: cqwz2ufs6gj5xopjfajqfawosc2wr7zxxnrflacfuhc3u7htck2o.py:18:0: 89 instructions in function
+remark: cjk5slwby5zgvf7fteqg6a2svdyy474ygnenpnmvcmety2pe4djw.py:18:0: 383 instructions in function
+remark: cuus4lsqupjn2zb4ha43nxfl2tsr23kjdlfpzsz55e2v7zhwscw2.py:18:0: 35 instructions in function
+remark: c7znzriwujjpdfhc7cahen6iykpdbjhpyx2ebcue35vudgrnzdto.py:18:0: 383 instructions in function
+remark: ch26oncabmkozzish5phpd37s6nxynedjwlzdx5ocdz2al5mx26e.py:18:0: 318 instructions in function
+remark: ch26oncabmkozzish5phpd37s6nxynedjwlzdx5ocdz2al5mx26e.py:18:0: 685 instructions in function
+remark: ch26oncabmkozzish5phpd37s6nxynedjwlzdx5ocdz2al5mx26e.py:18:0: 688 instructions in function
+remark: ch26oncabmkozzish5phpd37s6nxynedjwlzdx5ocdz2al5mx26e.py:18:0: 686 instructions in function
+remark: ch26oncabmkozzish5phpd37s6nxynedjwlzdx5ocdz2al5mx26e.py:18:0: 251 instructions in function
+remark: ch26oncabmkozzish5phpd37s6nxynedjwlzdx5ocdz2al5mx26e.py:18:0: 359 instructions in function
+remark: clfknsoz3qpy4dt6wde2vpuul7nqd7qrk4osyzxikabrimwhtokw.py:18:0: 1260 instructions in function
+remark: clfknsoz3qpy4dt6wde2vpuul7nqd7qrk4osyzxikabrimwhtokw.py:18:0: 2470 instructions in function
+remark: clfknsoz3qpy4dt6wde2vpuul7nqd7qrk4osyzxikabrimwhtokw.py:18:0: 2458 instructions in function
+remark: clfknsoz3qpy4dt6wde2vpuul7nqd7qrk4osyzxikabrimwhtokw.py:18:0: 2487 instructions in function
+remark: clfknsoz3qpy4dt6wde2vpuul7nqd7qrk4osyzxikabrimwhtokw.py:18:0: 1234 instructions in function
+remark: clfknsoz3qpy4dt6wde2vpuul7nqd7qrk4osyzxikabrimwhtokw.py:18:0: 1418 instructions in function
+remark: cvnw3fcwtay4657kmmz775spixbk66ljbnavkv7rmwdprkygjj6w.py:18:0: 227 instructions in function
+remark: cnszgeyu75b2wzurcg2qltjk7jyolxw3o3tihjayijwhqz35sny6.py:18:0: 229 instructions in function
+remark: cxsbb3glxswzg34qohpuvzycl3igflv6qfs6jtg44fb4za3niels.py:18:0: 118 instructions in function
+remark: cxsbb3glxswzg34qohpuvzycl3igflv6qfs6jtg44fb4za3niels.py:18:0: 77 instructions in function
+remark: clzijzjhjekm46zggblkuoa5tteapagfgqsjj7tfhgot6dzg5uko.py:18:0: 704 instructions in function
+remark: clzijzjhjekm46zggblkuoa5tteapagfgqsjj7tfhgot6dzg5uko.py:18:0: 190 instructions in function
+remark: ccslqdlsixplp36oykzg6wul34qktgk62nx3wbdr6frwumzmbb5c.py:18:0: 737 instructions in function
+remark: ccslqdlsixplp36oykzg6wul34qktgk62nx3wbdr6frwumzmbb5c.py:18:0: 199 instructions in function
+remark: cjatr23vaam6vzwfx4s6afefxylfq4d4euzbbxla2hodkjeqeppj.py:18:0: 401 instructions in function
+remark: cjatr23vaam6vzwfx4s6afefxylfq4d4euzbbxla2hodkjeqeppj.py:18:0: 110 instructions in function
+remark: c7vylggrscghkyuny4awwtj774bwzjkaer2jy6dc3pbp4tg5ycnj.py:18:0: 474 instructions in function
+remark: c7vylggrscghkyuny4awwtj774bwzjkaer2jy6dc3pbp4tg5ycnj.py:18:0: 131 instructions in function
+remark: c2dv43ey26f2dbs2ptcxcag2sl3vmi3ijw3o4xtoa4v32i4f4e3y.py:18:0: 955 instructions in function
+remark: c2dv43ey26f2dbs2ptcxcag2sl3vmi3ijw3o4xtoa4v32i4f4e3y.py:18:0: 246 instructions in function
+remark: cgg4wql7p7x5wv2nxdeyn7srciemimnjntnjm6afnfxh6dhldoqo.py:18:0: 1618 instructions in function
+remark: cgg4wql7p7x5wv2nxdeyn7srciemimnjntnjm6afnfxh6dhldoqo.py:18:0: 417 instructions in function
+remark: cluu3lxeu7fjzzwtrsh4jscyjkzraqiycplf3npl5hyuoovit2w7.py:18:0: 671 instructions in function
+remark: cluu3lxeu7fjzzwtrsh4jscyjkzraqiycplf3npl5hyuoovit2w7.py:18:0: 182 instructions in function
+remark: csm4w4kvfjwuxnucal4ynxkolu6ruxbzemipspudlfwdetaxdbvv.py:18:0: 689 instructions in function
+remark: csm4w4kvfjwuxnucal4ynxkolu6ruxbzemipspudlfwdetaxdbvv.py:18:0: 1325 instructions in function
+remark: csm4w4kvfjwuxnucal4ynxkolu6ruxbzemipspudlfwdetaxdbvv.py:18:0: 1290 instructions in function
+remark: csm4w4kvfjwuxnucal4ynxkolu6ruxbzemipspudlfwdetaxdbvv.py:18:0: 1350 instructions in function
+remark: csm4w4kvfjwuxnucal4ynxkolu6ruxbzemipspudlfwdetaxdbvv.py:18:0: 615 instructions in function
+remark: csm4w4kvfjwuxnucal4ynxkolu6ruxbzemipspudlfwdetaxdbvv.py:18:0: 694 instructions in function
+remark: cjzos2tnf6efkldbo72lh2d3c6pw4oiedj2bzbudzhojvhe3crg2.py:18:0: 350 instructions in function
+remark: cjzos2tnf6efkldbo72lh2d3c6pw4oiedj2bzbudzhojvhe3crg2.py:18:0: 639 instructions in function
+remark: cjzos2tnf6efkldbo72lh2d3c6pw4oiedj2bzbudzhojvhe3crg2.py:18:0: 719 instructions in function
+remark: cjzos2tnf6efkldbo72lh2d3c6pw4oiedj2bzbudzhojvhe3crg2.py:18:0: 733 instructions in function
+remark: cjzos2tnf6efkldbo72lh2d3c6pw4oiedj2bzbudzhojvhe3crg2.py:18:0: 288 instructions in function
+remark: cjzos2tnf6efkldbo72lh2d3c6pw4oiedj2bzbudzhojvhe3crg2.py:18:0: 316 instructions in function
+remark: cti5fotjkmrhcmqtpab7rp2cgfr5h2mmfsam4rxztiw5gnj35vra.py:18:0: 222 instructions in function
+remark: cwgyr4inexotqoun7k7r7ttm3mgrxfp6z47bg2fm4sjoczbndn35.py:18:0: 34 instructions in function
+remark: cvnudkxe3nyz53dxks5n7tj6qo3mogulifyh4wtctugcf3blbdfr.py:18:0: 226 instructions in function
+remark: c7h33clhrwaxejsrmopiog6ybzcaoa3dqi6agzj2ii2w64lxo7qc.py:18:0: 70 instructions in function
+remark: csn6m56kofmohq6fi4camvvayjvyhfw55lwotsq6rdip73w75z4b.py:18:0: 3135 instructions in function
+remark: <unknown>:0:0: 187 instructions in function
+remark: csn6m56kofmohq6fi4camvvayjvyhfw55lwotsq6rdip73w75z4b.py:18:0: 6399 instructions in function
+remark: <unknown>:0:0: 187 instructions in function
+remark: csn6m56kofmohq6fi4camvvayjvyhfw55lwotsq6rdip73w75z4b.py:18:0: 6393 instructions in function
+remark: <unknown>:0:0: 187 instructions in function
+remark: csn6m56kofmohq6fi4camvvayjvyhfw55lwotsq6rdip73w75z4b.py:18:0: 6569 instructions in function
+remark: <unknown>:0:0: 187 instructions in function
+remark: csn6m56kofmohq6fi4camvvayjvyhfw55lwotsq6rdip73w75z4b.py:18:0: 3105 instructions in function
+remark: <unknown>:0:0: 187 instructions in function
+remark: csn6m56kofmohq6fi4camvvayjvyhfw55lwotsq6rdip73w75z4b.py:18:0: 3386 instructions in function
+remark: <unknown>:0:0: 187 instructions in function
+remark: cdy4vgj5jbesybmnaepygoqbp7a5wbottgs6i4h4pnt4mpkilvoz.py:18:0: 197 instructions in function
+remark: cpgiwjiqiu5xc4g5zimx75hma4xixf3uvyp364yurua6vsfc3wem.py:18:0: 321 instructions in function
+remark: cad5nroum2hgnt7hbwxaacda7hpuo2yzkaatfqdqqojy3e5fnlcn.py:18:0: 59 instructions in function
+remark: cvcyy264jd3ubrklq4e32imgzb2i5w5vrmkzgheg6cu5tu6kxvbc.py:18:0: 36 instructions in function
+2026-09-18 09:58:36,863 INFO hydrointel.bench: warmed up batch 16 in 79 s (compilation, excluded from the timings)
+2026-09-18 10:08:42,443 INFO hydrointel.bench: batch 16: 605.4 s for 16 storms (37.8 s/storm), peak 850.17724609375 MB
+2026-09-18 10:08:42,451 INFO hydrointel.bench: chosen batch size 8

@@ -35,6 +35,9 @@ On Windows 11 with **Smart App Control** turned on, unsigned DLLs from PyTorch a
 python -m hydrointel.cli benchmark
 ```
 ```bash
+python -m hydrointel.cli batch-study
+```
+```bash
 python -m hydrointel.cli generate
 ```
 ```bash
@@ -52,6 +55,7 @@ python -m hydrointel.cli --outdir artifacts/quick all --quick
 
 - **Stage order.** Stages must run in the order above. `generate` refuses to run unless `artifacts/benchmark_results.json` shows every benchmark passed for the current solver/domain/forcing configuration. `train` needs the dataset, and `evaluate` needs the trained model.
 - **Caching.** Each stage writes into a directory keyed by the relevant config hash and skips work it has already done. `generate` resumes simulation by simulation; `train --resume` resumes from the last checkpoint.
+- **Batched generation.** `generate` advances `data.batch` storms together as `(B, ny, nx)` tensors on one set of kernels, because a single 130k-cell storm leaves this GPU almost empty. All members share the terrain and the storm time base; roughness, retention, infiltration, channel conveyance, rainfall, tide and upstream inflow are per member, and so is the mass balance, which is asserted per member so one bad storm cannot hide inside a batch. They also share the time step — the smallest any member needs — so a batched run is not bit-identical to running the storms one at a time; `tests/test_batched_solver.py` separates the two effects and bounds the second. `python -m hydrointel.cli batch-study` measures the throughput and memory curve and writes `batch_throughput.md`.
 - **Global flags.** `--seed`, `--device`, `--config path.yaml`, `--outdir`, `--precision {fp32,fp64}`. Every command prints the resolved config and its hash, and saves both next to its outputs.
 - **`--quick`.** A 100 x 81 grid (80 m cells), 8 simulations, a 30-minute storm and 300 training steps. It is a plumbing check, not a result. Give it its own `--outdir` so it doesn't overwrite the full-run reports.
 - **Tests.** `python -m pytest` runs the determinism, mass-balance, coupling, ChebyKAN and API-contract tests, plus a fast CPU subset of the benchmarks.
@@ -161,10 +165,12 @@ before = api.baseline(scen)           # no-intervention reference (surrogate by 
 
 ```
 hydrointel/  config, io (manifest, loaders), domain (synthetic, landuse, channels),
+             benchmarks/ (suite, analytical, precision, throughput),
              forcing (idf, hyetograph, catchment, tide, scenarios), solver (swe2d, swe1d,
              coupling, boundaries, infiltration, massbalance), engine, benchmarks,
              data (sampler, generate, dataset), model (chebykan, graph, geokan_pino,
              batch, physics_loss, balancing), train, evaluate, viz, api, cli
-tests/       determinism, mass balance, coupling, ChebyKAN, API contract, fast benchmarks
+tests/       determinism, mass balance, coupling, batched solver, ChebyKAN, API contract,
+             fast benchmarks
 artifacts/   all outputs (created at run time; git-ignored)
 ```

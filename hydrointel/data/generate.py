@@ -77,65 +77,80 @@ def generate(cfg: RunConfig, device=None, check_benchmarks: bool = True) -> Path
     index = json.loads(index_path.read_text(encoding="utf-8")) if index_path.exists() else {}
     t_start = time.perf_counter()
     done_now = 0
-    for i in range(n):
-        path = out / f"sim_{i:05d}.pt"
-        if path.exists() and str(i) in index:
-            continue
-        smp = SMP.draw(i, dom, cfg.data, cfg.seed, splits[i])
-        scen = api.Scenario(smp.return_period_yr, smp.rcp, smp.ssp, smp.horizon_year, smp.tide_on,
-                            smp.storm_tide_offset_h)
-        lu = ctx.landuse(smp.ssp, smp.horizon_year)
-        storage, kappa, manning, gamma, base_S, base_n = SMP.materialise(smp, dom, lu)
-        site = api.SiteState(*(torch.as_tensor(a, dtype=torch.float32) for a in (storage, kappa, manning, gamma)))
+    todo = [i for i in range(n) if not ((out / f"sim_{i:05d}.pt").exists() and str(i) in index)]
+    bs = max(1, int(cfg.data.batch))
+    log.info("%d/%d simulations to run, %d at a time", len(todo), n, bs)
+    for c0 in range(0, len(todo), bs):
+        chunk = todo[c0:c0 + bs]
+        smps = [SMP.draw(i, dom, cfg.data, cfg.seed, splits[i]) for i in chunk]
+        scens = [api.Scenario(s.return_period_yr, s.rcp, s.ssp, s.horizon_year, s.tide_on, s.storm_tide_offset_h)
+                 for s in smps]
+        lus = [ctx.landuse(s.ssp, s.horizon_year) for s in smps]
+        mats = [SMP.materialise(s, dom, lu) for s, lu in zip(smps, lus)]
+        sites = [api.SiteState(*(torch.as_tensor(a, dtype=torch.float32) for a in m[:4])) for m in mats]
         t0 = time.perf_counter()
-        res = api.simulate(site, scen)
-        wall = time.perf_counter() - t0
-        fo = res.extras["forcing"]
-        times = res.times.numpy()
-        h, u, v = res.depth_series.numpy(), res.u.numpy(), res.v.numpy()
-        hc = coarsen_mean(h, f)
-        hc_safe = np.where(hc > 0, hc, 1.0)
-        uc = np.where(hc > 0, coarsen_mean(h * u, f) / hc_safe, 0.0)
-        vc = np.where(hc > 0, coarsen_mean(h * v, f) / hc_safe, 0.0)
-        ms = res.extras["mass_series"]
-        rec = {
-            "meta": smp.meta(), "wall_s": wall, "mass_balance_error": res.mass_balance_error,
-            "times": times.astype(np.float32),
-            "h": hc.astype(np.float32), "u": uc.astype(np.float32), "v": vc.astype(np.float32),
-            "depth_max_full": h.max(0).astype(np.float32),
-            "eta1": res.channel_eta.numpy(), "q1": res.channel_q.numpy(),
-            "fields": {"storage": coarsen_mean(storage, f).astype(np.float32),
-                       "kappa": coarsen_mean(kappa, f).astype(np.float32),
-                       "manning": coarsen_mean(manning, f).astype(np.float32),
-                       "landuse_frac": coarsen_mean(np.eye(LU.N_CLASSES)[lu].transpose(2, 0, 1), f).astype(np.float32),
-                       "gamma": gamma.astype(np.float32)},
-            "forcing": {"rain_mmh": fo.rain.series(fo.t_end, cfg.model.forcing_steps).astype(np.float32),
-                        "tide_m": np.array([fo.tide(t) for t in np.linspace(0, fo.t_end, cfg.model.forcing_steps)],
-                                           np.float32),
-                        "inflow_m3s": np.array([fo.inflow(t) for t in np.linspace(0, fo.t_end, cfg.model.forcing_steps)],
-                                               np.float32),
-                        "t_end": fo.t_end, "storm_start": fo.storm_start, "rain_factor": fo.rain_factor,
-                        "slr_m": fo.slr_m, "arf": fo.arf_domain,
-                        "horton_rate_mmh": _horton_series(lu, kappa, fo, times, f)},
-            "volumes": {"infiltrated_m3": res.infiltrated_volume_m3, "stored_m3": res.stored_volume_m3,
-                        "sources": res.extras["sources"], "series": ms},
-            "ledger": _ledger(res, h, f, dom.dx),
-            "run_log": {k: v for k, v in asdict(res.extras["run_log"]).items() if k != "series"},
-        }
-        torch.save(_to_tensors(rec), path)
-        index[str(i)] = {**smp.meta(), "wall_s": wall, "mass_err": res.mass_balance_error,
-                         "peak_depth_land": float(h.max(0)[~(dom.sea)].max()),
-                         "in_distribution": res.in_distribution}
-        index_path.write_text(json.dumps(index, indent=1), encoding="utf-8")
-        done_now += 1
-        rate = (time.perf_counter() - t_start) / done_now
-        left = sum(1 for k in range(i + 1, n) if str(k) not in index)
-        log.info("sim %d/%d %s: %.0f s, mass err %.1e, ETA %.1f h", i + 1, n, _desc(smp), wall,
-                 res.mass_balance_error, left * rate / 3600)
+        # mass balance is asserted per member inside the run: a batch aborts if any
+        # single storm violates cfg.solver.mass_tol
+        results = api.simulate_batch(sites, scens)
+        batch_wall = time.perf_counter() - t0
+        wall = batch_wall / len(chunk)
+        for i, smp, scen, lu, mat, res in zip(chunk, smps, scens, lus, mats, results):
+            path = out / f"sim_{i:05d}.pt"
+            storage, kappa, manning, gamma, base_S, base_n = mat
+            _write_sim(cfg, dom, f, i, smp, lu, storage, kappa, manning, gamma, res, path, index,
+                       wall, batch_wall, len(chunk))
+            done_now += 1
+            index_path.write_text(json.dumps(index, indent=1), encoding="utf-8")
+            rate = (time.perf_counter() - t_start) / done_now
+            left = len(todo) - (todo.index(i) + 1)
+            log.info("sim %d/%d %s: %.0f s (batch of %d in %.0f s), mass err %.1e, ETA %.1f h", i + 1, n,
+                     _desc(smp), wall, len(chunk), batch_wall, res.mass_balance_error, left * rate / 3600)
     env = _envelope(cfg, dom, index, out, ctx)
     env.save(out / "envelope.json")
     write_card(cfg, out, index, env, ctx)
     return out
+
+
+def _write_sim(cfg, dom, f, i, smp, lu, storage, kappa, manning, gamma, res, path, index,
+               wall, batch_wall, batch_size) -> None:
+    """Coarsen one simulation and write its training record."""
+    fo = res.extras["forcing"]
+    times = res.times.numpy()
+    h, u, v = res.depth_series.numpy(), res.u.numpy(), res.v.numpy()
+    hc = coarsen_mean(h, f)
+    hc_safe = np.where(hc > 0, hc, 1.0)
+    uc = np.where(hc > 0, coarsen_mean(h * u, f) / hc_safe, 0.0)
+    vc = np.where(hc > 0, coarsen_mean(h * v, f) / hc_safe, 0.0)
+    ms = res.extras["mass_series"]
+    rec = {
+        "meta": smp.meta(), "wall_s": wall, "mass_balance_error": res.mass_balance_error,
+        "times": times.astype(np.float32),
+        "h": hc.astype(np.float32), "u": uc.astype(np.float32), "v": vc.astype(np.float32),
+        "depth_max_full": h.max(0).astype(np.float32),
+        "eta1": res.channel_eta.numpy(), "q1": res.channel_q.numpy(),
+        "fields": {"storage": coarsen_mean(storage, f).astype(np.float32),
+                   "kappa": coarsen_mean(kappa, f).astype(np.float32),
+                   "manning": coarsen_mean(manning, f).astype(np.float32),
+                   "landuse_frac": coarsen_mean(np.eye(LU.N_CLASSES)[lu].transpose(2, 0, 1), f).astype(np.float32),
+                   "gamma": gamma.astype(np.float32)},
+        "forcing": {"rain_mmh": fo.rain.series(fo.t_end, cfg.model.forcing_steps).astype(np.float32),
+                    "tide_m": np.array([fo.tide(t) for t in np.linspace(0, fo.t_end, cfg.model.forcing_steps)],
+                                       np.float32),
+                    "inflow_m3s": np.array([fo.inflow(t) for t in np.linspace(0, fo.t_end, cfg.model.forcing_steps)],
+                                           np.float32),
+                    "t_end": fo.t_end, "storm_start": fo.storm_start, "rain_factor": fo.rain_factor,
+                    "slr_m": fo.slr_m, "arf": fo.arf_domain,
+                    "horton_rate_mmh": _horton_series(lu, kappa, fo, times, f)},
+        "volumes": {"infiltrated_m3": res.infiltrated_volume_m3, "stored_m3": res.stored_volume_m3,
+                    "sources": res.extras["sources"], "series": ms},
+        "ledger": _ledger(res, h, f, dom.dx),
+        "run_log": {k: v for k, v in asdict(res.extras["run_log"]).items() if k != "series"},
+    }
+    torch.save(_to_tensors(rec), path)
+    index[str(i)] = {**smp.meta(), "wall_s": wall, "batch_wall_s": batch_wall, "batch_size": batch_size,
+                     "mass_err": res.mass_balance_error,
+                     "peak_depth_land": float(h.max(0)[~(dom.sea)].max()),
+                     "in_distribution": res.in_distribution}
 
 
 def _horton_series(lu, kappa, fo, times, f):
@@ -200,7 +215,9 @@ def write_card(cfg, out: Path, index: dict, env, ctx) -> Path:
     if rows:
         w = np.array([r["wall_s"] for r in rows])
         me = np.array([r["mass_err"] for r in rows])
-        s += f"- engine wall time per simulation: median {np.median(w):.0f} s, max {w.max():.0f} s\n"
+        bsz = np.array([r.get("batch_size", 1) for r in rows])
+        s += (f"- engine wall time per simulation: median {np.median(w):.0f} s, max {w.max():.0f} s, amortised over "
+              f"batches of {int(bsz.min())}-{int(bsz.max())} storms advanced together on one set of kernels\n")
         s += f"- mass-balance error: max {me.max():.2e} (every run asserted < {cfg.solver.mass_tol:g})\n"
         s += f"- baseline (no intervention) samples: {sum(r['baseline'] for r in rows)}\n"
         for rp in cfg.data.return_periods:

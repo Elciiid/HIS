@@ -2,6 +2,7 @@
 
     python -m hydrointel.cli benchmark [--fast]
     python -m hydrointel.cli precision-study
+    python -m hydrointel.cli batch-study
     python -m hydrointel.cli generate  [--quick]
     python -m hydrointel.cli train     [--quick] [--resume]
     python -m hydrointel.cli evaluate  [--quick] [--calibrate]
@@ -82,6 +83,18 @@ def cmd_precision_study(cfg, args) -> int:
     return 0 if d["passed"] else 1
 
 
+def cmd_batch_study(cfg, args) -> int:
+    from .benchmarks.throughput import run_study
+    _eta("batch throughput study", None)
+    d = run_study(cfg, stage=args.stage, batch=args.batch, full_storms=args.full_storms,
+                  n_sequential=args.sequential, full_t_end_h=args.full_hours)
+    print(f"report: {Path(cfg.outdir) / 'batch_throughput.md'}")
+    if d.get("full_length"):
+        print(f"batch {d['chosen_batch']}: {d['full_length']['s_per_storm']:.0f} s per storm over "
+              f"{d['full_length']['t_end_s'] / 3600:.2f} h of storm")
+    return 0
+
+
 def cmd_generate(cfg, args) -> int:
     from .data.generate import generate
     from .api import dataset_dir
@@ -155,6 +168,13 @@ def main(argv=None) -> int:
     sub = p.add_subparsers(dest="command", required=True)
     b = sub.add_parser("benchmark"); b.add_argument("--fast", action="store_true"); b.add_argument("--quick", action="store_true")
     ps = sub.add_parser("precision-study"); ps.add_argument("--quick", action="store_true")
+    bs = sub.add_parser("batch-study")
+    bs.add_argument("--quick", action="store_true")
+    bs.add_argument("--stage", choices=["all", "scaling", "full", "profile"], default="all")
+    bs.add_argument("--batch", type=int, help="batch size for the full-length stage (required with --stage full)")
+    bs.add_argument("--full-storms", type=int, help="storms in the full-length stage (default: the batch size)")
+    bs.add_argument("--sequential", type=int, default=4, help="storms also run alone, for the accuracy comparison")
+    bs.add_argument("--full-hours", type=float, help="truncate the full-length stage to this many simulated hours")
     g = sub.add_parser("generate"); g.add_argument("--quick", action="store_true")
     g.add_argument("--skip-benchmark-check", action="store_true", help=argparse.SUPPRESS)
     t = sub.add_parser("train"); t.add_argument("--quick", action="store_true"); t.add_argument("--resume", action="store_true")
@@ -180,8 +200,12 @@ def main(argv=None) -> int:
     args.fast = getattr(args, "fast", False)
     args.skip_benchmark_check = getattr(args, "skip_benchmark_check", False)
     args.resume = getattr(args, "resume", False)
+    for name, default in (("stage", "all"), ("batch", None), ("full_storms", None), ("sequential", 4),
+                          ("full_hours", None)):
+        setattr(args, name, getattr(args, name, default))
     t0 = time.perf_counter()
-    rc = {"benchmark": cmd_benchmark, "precision-study": cmd_precision_study, "generate": cmd_generate,
+    rc = {"benchmark": cmd_benchmark, "precision-study": cmd_precision_study,
+          "batch-study": cmd_batch_study, "generate": cmd_generate,
           "train": cmd_train, "evaluate": cmd_evaluate, "figures": cmd_figures, "all": cmd_all}[args.command](cfg, args)
     print(f"done in {(time.perf_counter() - t0) / 60:.1f} min")
     return rc
