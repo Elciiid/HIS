@@ -87,9 +87,15 @@ def bench_lake_at_rest(dev, fast, out, prov, cfg: RunConfig):
     dcfg = quick_config().domain if fast else cfg.domain
     dom = generate(dcfg, cfg.seed)
     eta0 = 3.0
+    # well-balancedness can only hold to the working precision's round-off: 1e-10 is a
+    # float64 statement. The float32 tolerance is used by the precision study, never by
+    # the suite, which runs float64.
+    prec = cfg.solver.precision
+    tol = {"fp64": 1e-10, "fp32": 1e-5}[prec]
     res = {}
     for order in (1, 2):
-        sim = SWE2D(dom.dem, dom.manning(), dom.dx, _scfg(order, compile=True), all_edges("closed"), dev)
+        sim = SWE2D(dom.dem, dom.manning(), dom.dx, _scfg(order, compile=True), all_edges("closed"), dev,
+                    dtype=cfg.dtype)
         sim.set_level(eta0)
         wet0 = (sim.h > 0)
         mb = MassBalance(dev, float(sim.volume()))
@@ -102,10 +108,11 @@ def bench_lake_at_rest(dev, fast, out, prov, cfg: RunConfig):
             "mass_err": mb.check(float(sim.volume()), 0.0),
             "wet_fraction": float(wet0.double().mean()),
         }
-    ok = all(r["max_abs_u"] < 1e-10 and r["max_abs_v"] < 1e-10 and r["max_eta_dev"] < 1e-10 for r in res.values())
+    ok = all(r["max_abs_u"] < tol and r["max_abs_v"] < tol and r["max_eta_dev"] < tol for r in res.values())
     m = {f"o{o}_{k}": v for o, r in res.items() for k, v in r.items()}
     return BenchResult("1", "Lake at rest (well-balancedness)", ok,
-                       "max|u|,max|v| < 1e-10 m/s and max|eta-eta0| < 1e-10 m after 500 steps (1st and 2nd order)",
+                       f"max|u|,max|v| < {tol:g} m/s and max|eta-eta0| < {tol:g} m after 500 steps "
+                       f"(1st and 2nd order, {prec})",
                        m, [f"grid {dom.nx}x{dom.ny} @ {dom.dx:g} m, eta0 = {eta0} m, partially dry, closed edges"])
 
 

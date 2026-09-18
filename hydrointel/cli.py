@@ -1,6 +1,7 @@
 """Command line interface.
 
     python -m hydrointel.cli benchmark [--fast]
+    python -m hydrointel.cli precision-study
     python -m hydrointel.cli generate  [--quick]
     python -m hydrointel.cli train     [--quick] [--resume]
     python -m hydrointel.cli evaluate  [--quick] [--calibrate]
@@ -70,6 +71,15 @@ def cmd_benchmark(cfg, args) -> int:
     print(banner(res))
     print(f"report: {Path(cfg.outdir) / 'benchmark_report.md'}")
     return 0 if all(r.passed for r in res) else 1
+
+
+def cmd_precision_study(cfg, args) -> int:
+    from .benchmarks.precision import run_study
+    _eta("precision study (3 storms x 2 precisions at full resolution)", None)
+    d = run_study(cfg)
+    print(f"report: {Path(cfg.outdir) / 'precision_study.md'}")
+    print(f"precision study: {'PASS' if d['passed'] else 'FAIL'}")
+    return 0 if d["passed"] else 1
 
 
 def cmd_generate(cfg, args) -> int:
@@ -144,6 +154,7 @@ def main(argv=None) -> int:
     p.add_argument("-v", "--verbose", action="store_true")
     sub = p.add_subparsers(dest="command", required=True)
     b = sub.add_parser("benchmark"); b.add_argument("--fast", action="store_true"); b.add_argument("--quick", action="store_true")
+    ps = sub.add_parser("precision-study"); ps.add_argument("--quick", action="store_true")
     g = sub.add_parser("generate"); g.add_argument("--quick", action="store_true")
     g.add_argument("--skip-benchmark-check", action="store_true", help=argparse.SUPPRESS)
     t = sub.add_parser("train"); t.add_argument("--quick", action="store_true"); t.add_argument("--resume", action="store_true")
@@ -170,8 +181,8 @@ def main(argv=None) -> int:
     args.skip_benchmark_check = getattr(args, "skip_benchmark_check", False)
     args.resume = getattr(args, "resume", False)
     t0 = time.perf_counter()
-    rc = {"benchmark": cmd_benchmark, "generate": cmd_generate, "train": cmd_train, "evaluate": cmd_evaluate,
-          "figures": cmd_figures, "all": cmd_all}[args.command](cfg, args)
+    rc = {"benchmark": cmd_benchmark, "precision-study": cmd_precision_study, "generate": cmd_generate,
+          "train": cmd_train, "evaluate": cmd_evaluate, "figures": cmd_figures, "all": cmd_all}[args.command](cfg, args)
     print(f"done in {(time.perf_counter() - t0) / 60:.1f} min")
     return rc
 

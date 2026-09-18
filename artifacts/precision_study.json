@@ -1,0 +1,413 @@
+{
+  "provenance": {
+    "source": "SYNTHETIC",
+    "config_hash": "95f82786e6a18b05",
+    "seed": 20260917,
+    "git_commit": "8e2b80f-dirty",
+    "timestamp": "2026-09-18T00:06:17Z",
+    "device": "cuda",
+    "precision": "fp64+fp32",
+    "engine": "engine",
+    "notes": [
+      "float32 vs float64 study for dataset generation"
+    ]
+  },
+  "criteria": {
+    "mass_balance_error": 0.0001,
+    "max_abs_depth_diff_m": 0.005,
+    "depth_rmse_wet_m": 0.001,
+    "peak_depth_diff_m": 0.005,
+    "flooded_area_rel_diff": 0.005,
+    "lake_at_rest_fp32_velocity_ms": 1e-05
+  },
+  "output_interval_s": 300.0,
+  "grid": {
+    "nx": 400,
+    "ny": 325,
+    "dx": 20.0
+  },
+  "storms": [
+    {
+      "index": 20,
+      "role": "baseline site, low return period, tide off",
+      "patterns": [],
+      "baseline_site": true,
+      "scenario": {
+        "return_period_yr": 10,
+        "rcp": "RCP8.5",
+        "ssp": "SSP5",
+        "horizon_year": 2037,
+        "tide_on": false,
+        "storm_tide_offset_h": 3.172684281234808
+      },
+      "site_stats": {
+        "storage_max_m": 0.05,
+        "storage_mean_m": 0.02430676407814809,
+        "kappa_max": 1.0,
+        "kappa_mean": 1.0,
+        "manning_min": 0.014,
+        "manning_max": 0.12,
+        "gamma_min": 1.0,
+        "gamma_max": 1.0
+      },
+      "runs": {
+        "fp64": {
+          "precision": "fp64",
+          "wall_s": 288.8937536000012,
+          "loop_wall_s": 285.1479079000019,
+          "steps": 40230,
+          "ms_per_step": 7.087942030822815,
+          "mass_balance_error": 1.2944811213484268e-15,
+          "infiltrated_m3": 2169689.8408270823,
+          "stored_m3": 1070878.5551639437,
+          "peak_gpu_mb": 54.76904296875
+        },
+        "fp32": {
+          "precision": "fp32",
+          "wall_s": 279.9418399999995,
+          "loop_wall_s": 279.83061889999954,
+          "steps": 40230,
+          "ms_per_step": 6.9557697961719995,
+          "mass_balance_error": 1.6221925846626378e-05,
+          "infiltrated_m3": 2169690.834013138,
+          "stored_m3": 1070827.8097741783,
+          "peak_gpu_mb": 29.40185546875
+        }
+      },
+      "comparison": {
+        "max_abs_depth_diff_m": 0.13151979446411133,
+        "depth_rmse_wet_m": 0.00015997571020126344,
+        "depth_bias_wet_m": 1.1877870757806085e-06,
+        "n_wet_samples": 5871554,
+        "peak_depth_diff_m": 0.029236674308776855,
+        "peak_depth_diff_land_m": 0.0018249638378620148,
+        "peak_speed_diff_ms": 0.01921212532617364,
+        "flooded_area": {
+          "0.15": {
+            "fp64_ha": 481.28,
+            "fp32_ha": 481.32,
+            "abs_diff_ha": 0.04,
+            "rel_diff": 8.311170212765957e-05
+          },
+          "0.3": {
+            "fp64_ha": 36.72,
+            "fp32_ha": 36.72,
+            "abs_diff_ha": 0.0,
+            "rel_diff": 0.0
+          },
+          "0.5": {
+            "fp64_ha": 11.04,
+            "fp32_ha": 11.04,
+            "abs_diff_ha": 0.0,
+            "rel_diff": 0.0
+          }
+        },
+        "speed_ratio": 1.019001812671195
+      },
+      "verdict": {
+        "passed": false,
+        "checks": {
+          "mass_balance_error fp32": {
+            "value": 1.6221925846626378e-05,
+            "limit": 0.0001,
+            "passed": true
+          },
+          "max|dh| over all cells and times": {
+            "value": 0.13151979446411133,
+            "limit": 0.005,
+            "passed": false
+          },
+          "depth RMSE over wet cells": {
+            "value": 0.00015997571020126344,
+            "limit": 0.001,
+            "passed": true
+          },
+          "peak-depth difference": {
+            "value": 0.029236674308776855,
+            "limit": 0.005,
+            "passed": false
+          },
+          "flooded-area difference at 0.15 m": {
+            "value": 8.311170212765957e-05,
+            "limit": 0.005,
+            "passed": true
+          },
+          "flooded-area difference at 0.3 m": {
+            "value": 0.0,
+            "limit": 0.005,
+            "passed": true
+          },
+          "flooded-area difference at 0.5 m": {
+            "value": 0.0,
+            "limit": 0.005,
+            "passed": true
+          }
+        }
+      }
+    },
+    {
+      "index": 6,
+      "role": "partly perturbed site, mid return period, tide on",
+      "patterns": [
+        "storage:coastal",
+        "manning:perturb",
+        "gamma"
+      ],
+      "baseline_site": false,
+      "scenario": {
+        "return_period_yr": 50,
+        "rcp": "RCP8.5",
+        "ssp": "SSP5",
+        "horizon_year": 2064,
+        "tide_on": true,
+        "storm_tide_offset_h": 5.867738181931305
+      },
+      "site_stats": {
+        "storage_max_m": 0.9519398251229917,
+        "storage_mean_m": 0.09466808167506173,
+        "kappa_max": 1.0,
+        "kappa_mean": 1.0,
+        "manning_min": 0.01273083074332702,
+        "manning_max": 0.1282088814214481,
+        "gamma_min": 1.3816027500732866,
+        "gamma_max": 1.977602524404371
+      },
+      "runs": {
+        "fp64": {
+          "precision": "fp64",
+          "wall_s": 607.8144958999983,
+          "loop_wall_s": 607.7024867999971,
+          "steps": 92280,
+          "ms_per_step": 6.5854192327698,
+          "mass_balance_error": 1.2323944100187449e-14,
+          "infiltrated_m3": 2231963.379036799,
+          "stored_m3": 4575012.187100187,
+          "peak_gpu_mb": 50.3017578125
+        },
+        "fp32": {
+          "precision": "fp32",
+          "wall_s": 534.1015124999976,
+          "loop_wall_s": 533.9774451000012,
+          "steps": 92283,
+          "ms_per_step": 5.786303491433971,
+          "mass_balance_error": 4.2499977356622916e-06,
+          "infiltrated_m3": 2231280.7258660076,
+          "stored_m3": 4574846.496982303,
+          "peak_gpu_mb": 38.80078125
+        }
+      },
+      "comparison": {
+        "max_abs_depth_diff_m": 9.751932144165039,
+        "depth_rmse_wet_m": 0.028077469862858792,
+        "depth_bias_wet_m": -0.0017239647078625404,
+        "n_wet_samples": 9453163,
+        "peak_depth_diff_m": 0.4345998764038086,
+        "peak_depth_diff_land_m": 0.12378168106079102,
+        "peak_speed_diff_ms": 4.169490777540307,
+        "flooded_area": {
+          "0.15": {
+            "fp64_ha": 3232.36,
+            "fp32_ha": 3232.24,
+            "abs_diff_ha": -0.12,
+            "rel_diff": 3.712457770792857e-05
+          },
+          "0.3": {
+            "fp64_ha": 2987.88,
+            "fp32_ha": 2987.76,
+            "abs_diff_ha": -0.12,
+            "rel_diff": 4.016225551226957e-05
+          },
+          "0.5": {
+            "fp64_ha": 2868.64,
+            "fp32_ha": 2868.24,
+            "abs_diff_ha": -0.4,
+            "rel_diff": 0.0001394388978749512
+          }
+        },
+        "speed_ratio": 1.1380677074968757
+      },
+      "verdict": {
+        "passed": false,
+        "checks": {
+          "mass_balance_error fp32": {
+            "value": 4.2499977356622916e-06,
+            "limit": 0.0001,
+            "passed": true
+          },
+          "max|dh| over all cells and times": {
+            "value": 9.751932144165039,
+            "limit": 0.005,
+            "passed": false
+          },
+          "depth RMSE over wet cells": {
+            "value": 0.028077469862858792,
+            "limit": 0.001,
+            "passed": false
+          },
+          "peak-depth difference": {
+            "value": 0.4345998764038086,
+            "limit": 0.005,
+            "passed": false
+          },
+          "flooded-area difference at 0.15 m": {
+            "value": 3.712457770792857e-05,
+            "limit": 0.005,
+            "passed": true
+          },
+          "flooded-area difference at 0.3 m": {
+            "value": 4.016225551226957e-05,
+            "limit": 0.005,
+            "passed": true
+          },
+          "flooded-area difference at 0.5 m": {
+            "value": 0.0001394388978749512,
+            "limit": 0.005,
+            "passed": true
+          }
+        }
+      }
+    },
+    {
+      "index": 0,
+      "role": "storage, infiltration, roughness and conveyance all perturbed; highest return period, tide on",
+      "patterns": [
+        "storage:roads",
+        "kappa:roads",
+        "manning:perturb",
+        "gamma"
+      ],
+      "baseline_site": false,
+      "scenario": {
+        "return_period_yr": 100,
+        "rcp": "RCP6.0",
+        "ssp": "SSP3",
+        "horizon_year": 2094,
+        "tide_on": true,
+        "storm_tide_offset_h": 3.288647045930844
+      },
+      "site_stats": {
+        "storage_max_m": 0.39967389981767587,
+        "storage_mean_m": 0.02014071806094122,
+        "kappa_max": 1.6620781245235887,
+        "kappa_mean": 1.0207558394151666,
+        "manning_min": 0.010695095356374073,
+        "manning_max": 0.14522751434156161,
+        "gamma_min": 0.8879903281626877,
+        "gamma_max": 1.6363050813647995
+      },
+      "runs": {
+        "fp64": {
+          "precision": "fp64",
+          "wall_s": 283.5425599000009,
+          "loop_wall_s": 283.43140499999936,
+          "steps": 42715,
+          "ms_per_step": 6.635406882828031,
+          "mass_balance_error": 6.291977187075472e-15,
+          "infiltrated_m3": 2043902.283505238,
+          "stored_m3": 929180.0581491747,
+          "peak_gpu_mb": 66.6728515625
+        },
+        "fp32": {
+          "precision": "fp32",
+          "wall_s": 236.62887300000148,
+          "loop_wall_s": 236.51237070000207,
+          "steps": 42715,
+          "ms_per_step": 5.536986320964581,
+          "mass_balance_error": 0.00010311346166349233,
+          "infiltrated_m3": 2043902.0035661529,
+          "stored_m3": 929186.4331687865,
+          "peak_gpu_mb": 55.171875
+        }
+      },
+      "comparison": {
+        "max_abs_depth_diff_m": 0.08153116703033447,
+        "depth_rmse_wet_m": 0.00019191370202201449,
+        "depth_bias_wet_m": -5.1596567275653345e-06,
+        "n_wet_samples": 8000535,
+        "peak_depth_diff_m": 0.08153116703033447,
+        "peak_depth_diff_land_m": 0.02120310440659523,
+        "peak_speed_diff_ms": 0.2433913606692747,
+        "flooded_area": {
+          "0.15": {
+            "fp64_ha": 2096.72,
+            "fp32_ha": 2096.64,
+            "abs_diff_ha": -0.08,
+            "rel_diff": 3.8154832309512e-05
+          },
+          "0.3": {
+            "fp64_ha": 1058.68,
+            "fp32_ha": 1058.76,
+            "abs_diff_ha": 0.08,
+            "rel_diff": 7.556579891940908e-05
+          },
+          "0.5": {
+            "fp64_ha": 471.6,
+            "fp32_ha": 471.6,
+            "abs_diff_ha": 0.0,
+            "rel_diff": 0.0
+          }
+        },
+        "speed_ratio": 1.1983787746963583
+      },
+      "verdict": {
+        "passed": false,
+        "checks": {
+          "mass_balance_error fp32": {
+            "value": 0.00010311346166349233,
+            "limit": 0.0001,
+            "passed": false
+          },
+          "max|dh| over all cells and times": {
+            "value": 0.08153116703033447,
+            "limit": 0.005,
+            "passed": false
+          },
+          "depth RMSE over wet cells": {
+            "value": 0.00019191370202201449,
+            "limit": 0.001,
+            "passed": true
+          },
+          "peak-depth difference": {
+            "value": 0.08153116703033447,
+            "limit": 0.005,
+            "passed": false
+          },
+          "flooded-area difference at 0.15 m": {
+            "value": 3.8154832309512e-05,
+            "limit": 0.005,
+            "passed": true
+          },
+          "flooded-area difference at 0.3 m": {
+            "value": 7.556579891940908e-05,
+            "limit": 0.005,
+            "passed": true
+          },
+          "flooded-area difference at 0.5 m": {
+            "value": 0.0,
+            "limit": 0.005,
+            "passed": true
+          }
+        }
+      }
+    }
+  ],
+  "lake_at_rest_fp32": {
+    "max_abs_velocity_ms": 1.5535086276941e-05,
+    "max_eta_dev_m": 1.1920928955078125e-06,
+    "mass_err": 0.0264474609731896,
+    "passed": false,
+    "metrics": {
+      "o1_max_abs_u": 1.2743532352033071e-05,
+      "o1_max_abs_v": 1.0526215191930532e-05,
+      "o1_max_eta_dev": 1.1920928955078125e-06,
+      "o1_mass_err": 0.0015404876962236836,
+      "o1_wet_fraction": 0.42478461538461537,
+      "o2_max_abs_u": 1.5535086276941e-05,
+      "o2_max_abs_v": 1.2513160982052796e-05,
+      "o2_max_eta_dev": 9.5367431640625e-07,
+      "o2_mass_err": 0.0264474609731896,
+      "o2_wet_fraction": 0.42478461538461537
+    }
+  },
+  "passed": false
+}
