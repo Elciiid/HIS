@@ -17,3 +17,11 @@ artifacts/*
 !artifacts/batch_throughput.json
 !artifacts/batch_measured.json
 !artifacts/batch_study.log
+!artifacts/grouping_study.md
+!artifacts/grouping_study.json
+!artifacts/overnight_log.md
+!artifacts/predict_speed.md
+!artifacts/predict_speed.json
+!artifacts/cost_projection.md
+!artifacts/cost_projection.json
+!artifacts/training_speed.json

@@ -1,0 +1,59 @@
+{
+ "provenance": {
+  "source": "SYNTHETIC",
+  "config_hash": "60e7caf69c6e8ca9",
+  "seed": 20260917,
+  "git_commit": "1bf166f-dirty",
+  "timestamp": "2026-09-18T20:32:36Z",
+  "device": "",
+  "precision": "",
+  "engine": "engine+surrogate",
+  "notes": [
+   "projection from recorded measurements"
+  ]
+ },
+ "generation_s_per_storm": 371.75816479999776,
+ "generation_source": "one storm at a time, measured full-length (batch_throughput.json)",
+ "train_s_per_step": 0.95,
+ "train_source": "full-size probe of 2026-09-17 (no dataset yet)",
+ "rows": [
+  {
+   "sims": 60,
+   "generation_h": 6.195969413333296,
+   "train_steps": 10000,
+   "training_h": 2.638888888888889,
+   "total_h": 8.834858302222186
+  },
+  {
+   "sims": 150,
+   "generation_h": 15.48992353333324,
+   "train_steps": 20000,
+   "training_h": 5.277777777777778,
+   "total_h": 20.76770131111102
+  },
+  {
+   "sims": 300,
+   "generation_h": 30.97984706666648,
+   "train_steps": 30000,
+   "training_h": 7.916666666666667,
+   "total_h": 38.896513733333144
+  },
+  {
+   "sims": 400,
+   "generation_h": 41.30646275555531,
+   "train_steps": 40000,
+   "training_h": 10.555555555555555,
+   "total_h": 51.862018311110866
+  }
+ ],
+ "prediction": {
+  "s_per_candidate": 0.47650868437494864,
+  "batch": 64,
+  "weights": "untrained (timing only)",
+  "per_scenario_h": {
+   "10000": 1.3236352343748574,
+   "30000": 3.970905703124572,
+   "100000": 13.236352343748573
+  }
+ }
+}

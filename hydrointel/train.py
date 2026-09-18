@@ -212,6 +212,15 @@ class Trainer:
                             "scaler": scaler.state_dict(), "bal": bal.state_dict(), "step": step, "curves": curves,
                             "best": best, "rng": rng.getstate(), "torch_rng": torch.get_rng_state()}, ck)
                 (self.out / "curves.json").write_text(json.dumps(curves), encoding="utf-8")
+        # the measured rate, for re-costing later runs: loop wall time over the steps run in
+        # this session, validation and checkpoints included (that is what a run costs)
+        done = step - start_step
+        if done > 0:
+            wall = time.perf_counter() - t0
+            speed = {"steps": done, "loop_wall_s": wall, "s_per_step": wall / done,
+                     "includes": "validation every %d steps and checkpoints every %d" % (tc.val_every, tc.ckpt_every),
+                     "peak_gpu_mb": torch.cuda.max_memory_allocated() / 2 ** 20 if torch.cuda.is_available() else None}
+            (Path(self.cfg.outdir) / "training_speed.json").write_text(json.dumps(speed, indent=1), encoding="utf-8")
         # final model = best validation checkpoint
         best_state = torch.load(self.out / "best.pt", map_location=self.device, weights_only=False)
         torch.save(best_state, final)
