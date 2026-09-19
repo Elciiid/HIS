@@ -5,10 +5,10 @@
 | provenance | |
 |---|---|
 | source | `SYNTHETIC` |
-| config_hash | `95f82786e6a18b05` |
+| config_hash | `ec488c74bcba1145` |
 | seed | `20260917` |
-| git_commit | `7d0f4fa` |
-| timestamp | `2026-09-17T22:47:57Z` |
+| git_commit | `ea3006a-dirty` |
+| timestamp | `2026-09-19T03:30:21Z` |
 | device | `cuda` |
 | precision | `fp64` |
 | engine | `engine` |
@@ -20,15 +20,15 @@ Benchmark 2b (smooth-solution convergence) is an addition to the eight required 
 
 | # | benchmark | result | criterion | time |
 |---|---|---|---|---|
-| 1 | Lake at rest (well-balancedness) | PASS | max|u|,max|v| < 1e-10 m/s and max|eta-eta0| < 1e-10 m after 500 steps (1st and 2nd order) | 66 s |
-| 2 | Ritter dam-break (dry bed) | PASS | operational thresholds (h_dry=1e-3): L1 error decreases monotonically under refinement for both orders and MUSCL beats 1st order at the finest grid; scheme-isolated (h_dry=1e-6, KP eps=1e-24): observed L1 order >= 0.6 (1st) and >= 0.9 (MUSCL). The spec's 0.8 / 1.5 thresholds are enforced on the smooth problem (2b): this solution contains rarefaction kinks and a dry front with sqrt-type velocity, which cap attainable L1 order near 1 | 98 s |
-| 2b | Smooth-wave self-convergence (formal order) | PASS | observed L1 order >= 0.8 (1st order) and >= 1.5 (MUSCL) on a smooth solution, finest pair | 66 s |
-| 3 | Stoker dam-break (wet bed) | PASS | operational thresholds (h_dry=1e-3): L1 error decreases monotonically under refinement for both orders and MUSCL beats 1st order at the finest grid; scheme-isolated (h_dry=1e-6, KP eps=1e-24): observed L1 order >= 0.7 (1st) and >= 0.9 (MUSCL). The spec's 0.8 / 1.5 thresholds are enforced on the smooth problem (2b): this solution contains a shock, which caps any scheme's L1 order at 1 | 76 s |
-| 4 | Thacker planar oscillation in a paraboloid | PASS | field-scale bowl, configured order (2): relative L2 error of h < 5% after 3 periods and mass drift < 1e-10 | 419 s |
-| 5 | Steady flow over a bump (sub-, trans-, trans+shock) | PASS | relative L1 error of h below 1% / 2% / 5% and steady discharge within 5% of q | 772 s |
-| 6 | Rainfall-runoff on a tilted plane (kinematic wave) | PASS | for the configured order (2): equilibrium discharge within 2%, rising-limb RMSE < 10% of q_eq, mass error < 1e-10 | 61 s |
-| 7 | 1-D/2-D coupling mass closure (overtopping and return flow) | PASS | exchange term alone conserves volume to < 1e-12 of the exchanged volume with no negative state; full event mass error < 1e-10; exchange occurred in both directions | 64 s |
-| 8 | Mass conservation, closed domain, design storm (coupled, infiltration, storage) | PASS | relative mass error < 1e-3 at the end of the run (fp64; the full suite also reports fp32) | 524 s |
+| 1 | Lake at rest (well-balancedness) | PASS | max|u|,max|v| < 1e-10 m/s and max|eta-eta0| < 1e-10 m after 500 steps (1st and 2nd order, fp64) | 108 s |
+| 2 | Ritter dam-break (dry bed) | PASS | operational thresholds (h_dry=1e-3): L1 error decreases monotonically under refinement for both orders and MUSCL beats 1st order at the finest grid; scheme-isolated (h_dry=1e-6, KP eps=1e-24): observed L1 order >= 0.6 (1st) and >= 0.9 (MUSCL). The spec's 0.8 / 1.5 thresholds are enforced on the smooth problem (2b): this solution contains rarefaction kinks and a dry front with sqrt-type velocity, which cap attainable L1 order near 1 | 54 s |
+| 2b | Smooth-wave self-convergence (formal order) | PASS | observed L1 order >= 0.8 (1st order) and >= 1.5 (MUSCL) on a smooth solution, finest pair | 41 s |
+| 3 | Stoker dam-break (wet bed) | PASS | operational thresholds (h_dry=1e-3): L1 error decreases monotonically under refinement for both orders and MUSCL beats 1st order at the finest grid; scheme-isolated (h_dry=1e-6, KP eps=1e-24): observed L1 order >= 0.7 (1st) and >= 0.9 (MUSCL). The spec's 0.8 / 1.5 thresholds are enforced on the smooth problem (2b): this solution contains a shock, which caps any scheme's L1 order at 1 | 53 s |
+| 4 | Thacker planar oscillation in a paraboloid | PASS | field-scale bowl, configured order (2): relative L2 error of h < 5% after 3 periods and mass drift < 1e-10 | 356 s |
+| 5 | Steady flow over a bump (sub-, trans-, trans+shock) | PASS | relative L1 error of h below 1% / 2% / 5% and steady discharge within 5% of q | 701 s |
+| 6 | Rainfall-runoff on a tilted plane (kinematic wave) | PASS | for the configured order (2): equilibrium discharge within 2%, rising-limb RMSE < 10% of q_eq, mass error < 1e-10 | 66 s |
+| 7 | 1-D/2-D coupling mass closure (overtopping and return flow) | PASS | exchange term alone conserves volume to < 1e-12 of the exchanged volume with no negative state; full event mass error < 1e-10; exchange occurred in both directions | 42 s |
+| 8 | Mass conservation, closed domain, design storm (coupled, infiltration, storage) | PASS | relative mass error < 1e-3 at the end of the run (fp64; the full suite also reports fp32) | 699 s |
 
 ## Details
 
@@ -38,15 +38,15 @@ Benchmark 2b (smooth-solution convergence) is an addition to the eight required 
 
 | metric | value |
 |---|---|
-| o1_max_abs_u | 2.269e-14 |
-| o1_max_abs_v | 2.321e-14 |
-| o1_max_eta_dev | 1.776e-15 |
-| o1_mass_err | 5.366e-28 |
+| o1_max_abs_u | 2.306e-14 |
+| o1_max_abs_v | 1.784e-14 |
+| o1_max_eta_dev | 2.22e-15 |
+| o1_mass_err | 1.956e-28 |
 | o1_wet_fraction | 0.4248 |
-| o2_max_abs_u | 2.771e-14 |
-| o2_max_abs_v | 3.254e-14 |
-| o2_max_eta_dev | 1.776e-15 |
-| o2_mass_err | 6.242e-28 |
+| o2_max_abs_u | 2.588e-14 |
+| o2_max_abs_v | 2.822e-14 |
+| o2_max_eta_dev | 2.22e-15 |
+| o2_mass_err | 4.233e-28 |
 | o2_wet_fraction | 0.4248 |
 
 ### 2. Ritter dam-break (dry bed)
@@ -130,8 +130,8 @@ Benchmark 2b (smooth-solution convergence) is an addition to the eight required 
 | field_o2_n | 200 |
 | field_o2_dx_m | 20 |
 | field_o2_period_s | 1003 |
-| field_o2_relL2_per_period | [0.009851, 0.0126, 0.01616] |
-| field_o2_mass_err | 0 |
+| field_o2_relL2_per_period | [0.009851, 0.01253, 0.0161] |
+| field_o2_mass_err | 1.482e-16 |
 | field_o2_clip_m3 | 0 |
 | lab_o2_n | 200 |
 | lab_o2_dx_m | 0.02 |
@@ -184,13 +184,13 @@ Benchmark 2b (smooth-solution convergence) is an addition to the eight required 
 
 | metric | value |
 |---|---|
-| exchange_only_worst_rel | 1.875e-13 |
+| exchange_only_worst_rel | 7.962e-14 |
 | exchange_only_negative_state | False |
-| event_mass_err | 2.44e-15 |
-| exchanged_2d_to_1d_m3 | 1.902e+05 |
-| exchanged_1d_to_2d_m3 | 1.902e+05 |
-| peak_2d_volume_m3 | 1.209e+05 |
-| final_2d_volume_m3 | 49.5 |
+| event_mass_err | 6.897e-16 |
+| exchanged_2d_to_1d_m3 | 1.271e+05 |
+| exchanged_1d_to_2d_m3 | 1.271e+05 |
+| peak_2d_volume_m3 | 1.249e+05 |
+| final_2d_volume_m3 | 54.77 |
 
 ![7](figures/bench_coupling.png)
 
@@ -200,22 +200,22 @@ Benchmark 2b (smooth-solution convergence) is an addition to the eight required 
 
 | metric | value |
 |---|---|
-| fp64_mass_err | 5.691e-15 |
+| fp64_mass_err | 3.276e-15 |
 | fp64_rain_m3 | 8.154e+06 |
 | fp64_infiltration_m3 | 2.648e+06 |
 | fp64_stored_m3 | 2.264e+06 |
-| fp64_exchanged_2d_to_1d_m3 | 1.145e+06 |
-| fp64_exchanged_1d_to_2d_m3 | 3.917e+05 |
-| fp64_steps | 40994 |
-| fp64_wall_s | 294.6 |
+| fp64_exchanged_2d_to_1d_m3 | 1.186e+06 |
+| fp64_exchanged_1d_to_2d_m3 | 4.285e+05 |
+| fp64_steps | 40995 |
+| fp64_wall_s | 403.2 |
 | fp64_clip_m3 | 0 |
-| fp32_mass_err | 5.734e-05 |
-| fp32_rain_m3 | 8.155e+06 |
+| fp32_mass_err | 7.005e-05 |
+| fp32_rain_m3 | 8.154e+06 |
 | fp32_infiltration_m3 | 2.648e+06 |
-| fp32_stored_m3 | 2.265e+06 |
-| fp32_exchanged_2d_to_1d_m3 | 1.145e+06 |
-| fp32_exchanged_1d_to_2d_m3 | 3.917e+05 |
+| fp32_stored_m3 | 2.264e+06 |
+| fp32_exchanged_2d_to_1d_m3 | 1.186e+06 |
+| fp32_exchanged_1d_to_2d_m3 | 4.285e+05 |
 | fp32_steps | 40994 |
-| fp32_wall_s | 227.6 |
+| fp32_wall_s | 294 |
 | fp32_clip_m3 | 0 |
 

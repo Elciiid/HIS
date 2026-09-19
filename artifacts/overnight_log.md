@@ -117,3 +117,19 @@ Push each task's commit to GitHub.
    dataset (ea92140a6e4158f4, with its quarantine) is kept on disk for comparison.
    Consequence for Tasks 1 and 2 (recorded, not re-run tonight): their outlier storm
    was an instability; the corrected engine would change their numbers.
+
+10. **Quick-mode overfit gate failed by a hair; recorded, not relaxed.** On the
+    regenerated quick dataset the 150-step overfit check reached a loss ratio of 0.0501
+    against its 0.05 limit, so no quick-mode model was trained. I checked that my model
+    refactor is not the cause: with identical weights and inputs the refactored model
+    matches the original bit for bit (0.0 difference in encoder, volumes, decoder and
+    time derivatives). The change is in the data (the channel fix changes the targets).
+    The full-size check (1,500 steps) runs separately inside Phase 1 training.
+    Two fixes that fell out of it:
+    - **Gate-bypass bug:** a failed overfit check was cached to disk and a rerun of
+      `train` returned the cached result without checking it had passed, silently
+      skipping the gate. It now raises again.
+    - The Part B contract tests (batching, detail modes, disbenefit) no longer skip
+      without a trained quick model: they test mechanics, not accuracy, so they fall
+      back to an untrained model of the same architecture. The accuracy-dependent
+      interchangeability test still needs a trained model and skips without one.

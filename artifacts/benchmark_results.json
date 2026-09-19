@@ -1,10 +1,10 @@
 {
   "provenance": {
     "source": "SYNTHETIC",
-    "config_hash": "95f82786e6a18b05",
+    "config_hash": "ec488c74bcba1145",
     "seed": 20260917,
-    "git_commit": "7d0f4fa",
-    "timestamp": "2026-09-17T22:47:57Z",
+    "git_commit": "ea3006a-dirty",
+    "timestamp": "2026-09-19T03:30:21Z",
     "device": "cuda",
     "precision": "fp64",
     "engine": "engine",
@@ -18,24 +18,24 @@
       "key": "1",
       "name": "Lake at rest (well-balancedness)",
       "passed": true,
-      "criterion": "max|u|,max|v| < 1e-10 m/s and max|eta-eta0| < 1e-10 m after 500 steps (1st and 2nd order)",
+      "criterion": "max|u|,max|v| < 1e-10 m/s and max|eta-eta0| < 1e-10 m after 500 steps (1st and 2nd order, fp64)",
       "metrics": {
-        "o1_max_abs_u": 2.26886193655598e-14,
-        "o1_max_abs_v": 2.321185265184906e-14,
-        "o1_max_eta_dev": 1.7763568394002505e-15,
-        "o1_mass_err": 5.366063222653604e-28,
+        "o1_max_abs_u": 2.3060683697684247e-14,
+        "o1_max_abs_v": 1.7842420590203678e-14,
+        "o1_max_eta_dev": 2.220446049250313e-15,
+        "o1_mass_err": 1.9564788851534466e-28,
         "o1_wet_fraction": 0.42478461538461537,
-        "o2_max_abs_u": 2.771040538992049e-14,
-        "o2_max_abs_v": 3.2541122890622567e-14,
-        "o2_max_eta_dev": 1.7763568394002505e-15,
-        "o2_mass_err": 6.242398760862101e-28,
+        "o2_max_abs_u": 2.5884776282462563e-14,
+        "o2_max_abs_v": 2.821669235806383e-14,
+        "o2_max_eta_dev": 2.220446049250313e-15,
+        "o2_mass_err": 4.232523382930428e-28,
         "o2_wet_fraction": 0.42478461538461537
       },
       "notes": [
         "grid 400x325 @ 20 m, eta0 = 3.0 m, partially dry, closed edges"
       ],
       "figures": [],
-      "seconds": 65.78949049999937
+      "seconds": 107.98410459999286
     },
     {
       "key": "2",
@@ -125,7 +125,7 @@
       "figures": [
         "artifacts\\figures\\bench_ritter.png"
       ],
-      "seconds": 97.96758960000079
+      "seconds": 53.915577299994766
     },
     {
       "key": "2b",
@@ -168,7 +168,7 @@
         "This is where the spec's 0.8 / 1.5 order thresholds are mathematically meaningful; the dam-break solutions contain kinks, a dry front or a shock that cap attainable L1 order near 1 for any scheme."
       ],
       "figures": [],
-      "seconds": 66.13302789999943
+      "seconds": 41.10744530000375
     },
     {
       "key": "3",
@@ -258,7 +258,7 @@
       "figures": [
         "artifacts\\figures\\bench_stoker.png"
       ],
-      "seconds": 76.4624597999973
+      "seconds": 52.93246460000228
     },
     {
       "key": "4",
@@ -270,9 +270,9 @@
         "field_o1_dx_m": 20.0,
         "field_o1_period_s": 1003.0333403553236,
         "field_o1_relL2_per_period": [
-          0.11893396986943112,
-          0.22029838316772068,
-          0.312496860794821
+          0.11893396986943054,
+          0.2202983831677182,
+          0.3124968607948186
         ],
         "field_o1_mass_err": 0.0,
         "field_o1_clip_m3": 0.0,
@@ -280,11 +280,11 @@
         "field_o2_dx_m": 20.0,
         "field_o2_period_s": 1003.0333403553236,
         "field_o2_relL2_per_period": [
-          0.009851442356275343,
-          0.012601888223781157,
-          0.016156535187974903
+          0.009851190312498745,
+          0.012532528823669675,
+          0.01610363914482908
         ],
-        "field_o2_mass_err": 0.0,
+        "field_o2_mass_err": 1.4822240282185291e-16,
         "field_o2_clip_m3": 0.0,
         "lab_o2_n": 200,
         "lab_o2_dx_m": 0.02,
@@ -315,7 +315,7 @@
       "figures": [
         "artifacts\\figures\\bench_thacker.png"
       ],
-      "seconds": 418.95257349999883
+      "seconds": 356.24481620000734
     },
     {
       "key": "5",
@@ -342,7 +342,7 @@
       "figures": [
         "artifacts\\figures\\bench_bump.png"
       ],
-      "seconds": 771.9706966000012
+      "seconds": 701.4485110999958
     },
     {
       "key": "6",
@@ -366,7 +366,7 @@
       "figures": [
         "artifacts\\figures\\bench_plane.png"
       ],
-      "seconds": 61.178513300001214
+      "seconds": 66.08363839999947
     },
     {
       "key": "7",
@@ -374,13 +374,13 @@
       "passed": true,
       "criterion": "exchange term alone conserves volume to < 1e-12 of the exchanged volume with no negative state; full event mass error < 1e-10; exchange occurred in both directions",
       "metrics": {
-        "exchange_only_worst_rel": 1.874986533122373e-13,
+        "exchange_only_worst_rel": 7.962285051070764e-14,
         "exchange_only_negative_state": false,
-        "event_mass_err": 2.440050804794501e-15,
-        "exchanged_2d_to_1d_m3": 190199.07382745115,
-        "exchanged_1d_to_2d_m3": 190248.56944684574,
-        "peak_2d_volume_m3": 120941.2819407313,
-        "final_2d_volume_m3": 49.49561939455208
+        "event_mass_err": 6.897042956748e-16,
+        "exchanged_2d_to_1d_m3": 127094.44141398181,
+        "exchanged_1d_to_2d_m3": 127149.20842896267,
+        "peak_2d_volume_m3": 124943.75767637728,
+        "final_2d_volume_m3": 54.76701498075154
       },
       "notes": [
         "2 km x 1 km floodplain (20 m cells), 15 m trapezoidal channel with 2 m banks, triangular inflow hydrograph (5 m^3/s base, 180 m^3/s peak at 30 min), downstream stage 1 m above bed, 3 h simulated"
@@ -388,7 +388,7 @@
       "figures": [
         "artifacts\\figures\\bench_coupling.png"
       ],
-      "seconds": 63.554400899996836
+      "seconds": 42.253311499996926
     },
     {
       "key": "8",
@@ -396,30 +396,30 @@
       "passed": true,
       "criterion": "relative mass error < 1e-3 at the end of the run (fp64; the full suite also reports fp32)",
       "metrics": {
-        "fp64_mass_err": 5.6905180687376e-15,
-        "fp64_rain_m3": 8153914.276361306,
-        "fp64_infiltration_m3": 2647789.3966854005,
-        "fp64_stored_m3": 2264267.0799286957,
-        "fp64_exchanged_2d_to_1d_m3": 1145287.1300692356,
-        "fp64_exchanged_1d_to_2d_m3": 391676.768337985,
-        "fp64_steps": 40994,
-        "fp64_wall_s": 294.6292108000016,
+        "fp64_mass_err": 3.276340359397308e-15,
+        "fp64_rain_m3": 8153993.364876904,
+        "fp64_infiltration_m3": 2647771.394965788,
+        "fp64_stored_m3": 2264214.1408947124,
+        "fp64_exchanged_2d_to_1d_m3": 1186291.5112686679,
+        "fp64_exchanged_1d_to_2d_m3": 428538.37319170724,
+        "fp64_steps": 40995,
+        "fp64_wall_s": 403.15234220000275,
         "fp64_clip_m3": 0.0,
-        "fp32_mass_err": 5.7335285918703134e-05,
-        "fp32_rain_m3": 8154704.017207202,
-        "fp32_infiltration_m3": 2647791.285012949,
-        "fp32_stored_m3": 2264533.680033011,
-        "fp32_exchanged_2d_to_1d_m3": 1145431.5381724862,
-        "fp32_exchanged_1d_to_2d_m3": 391716.565173081,
+        "fp32_mass_err": 7.004548298571471e-05,
+        "fp32_rain_m3": 8153853.28807272,
+        "fp32_infiltration_m3": 2647772.8933102353,
+        "fp32_stored_m3": 2264208.2042103293,
+        "fp32_exchanged_2d_to_1d_m3": 1186244.3790665015,
+        "fp32_exchanged_1d_to_2d_m3": 428480.70711263147,
         "fp32_steps": 40994,
-        "fp32_wall_s": 227.60362990000067,
+        "fp32_wall_s": 294.0445108999993,
         "fp32_clip_m3": 0.0
       },
       "notes": [
         "400x325 @ 20 m synthetic domain, all 2-D edges and 1-D ends closed, 100-yr 6 h storm x RCP8.5 factor, Horton infiltration, bund and park retention"
       ],
       "figures": [],
-      "seconds": 524.404791500001
+      "seconds": 699.0180766999983
     }
   ]
 }

@@ -165,19 +165,27 @@ def test_predict_and_simulate_interchangeable_when_model_exists():
 # ---------------------------------------------------------------------------
 # batched prediction, output detail, disbenefit (Part B's call shape)
 # ---------------------------------------------------------------------------
-def _quick_surrogate():
+def _quick_surrogate(tmp_dir):
+    """The trained quick-mode surrogate if there is one, else an untrained model of the
+    same architecture. These tests check the API's mechanics -- batching, detail modes,
+    disbenefit bookkeeping -- which do not depend on the weights, so they must run
+    whether or not a trained model happens to be on disk."""
     cfg = quick_config()
     cfg.outdir = str(REPO_ARTIFACTS)
     from hydrointel.model.geokan_pino import model_dir
-    if not (model_dir(cfg) / "model.pt").exists():
-        pytest.skip("no trained quick-mode surrogate in ./artifacts/quick (run `cli --outdir artifacts/quick all --quick`)")
-    api.configure(cfg, CPU)
+    if (model_dir(cfg) / "model.pt").exists():
+        api.configure(cfg, CPU)
+        return cfg
+    from hydrointel.benchmarks.predict_speed import _untrained_model
+    cfg.outdir = str(tmp_dir)
+    ctx = api.configure(cfg, CPU)
+    ctx._model = _untrained_model(ctx)
     return cfg
 
 
 @pytest.fixture(scope="module")
-def population():
-    _quick_surrogate()
+def population(tmp_path_factory):
+    _quick_surrogate(tmp_path_factory.mktemp("surrogate"))
     scen = api.Scenario(50, "RCP4.5", "SSP2", 2050, True, 0.0)
     base = api.baseline_site(scen)
     dom = api.context().domain

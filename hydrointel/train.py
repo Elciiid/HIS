@@ -93,7 +93,13 @@ class Trainer:
     def overfit_check(self, n: int = 4, steps: int | None = None) -> dict:
         path = self.out / "overfit_check.json"
         if path.exists():
-            return json.loads(path.read_text(encoding="utf-8"))
+            res = json.loads(path.read_text(encoding="utf-8"))
+            # a cached result is only a shortcut: a failed gate stays failed on every rerun
+            if not res.get("passed"):
+                raise RuntimeError(f"overfit sanity check failed earlier ({path}): data loss only fell from "
+                                   f"{res['initial_loss']:.4g} to {res['final_loss']:.4g} "
+                                   f"(x{res['reduction']:.3g}, needs < 0.05); delete the file to re-run it")
+            return res
         cfg = self.cfg
         steps = steps or (150 if cfg.quick else 1500)
         state = {k: v.clone() for k, v in self.model.state_dict().items()}

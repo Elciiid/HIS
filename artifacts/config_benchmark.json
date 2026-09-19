@@ -1,7 +1,8 @@
 {
-  "_config_hash": "b1b3f877c0ab3ef6",
+  "_config_hash": "3a7cf516eeb84817",
   "data": {
     "baseline_frac": 0.15,
+    "batch": 1,
     "coarsen": 2,
     "gamma_range": [
       0.8,
@@ -158,7 +159,7 @@
     "output_interval_s": 900.0,
     "precision": "fp64",
     "recession_h": 2.0,
-    "slot_width_frac": 0.015,
+    "slot_width_frac": 1.0,
     "spatial_order": 2,
     "weir_cw": 1.7
   },
