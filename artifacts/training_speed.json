@@ -1,0 +1,7 @@
+{
+ "steps": 10000,
+ "loop_wall_s": 9744.26501990002,
+ "s_per_step": 0.974426501990002,
+ "includes": "validation every 500 steps and checkpoints every 1000",
+ "peak_gpu_mb": 4556.072265625
+}

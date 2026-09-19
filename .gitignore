@@ -28,3 +28,15 @@ artifacts/*
 !artifacts/step_demand.md
 !artifacts/step_demand.json
 !artifacts/phase1.json
+!artifacts/validation_report.md
+!artifacts/validation_metrics.json
+!artifacts/validation_metrics.csv
+!artifacts/intervention_effects.json
+!artifacts/config_evaluate.json
+!artifacts/config_train.json
+!artifacts/dataset_card.md
+!artifacts/figures/
+artifacts/figures/*
+!artifacts/figures/validation_summary.png
+!artifacts/figures/training_curves.png
+!artifacts/figures/overfit_check.png

@@ -1,0 +1,181 @@
+{
+  "_config_hash": "05256e50db265f31",
+  "data": {
+    "baseline_frac": 0.15,
+    "batch": 1,
+    "coarsen": 2,
+    "gamma_range": [
+      0.8,
+      2.0
+    ],
+    "horizon_range": [
+      2030,
+      2100
+    ],
+    "kappa_range": [
+      1.0,
+      6.0
+    ],
+    "manning_perturb": 0.25,
+    "n_sims": 60,
+    "offset_range_h": [
+      -6.0,
+      6.0
+    ],
+    "return_periods": [
+      10,
+      25,
+      50,
+      100
+    ],
+    "storage_range_m": [
+      0.0,
+      1.5
+    ],
+    "test_frac": 0.15,
+    "tide_on_prob": 0.8,
+    "val_frac": 0.1
+  },
+  "device": "auto",
+  "domain": {
+    "block_raise_range_m": [
+      0.2,
+      0.4
+    ],
+    "building_raise_m": 0.3,
+    "cell_m": 20.0,
+    "channel_incision_range_m": [
+      2.5,
+      4.0
+    ],
+    "channel_manning": 0.03,
+    "channel_node_spacing_m": 100.0,
+    "channel_side_slope": 1.5,
+    "channel_width_m": 60.0,
+    "creek_incision_range_m": [
+      1.0,
+      2.0
+    ],
+    "creek_width_m": 25.0,
+    "floodplain_rise_m": 6.0,
+    "floodplain_width_range_m": [
+      1500.0,
+      3000.0
+    ],
+    "hill_height_range_m": [
+      20.0,
+      40.0
+    ],
+    "inland_elev_range_m": [
+      15.0,
+      25.0
+    ],
+    "lx_m": 8000.0,
+    "ly_m": 6500.0,
+    "meander_amp_m": 450.0,
+    "micro_noise_amp_m": 0.1,
+    "n_creeks": 2,
+    "n_hills": 3,
+    "offshore_elev_m": -1.0,
+    "offshore_width_m": 300.0,
+    "plain_top_m": 2.0,
+    "plain_width_m": 2000.0,
+    "river_entry_x_frac": 0.72,
+    "river_mouth_x_frac": 0.52,
+    "smoothing_passes": 1,
+    "street_spacing_m": 100.0,
+    "street_width_m": 20.0,
+    "urban_radius_m": 1600.0
+  },
+  "forcing": {
+    "apply_arf": true,
+    "catchment": {
+      "area_km2": 120.0,
+      "baseflow_m3s": 15.0,
+      "runoff_coeff": 0.45,
+      "storage_k_h": 2.0,
+      "tc_h": 3.0
+    },
+    "idf": {
+      "a": 609.0,
+      "b": 0.18,
+      "c": 12.0,
+      "e": 0.7
+    },
+    "peak_position": 0.5,
+    "spinup_h": 0.5,
+    "storm_duration_h": 6.0,
+    "storm_step_min": 5.0,
+    "tide": {
+      "constituents": {
+        "K1": {
+          "amp_m": 0.26,
+          "period_h": 23.9344697,
+          "phase_deg": 60.0
+        },
+        "M2": {
+          "amp_m": 0.36,
+          "period_h": 12.4206012,
+          "phase_deg": 0.0
+        },
+        "O1": {
+          "amp_m": 0.2,
+          "period_h": 25.8193417,
+          "phase_deg": 110.0
+        },
+        "S2": {
+          "amp_m": 0.14,
+          "period_h": 12.0,
+          "phase_deg": 30.0
+        }
+      },
+      "msl_offset_m": 0.0
+    }
+  },
+  "model": {
+    "degree": 5,
+    "forcing_steps": 96,
+    "latent": 32,
+    "n_blocks": 4,
+    "spectral_modes": 12,
+    "time_fourier": 8
+  },
+  "outdir": "artifacts",
+  "quick": false,
+  "seed": 20260917,
+  "solver": {
+    "cfl": 0.45,
+    "cfl_1d": 0.45,
+    "compile": true,
+    "dt_max": 5.0,
+    "dt_min": 0.0001,
+    "exchange_limit": 0.5,
+    "exchange_relax": 0.5,
+    "flux": "hllc",
+    "g": 9.81,
+    "h_dry": 0.001,
+    "kp_eps": 1e-12,
+    "mass_tol": 0.001,
+    "output_interval_s": 900.0,
+    "precision": "fp64",
+    "recession_h": 2.0,
+    "slot_width_frac": 1.0,
+    "spatial_order": 2,
+    "weir_cw": 1.7
+  },
+  "train": {
+    "amp": true,
+    "balance_alpha": 0.9,
+    "balance_every": 50,
+    "ckpt_every": 1000,
+    "curriculum_frac": 0.15,
+    "grad_clip": 1.0,
+    "log_every": 25,
+    "lr": 0.002,
+    "query_times": 6,
+    "ramp_frac": 0.1,
+    "steps": 10000,
+    "val_every": 500,
+    "weight_decay": 1e-06
+  }
+}

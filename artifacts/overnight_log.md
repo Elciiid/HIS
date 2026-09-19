@@ -147,3 +147,26 @@ Push each task's commit to GitHub.
     demand this uniform, plain batching would pay the shared-step cost only a few
     percent. It still failed the 1 mm peak-depth requirement on clean storms (20-49 mm),
     so generation stayed one storm at a time.
+
+12. **Phase 1 trained and evaluated after the user said to continue (19:16 - 00:29).**
+    Model 05256e50db265f31 on dataset dbdd410428f6d7f1, 10,000 steps.
+    - Full-size overfit gate passed: data loss 3.468 -> 0.005512 (x0.00159) in 1,500 steps.
+    - Training: 9,744 s (0.97 s/step), peak GPU 4.56 GB; best validation depth RMSE 0.0607 m.
+    - Test set (9 storms): depth RMSE wet 0.116 m, all land 0.058 m; peak-depth abs. error
+      median 0.066 m, p90 0.194 m, max 1.50 m; CSI@0.3 m 0.57; wet-cell bias -0.071 m;
+      surrogate implied mass-balance error 0.156. Speedup 308x (1.107 s vs 341 s).
+    - **Storage-direction sign test: FAILED.** Surrogate footprint max rise 13.3 mm (limit 5),
+      land max rise 46.4 mm (limit 20), land share rising >1 cm 0.071% (limit 0.1%),
+      volume ratio 0.9973 (falls, as required).
+    - **The engine fails the same criteria**: footprint and land max rise 40.3 mm, share
+      rising >1 cm 0.0033%, volume ratio 0.963. The thresholds were described as "the
+      tolerance established for the engine", but on the fixed engine the engine exceeds
+      them. Not relaxed; a human must decide whether the criterion or the engine's local
+      response to storage is wrong (the known double-counted channel-strip storage is one
+      candidate; not investigated tonight).
+    - Independently of that, intervention effects are not learned: sign agreement 0.41-0.76
+      (coin level ~0.5), effect correlation negative in 8 of 12 cases, and the surrogate
+      predicts roughly a tenth of the engine's flooded-area reductions (e.g. test 6 at
+      0.15 m: engine -273 ha, surrogate -22 ha). The storage-direction failure is not only
+      a threshold question.
+    - Stopped here. Phase 2 not started.
