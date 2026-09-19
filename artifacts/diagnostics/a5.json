@@ -1,0 +1,168 @@
+{
+  "provenance": {
+    "source": "SYNTHETIC",
+    "config_hash": "05256e50db265f31",
+    "seed": 20260917,
+    "git_commit": "b95f66d-dirty",
+    "timestamp": "2026-09-19T18:28:30Z",
+    "device": "cuda",
+    "precision": "fp64",
+    "engine": "engine+surrogate",
+    "notes": []
+  },
+  "budget_mb": 4608.0,
+  "gpu": "NVIDIA GeForce GTX 1660 SUPER",
+  "total_mb": 6143.6875,
+  "bf16_supported_including_emulation": true,
+  "bf16_native": false,
+  "rows": [
+    {
+      "factor": 2.0,
+      "grid": [
+        162,
+        200
+      ],
+      "nodes": 32400,
+      "cell_m": 40.0,
+      "checkpointing": true,
+      "autocast": "float16",
+      "batch_mb": 20.627723693847656,
+      "status": "ok",
+      "s_per_step": 1.5615491999924416,
+      "peak_allocated_mb": 3324.38330078125,
+      "peak_reserved_mb": 4200.0,
+      "projected_training_peak_mb": 3654.4268798828125,
+      "finite_loss": true
+    },
+    {
+      "factor": 2.0,
+      "grid": [
+        162,
+        200
+      ],
+      "nodes": 32400,
+      "cell_m": 40.0,
+      "checkpointing": true,
+      "autocast": "bfloat16",
+      "batch_mb": 20.627723693847656,
+      "status": "ok",
+      "s_per_step": 1.2878664500021841,
+      "peak_allocated_mb": 3333.81982421875,
+      "peak_reserved_mb": 4258.0,
+      "projected_training_peak_mb": 3663.8634033203125,
+      "finite_loss": true
+    },
+    {
+      "factor": 2.0,
+      "grid": [
+        162,
+        200
+      ],
+      "nodes": 32400,
+      "cell_m": 40.0,
+      "checkpointing": false,
+      "autocast": "float16",
+      "batch_mb": 20.627723693847656,
+      "status": "ok",
+      "s_per_step": 7.5315338500076905,
+      "peak_allocated_mb": 5387.25,
+      "peak_reserved_mb": 6362.0,
+      "projected_training_peak_mb": 5717.2935791015625,
+      "finite_loss": true
+    },
+    {
+      "factor": 2.0,
+      "grid": [
+        162,
+        200
+      ],
+      "nodes": 32400,
+      "cell_m": 40.0,
+      "checkpointing": false,
+      "autocast": "bfloat16",
+      "batch_mb": 20.627723693847656,
+      "status": "ok",
+      "s_per_step": 6.2060193000070285,
+      "peak_allocated_mb": 5393.24755859375,
+      "peak_reserved_mb": 6366.0,
+      "projected_training_peak_mb": 5723.2911376953125,
+      "finite_loss": true
+    },
+    {
+      "factor": 1.5,
+      "grid": [
+        217,
+        267
+      ],
+      "nodes": 57939,
+      "cell_m": 30.0,
+      "checkpointing": true,
+      "autocast": "float16",
+      "batch_mb": 36.84781455993652,
+      "status": "ok",
+      "s_per_step": 12.010606399999233,
+      "peak_allocated_mb": 5876.7021484375,
+      "peak_reserved_mb": 7538.0,
+      "projected_training_peak_mb": 6466.267181396484,
+      "finite_loss": true
+    },
+    {
+      "factor": 1.5,
+      "grid": [
+        217,
+        267
+      ],
+      "nodes": 57939,
+      "cell_m": 30.0,
+      "checkpointing": true,
+      "autocast": "bfloat16",
+      "batch_mb": 36.84781455993652,
+      "status": "ok",
+      "s_per_step": 10.983466300007422,
+      "peak_allocated_mb": 5885.51220703125,
+      "peak_reserved_mb": 7530.0,
+      "projected_training_peak_mb": 6475.077239990234,
+      "finite_loss": true
+    },
+    {
+      "factor": 1.0,
+      "grid": [
+        325,
+        400
+      ],
+      "nodes": 130000,
+      "cell_m": 20.0,
+      "checkpointing": true,
+      "autocast": "float16",
+      "batch_mb": 82.61531066894531,
+      "status": "OOM",
+      "error": "CUDA out of memory. Tried to allocate 96.00 MiB. GPU 0 has a total capacity of 6.00 GiB of which 0 bytes is free. Of the allocated memory 7.85 GiB is allocated by PyTorch, and 909.19 MiB is reserved by PyTorch but unallocated. If reserved but unallocated memory is large try setting PYTORCH_CUDA_ALLO",
+      "peak_allocated_mb_before_oom": 8034.8076171875
+    },
+    {
+      "factor": 1.0,
+      "grid": [
+        325,
+        400
+      ],
+      "nodes": 130000,
+      "cell_m": 20.0,
+      "checkpointing": true,
+      "autocast": "bfloat16",
+      "batch_mb": 82.61531066894531,
+      "status": "OOM",
+      "error": "CUDA out of memory. Tried to allocate 572.00 MiB. GPU 0 has a total capacity of 6.00 GiB of which 0 bytes is free. Process 18864 has 17179869184.00 GiB memory in use. Process 15508 has 17179869184.00 GiB memory in use. Process 8556 has 17179869184.00 GiB memory in use. Process 11268 has 17179869184.",
+      "peak_allocated_mb_before_oom": 11874.73388671875
+    }
+  ],
+  "choice": {
+    "option": 4,
+    "what": "stay at 2x coarse (40 m): resolution is capped by the hardware",
+    "calibration": 1.2467262719307988,
+    "fits_at_2x": [
+      "float16, checkpointing=True",
+      "bfloat16, checkpointing=True"
+    ],
+    "note": "option 2 (patch-based training at native 20 m with a coarse global branch) was not implemented, so it could not be measured; no finer grid fits the 4.5 GB budget on this card"
+  }
+}

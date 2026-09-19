@@ -79,7 +79,12 @@ def cmd_benchmark(cfg, args) -> int:
 
 
 def cmd_precision_study(cfg, args) -> int:
-    from .benchmarks.precision import run_study
+    from .benchmarks.precision import run_study, run_study_v2
+    if getattr(args, "v2", False):
+        d = run_study_v2(cfg)
+        print(f"report: {Path(cfg.outdir) / 'precision_study_v2.md'}")
+        print(f"precision study v2: {'PASS' if d['passed'] else 'FAIL'}")
+        return 0
     _eta("precision study (3 storms x 2 precisions at full resolution)", None)
     d = run_study(cfg)
     print(f"report: {Path(cfg.outdir) / 'precision_study.md'}")
@@ -129,6 +134,21 @@ def cmd_step_demand(cfg, args) -> int:
     return 0
 
 
+def cmd_diagnose(cfg, args) -> int:
+    from . import diagnostics as D
+    for part in (["a1", "a3", "a4", "a5"] if args.part == "all" else [args.part]):
+        getattr(D, f"run_{part}")(cfg)
+        _release_gpu()
+    print(f"report: {D.report(cfg)}")
+    return 0
+
+
+def cmd_generate_baselines(cfg, args) -> int:
+    from .data.paired import generate_baselines
+    print(f"index: {generate_baselines(cfg, limit=args.limit)}")
+    return 0
+
+
 def cmd_generate(cfg, args) -> int:
     from .data.generate import generate
     from .api import dataset_dir
@@ -141,9 +161,13 @@ def cmd_generate(cfg, args) -> int:
 
 
 def cmd_train(cfg, args) -> int:
-    from .train import train
     _eta(f"training ({cfg.train.steps} steps)", None)
-    train(cfg, resume=args.resume)
+    if cfg.train.paired:
+        from .train_paired import train_paired
+        train_paired(cfg, resume=args.resume)
+    else:
+        from .train import train
+        train(cfg, resume=args.resume)
     return 0
 
 
@@ -202,10 +226,13 @@ def main(argv=None) -> int:
     sub = p.add_subparsers(dest="command", required=True)
     b = sub.add_parser("benchmark"); b.add_argument("--fast", action="store_true"); b.add_argument("--quick", action="store_true")
     ps = sub.add_parser("precision-study"); ps.add_argument("--quick", action="store_true")
+    ps.add_argument("--v2", action="store_true", help="agreement criteria of hydrointel.criteria, fixed engine")
     sub.add_parser("grouping-study")
     sub.add_parser("predict-speed")
     sub.add_parser("cost")
     sub.add_parser("step-demand")
+    gb = sub.add_parser("generate-baselines"); gb.add_argument("--limit", type=int)
+    dg = sub.add_parser("diagnose"); dg.add_argument("--part", choices=["a1", "a3", "a4", "a5", "all"], default="all")
     bs = sub.add_parser("batch-study")
     bs.add_argument("--quick", action="store_true")
     bs.add_argument("--stage", choices=["all", "scaling", "full", "profile"], default="all")
@@ -244,7 +271,7 @@ def main(argv=None) -> int:
     t0 = time.perf_counter()
     rc = {"benchmark": cmd_benchmark, "precision-study": cmd_precision_study,
           "batch-study": cmd_batch_study, "grouping-study": cmd_grouping_study,
-          "predict-speed": cmd_predict_speed, "cost": cmd_cost, "step-demand": cmd_step_demand, "generate": cmd_generate,
+          "predict-speed": cmd_predict_speed, "cost": cmd_cost, "step-demand": cmd_step_demand, "diagnose": cmd_diagnose, "generate-baselines": cmd_generate_baselines, "generate": cmd_generate,
           "train": cmd_train, "evaluate": cmd_evaluate, "figures": cmd_figures, "all": cmd_all}[args.command](cfg, args)
     print(f"done in {(time.perf_counter() - t0) / 60:.1f} min")
     return rc

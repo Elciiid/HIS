@@ -40,3 +40,8 @@ artifacts/figures/*
 !artifacts/figures/validation_summary.png
 !artifacts/figures/training_curves.png
 !artifacts/figures/overfit_check.png
+!artifacts/diagnostics_A.md
+!artifacts/diagnostics/
+artifacts/diagnostics/*
+!artifacts/diagnostics/*.json
+!artifacts/diagnostics/*.jsonl

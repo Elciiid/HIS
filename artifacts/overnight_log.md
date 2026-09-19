@@ -170,3 +170,62 @@ Push each task's commit to GitHub.
       0.15 m: engine -273 ha, surrogate -22 ha). The storage-direction failure is not only
       a threshold question.
     - Stopped here. Phase 2 not started.
+
+---
+
+# Second overnight run (2026-09-20): diagnose, then fix
+
+Started 01:55 from b95f66d. Same rules: never block; the conservative option,
+logged with reasoning; no threshold weakened. The user's corrections at the start
+of this run: the Preissmann slot was their error (fix confirmed); the max-over-all-
+cells criteria were badly chosen (Task B replaces them); paired training data was
+never required and should have been (C1).
+
+13. **A1 branch is borderline; followed the defined metric.** R = mean oracle effect
+    RMSE / mean model effect RMSE = 0.341 (the evaluation's effect-RMSE definition,
+    over cells either model moved by > 1 cm). On the common mask of cells the engine
+    moved by > 1 cm, R = 0.251. The task's table puts 0.341 in "0.3-0.7: do C4, the
+    cheapest option that fits memory; still do C2/C3" and 0.251 in "skip C4". I
+    followed the metric the task named (the first) and let A5 decide C4 in practice.
+    The more important finding is not R: the oracle (engine peak, 2x coarsened and
+    upsampled) keeps 87% of the effect magnitude with sign agreement 1.00 and
+    correlation 0.89; the Phase 1 model keeps 5%, sign 0.59, correlation -0.21. The
+    grid is not what stops the model learning effects.
+
+14. **Two of Task E's acceptance targets cannot be met on the 2x grid by any model.**
+    The oracle itself reproduces the engine's largest local depth increase within 30%
+    in only 3 of 8 test pairs, and the flooded-area reduction at 0.30 m within 30% in
+    2 of 8. Both statistics are set by a handful of cells, and 2x2 block averaging
+    moves them by more than 30%. Not changed (the targets are fixed); recorded so the
+    E result is read correctly, and raised in the final report.
+
+15. **A2: reported depth excludes retained water.** Confirmed by code reading and by
+    tests/test_retained_water.py (4 tests, exact to 1e-12 on a closed flat box). No
+    change; no metric re-derived.
+
+16. **A3 branch: re-routing (physical); no engine change.** Tilted plane passes
+    (storage lowers depth everywhere, max rise 0.003 mm); city with storage >= 500 m
+    from any channel fails the footprint criterion on its single worst cell (6.2 mm
+    vs 5 mm; 9 of 17,645 cells above 5 mm, none above 1 cm; 13,466 cells fall by
+    more than 1 cm); city as tested fails (40 mm). Added, outside the task's table: the
+    same plane with 0.1 m micro-topography passes but already shows single-cell rises
+    of up to 4.8 mm -- re-routing around a changed wet/dry pattern grows with terrain
+    complexity. Flag for the human: the three largest rises of the tested case (40, 14,
+    11 mm) are 17-140 m from the channel and exceed anything seen far from it (7.7 mm),
+    so the double-counted channel-strip storage may add to the magnitude there. The
+    table sends this case to "physical", so it was not fixed.
+
+17. **A4: lambda_mass was never suppressed** (median 1.90, range 0.73-3.45 over the
+    physics phase), so
+    the branch is the post-decoder volume correction (C5). The 15.6% decomposes into
+    the depth field's volume change (~10% off the engine's) and the event-total head
+    (7-9%, worst on retained storage); the engine's own coarse output closes to <1%,
+    and training storms are no better than test storms (17% vs 16%). A correction to
+    the head's implied volume zeroes the reported number by construction, so C5 also
+    reports the depth field against the engine's true sources.
+
+18. **Engine runs made for evaluation moved to a model-independent cache.** Probes,
+    effect baselines and storage checks were cached under the model's directory, so a
+    new model would have re-run all 19 (about 1.8 h). They depend only on the engine
+    config: now artifacts/engine_cache/<dataset hash>/, copied from the Phase 1 model
+    directory (originals kept).

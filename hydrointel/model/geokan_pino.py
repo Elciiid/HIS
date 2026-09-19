@@ -280,13 +280,13 @@ class GeoKANPINO(nn.Module):
         rain_vol = float(b["rain_mmh"].sum()) / 1000.0 / 3600.0 * (b["t_end"] / len(b["rain_mmh"])) \
             * dom.nx * dom.ny * dom.dx ** 2
         eb = max(1, int(encode_batch or getattr(self, "encode_batch", 4)))
+        self._prepare_call(sites, scenario, builder)
         out = []
         for s0 in range(0, len(sites), eb):
             bs = builder.select(b, slice(s0, s0 + eb))
             nb = bs["feat2"].shape[0]
-            x2, x1, g = self.encode(bs)
-            vols = self.volumes(x2, x1, g)                                     # (nb, 3)
-            n2, n1 = x2.shape[-2], x1.shape[-2]
+            state, vols = self._group_state(bs)                                # vols (nb, 3)
+            n2, n1 = gr.n2, gr.n1
             qk = max(1, int(self.decode_chunk_nodes // (n2 * nb)))
             dmax = smax = None
             p_depth, h_sum, y1s, q1s = [], [], [], []
@@ -294,8 +294,7 @@ class GeoKANPINO(nn.Module):
                 full = [torch.empty((nb, len(times), dom.ny, dom.nx), dtype=torch.float32) for _ in range(3)]
             for q0 in range(0, len(times), qk):
                 ts = t[q0:q0 + qk] / sc.T0
-                o2 = self._dec2(x2, bs, ts[:, None, None].expand(-1, n2, 1))  # (nb, qc, n2, 3)
-                o1 = self._dec1(x1, bs, ts[:, None, None].expand(-1, n1, 1))
+                o2, o1 = self._group_decode(state, bs, ts)                      # (nb, qc, n2, 3), (nb, qc, n1, 2)
                 h, u, v, y1, q1 = self.dimensional(o2, o1)
                 qc = h.shape[1]
                 up = lambda a: builder.upsample(a.reshape(nb * qc, gr.ny, gr.nx)).reshape(nb, qc, dom.ny, dom.nx)
@@ -339,8 +338,26 @@ class GeoKANPINO(nn.Module):
                         point_level={p["name"]: level[:, j] for j, p in enumerate(pts)},
                         reach_peak_stage=peak_stage[k].cpu(), reach_peak_discharge=peak_q[k].cpu(),
                         extras=ex, **common))
-            del x2, x1
+            del state
+        self._release_call()
         return out
+
+    # hooks for predict_many: a two-stage model overrides these
+    def _prepare_call(self, sites, scenario, builder) -> None:
+        pass
+
+    def _release_call(self) -> None:
+        pass
+
+    def _group_state(self, bs):
+        x2, x1, g = self.encode(bs)
+        return (x2, x1), self.volumes(x2, x1, g)
+
+    def _group_decode(self, state, bs, ts):
+        x2, x1 = state
+        o2 = self._dec2(x2, bs, ts[:, None, None].expand(-1, x2.shape[-2], 1))
+        o1 = self._dec1(x1, bs, ts[:, None, None].expand(-1, x1.shape[-2], 1))
+        return o2, o1
 
 
 def model_dir(cfg) -> Path:
@@ -356,6 +373,12 @@ def load_surrogate(cfg, domain, device) -> GeoKANPINO:
                                 "(and `evaluate`) for this configuration first")
     state = torch.load(ck, map_location=device, weights_only=False)
     model = build_model(cfg, state["dataset_dir"], device)
+    if state.get("two_stage", False) != bool(getattr(cfg.model, "two_stage", False)):
+        raise RuntimeError(f"{ck} was trained with two_stage={state.get('two_stage', False)}, the config says "
+                           f"{cfg.model.two_stage}")
+    if state.get("two_stage", False):
+        from .two_stage import TwoStage
+        model = TwoStage(cfg.model, len(model.scales.feat_mean), model.graph, model.scales).to(device)
     model.load_state_dict(state["model"])
     model.eval()
     return model

@@ -1,0 +1,153 @@
+{
+  "provenance": {
+    "source": "SYNTHETIC",
+    "config_hash": "05256e50db265f31",
+    "seed": 20260917,
+    "git_commit": "b95f66d-dirty",
+    "timestamp": "2026-09-19T18:17:31Z",
+    "device": "cuda",
+    "precision": "fp64",
+    "engine": "engine+surrogate",
+    "notes": []
+  },
+  "plane": {
+    "footprint_max_increase_m": -0.003276763237210545,
+    "land_max_increase_m": 2.776366069545677e-06,
+    "land_fraction_increase_gt_1cm": 0.0,
+    "peak_volume_ratio": 0.7603498147097473,
+    "passed": true,
+    "failed_criteria": [],
+    "n_footprint": 1976,
+    "n_land": 15000,
+    "n_land_rise_gt_5mm": 0,
+    "n_land_rise_gt_1cm": 0,
+    "n_land_fall_gt_1cm": 6754,
+    "footprint_mean_change_m": -0.08047749164552373,
+    "footprint_p99_change_m": -0.004646082527297958,
+    "land_p99_9_change_m": 2.776365748469234e-06,
+    "geometry": "150 x 100 cells @ 20 m, slope 0.002 toward an open east edge, walls elsewhere, micro-topography std 0 m; storage 0.6 m in a 500 m disc at the centre; RP100 RCP4.5/SSP2 2050 rain, residential infiltration and roughness",
+    "mass_err_base": 2.1973252479232572e-15,
+    "mass_err_more": 8.319703258363234e-17,
+    "steps": [
+      9638,
+      9215
+    ],
+    "stored_m3_more": 258218.2784903471,
+    "wall_s": 186.73096709998208,
+    "baseline_peak_max_m": 0.36876618859075944
+  },
+  "plane_micro": {
+    "footprint_max_increase_m": 0.003440612973595998,
+    "land_max_increase_m": 0.004823098228082662,
+    "land_fraction_increase_gt_1cm": 0.0,
+    "peak_volume_ratio": 0.8009598962461291,
+    "passed": true,
+    "failed_criteria": [],
+    "n_footprint": 1976,
+    "n_land": 15000,
+    "n_land_rise_gt_5mm": 0,
+    "n_land_rise_gt_1cm": 0,
+    "n_land_fall_gt_1cm": 5987,
+    "footprint_mean_change_m": -0.0889633871483434,
+    "footprint_p99_change_m": -0.00222629394668565,
+    "land_p99_9_change_m": 0.00045160967185303957,
+    "geometry": "150 x 100 cells @ 20 m, slope 0.002 toward an open east edge, walls elsewhere, micro-topography std 0.1 m; storage 0.6 m in a 500 m disc at the centre; RP100 RCP4.5/SSP2 2050 rain, residential infiltration and roughness",
+    "mass_err_base": 5.754604039834082e-16,
+    "mass_err_more": 1.2766444595159918e-15,
+    "steps": [
+      12371,
+      12028
+    ],
+    "stored_m3_more": 217856.8074382521,
+    "wall_s": 105.51894070001435,
+    "baseline_peak_max_m": 0.48091149009154827
+  },
+  "city_far": {
+    "footprint_max_increase_m": 0.006162877194583416,
+    "land_max_increase_m": 0.007680848240852356,
+    "land_fraction_increase_gt_1cm": 0.0,
+    "peak_volume_ratio": 0.9078118205070496,
+    "passed": false,
+    "failed_criteria": [
+      "footprint max rise <= 5 mm"
+    ],
+    "n_footprint": 17645,
+    "n_land": 121820,
+    "n_land_rise_gt_5mm": 9,
+    "n_land_rise_gt_1cm": 0,
+    "n_land_fall_gt_1cm": 13466,
+    "footprint_mean_change_m": -0.07817984372377396,
+    "footprint_p99_change_m": -0.001521471654996276,
+    "land_p99_9_change_m": 0.0003590357373468578,
+    "rise_gt_5mm_dist_channel_m": [
+      1182.8824820113798,
+      1524.9956876078825,
+      1593.4127856491177,
+      1607.4966923269137,
+      1613.2789193614108,
+      1848.3257726953966,
+      2109.0934721732797,
+      2227.3515482610724,
+      2784.2287530820286
+    ],
+    "rise_gt_5mm_base_depth_m": [
+      0.0186278335750103,
+      0.009361164644360542,
+      0.09801854938268661,
+      0.010628941468894482,
+      0.0315803587436676,
+      0.008672120049595833,
+      0.018354155123233795,
+      0.023789217695593834,
+      0.025055667385458946
+    ],
+    "centre_m": [
+      2310.0,
+      4610.0
+    ],
+    "disc_min_dist_channel_m": 505.8747800759267,
+    "wall_s": 767.0582580999762
+  },
+  "city_near": {
+    "footprint_max_increase_m": 0.04031825065612793,
+    "land_max_increase_m": 0.04031825065612793,
+    "land_fraction_increase_gt_1cm": 3.2835330815957974e-05,
+    "peak_volume_ratio": 0.9631326198577881,
+    "passed": false,
+    "failed_criteria": [
+      "footprint max rise <= 5 mm",
+      "land max rise <= 20 mm"
+    ],
+    "n_footprint": 14968,
+    "n_land": 121820,
+    "n_land_rise_gt_5mm": 6,
+    "n_land_rise_gt_1cm": 4,
+    "n_land_fall_gt_1cm": 6070,
+    "footprint_mean_change_m": -0.03764661028981209,
+    "footprint_p99_change_m": -0.00021090924565214664,
+    "land_p99_9_change_m": 0.00011903560516657308,
+    "rise_gt_5mm_dist_channel_m": [
+      17.15991678102166,
+      119.94089917882137,
+      125.81501910328795,
+      140.4590447596626,
+      741.4328130979488,
+      939.1819836722066
+    ],
+    "rise_gt_5mm_base_depth_m": [
+      0.15445631742477417,
+      0.1236417219042778,
+      0.20108073949813843,
+      0.15966598689556122,
+      0.08940325677394867,
+      0.06274569034576416
+    ],
+    "centre_m": [
+      3536.748448676528,
+      5166.029908123908
+    ],
+    "disc_min_dist_channel_m": 2.815678167876974,
+    "wall_s": 0.05552130000432953
+  },
+  "branch_by_table": "re-routing (physical)"
+}

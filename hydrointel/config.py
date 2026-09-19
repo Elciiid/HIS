@@ -203,6 +203,9 @@ class ModelConfig:
     spectral_modes: int = 12
     forcing_steps: int = 96             # forcing series resampled to this length
     time_fourier: int = 8
+    # stage 1 predicts the baseline flood, stage 2 the change a design makes
+    # (hydrointel/model/two_stage.py); needs paired training data
+    two_stage: bool = False
 
 
 @dataclass
@@ -220,6 +223,14 @@ class TrainConfig:
     log_every: int = 25
     val_every: int = 500
     ckpt_every: int = 1000
+    # paired training: every modified storm with its baseline (data/paired.py), and a
+    # loss on the effect (modified - baseline) whose weight the balancing may not push
+    # below effect_floor x lambda_data
+    paired: bool = False
+    effect_floor: float = 0.5
+
+
+HASH_EXEMPT_DEFAULTS = (("model", "two_stage", False), ("train", "paired", False), ("train", "effect_floor", 0.5))
 
 
 @dataclass
@@ -260,6 +271,11 @@ class RunConfig:
         # shares a time step, changes the results, and so does enter the hash.
         if d["data"].get("batch") == 1:
             d["data"].pop("batch")
+        # settings added after Phase 1 enter the hash only when changed from their
+        # default, so the Phase 1 dataset and model keep their hashes
+        for sec, key, default in HASH_EXEMPT_DEFAULTS:
+            if d[sec].get(key) == default:
+                d[sec].pop(key)
         if sections:
             d = {k: d[k] for k in sorted(set(sections) | {"seed", "quick"})}
         blob = json.dumps(d, sort_keys=True, separators=(",", ":"))

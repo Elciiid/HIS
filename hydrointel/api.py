@@ -169,6 +169,13 @@ def dataset_dir(cfg: RunConfig) -> Path:
     return Path(cfg.outdir) / "dataset" / cfg.config_hash("domain", "solver", "forcing", "data")
 
 
+def engine_cache_dir(cfg: RunConfig) -> Path:
+    """Engine runs made for evaluation (edge probes, effect baselines, storage checks). They
+    depend on the engine and the scenarios, not on any surrogate, so they are keyed by the
+    engine's configuration and shared by every model trained on it."""
+    return Path(cfg.outdir) / "engine_cache" / cfg.config_hash("domain", "solver", "forcing", "data")
+
+
 # ---------------------------------------------------------------------------
 # public functions
 # ---------------------------------------------------------------------------
