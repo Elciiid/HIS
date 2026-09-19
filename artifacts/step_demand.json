@@ -1,13 +1,13 @@
 {
  "n": 60,
- "median_steps": 42223.5,
+ "median_steps": 42033.0,
  "rows": [
   {
    "sim": 0,
-   "steps": 42494,
-   "dt_min_s": 0.021621306584165723,
+   "steps": 42450,
+   "dt_min_s": 0.0005469671414175536,
    "n_sub_max": 1,
-   "wall_s": 346.70075709999946,
+   "wall_s": 345.8933537999983,
    "return_period_yr": 10,
    "tide_on": false,
    "rain_total_mm": 96.54827117919922,
@@ -16,14 +16,14 @@
    "storage_mean_m": 0.01893165521323681,
    "kappa_mean": 1.0195097923278809,
    "baseline": false,
-   "peak_depth_land_m": 2.7931013107299805
+   "peak_depth_land_m": 2.792029619216919
   },
   {
    "sim": 1,
-   "steps": 42200,
-   "dt_min_s": 0.01365704358977382,
+   "steps": 42135,
+   "dt_min_s": 0.02049165400876518,
    "n_sub_max": 1,
-   "wall_s": 339.99531410000054,
+   "wall_s": 341.690468899993,
    "return_period_yr": 25,
    "tide_on": true,
    "rain_total_mm": 113.86067962646484,
@@ -32,14 +32,14 @@
    "storage_mean_m": 0.023745372891426086,
    "kappa_mean": 1.3481359481811523,
    "baseline": false,
-   "peak_depth_land_m": 3.118161201477051
+   "peak_depth_land_m": 3.1181440353393555
   },
   {
    "sim": 2,
-   "steps": 42961,
-   "dt_min_s": 0.03236472834396409,
+   "steps": 42933,
+   "dt_min_s": 0.01742472693513264,
    "n_sub_max": 1,
-   "wall_s": 343.8922517000028,
+   "wall_s": 346.22574299998814,
    "return_period_yr": 50,
    "tide_on": true,
    "rain_total_mm": 128.9909210205078,
@@ -48,14 +48,14 @@
    "storage_mean_m": 0.01927739381790161,
    "kappa_mean": 1.0,
    "baseline": true,
-   "peak_depth_land_m": 3.1924922466278076
+   "peak_depth_land_m": 3.192899465560913
   },
   {
    "sim": 3,
-   "steps": 40683,
-   "dt_min_s": 0.06350613615722978,
+   "steps": 40616,
+   "dt_min_s": 0.04509645087091485,
    "n_sub_max": 1,
-   "wall_s": 324.40624340000795,
+   "wall_s": 325.3809944000095,
    "return_period_yr": 100,
    "tide_on": false,
    "rain_total_mm": 141.0043182373047,
@@ -64,14 +64,14 @@
    "storage_mean_m": 0.0226253904402256,
    "kappa_mean": 1.0001506805419922,
    "baseline": false,
-   "peak_depth_land_m": 2.4555764198303223
+   "peak_depth_land_m": 2.4555962085723877
   },
   {
    "sim": 4,
-   "steps": 41990,
-   "dt_min_s": 0.02348641877688351,
+   "steps": 41939,
+   "dt_min_s": 0.027225218702369602,
    "n_sub_max": 1,
-   "wall_s": 340.1207376999955,
+   "wall_s": 341.7625369000016,
    "return_period_yr": 10,
    "tide_on": true,
    "rain_total_mm": 96.54827117919922,
@@ -80,14 +80,14 @@
    "storage_mean_m": 0.030424153432250023,
    "kappa_mean": 1.0425853729248047,
    "baseline": false,
-   "peak_depth_land_m": 3.1342813968658447
+   "peak_depth_land_m": 3.1334283351898193
   },
   {
    "sim": 5,
-   "steps": 42437,
-   "dt_min_s": 0.0054779920901637524,
+   "steps": 42366,
+   "dt_min_s": 0.007425422532833181,
    "n_sub_max": 1,
-   "wall_s": 341.0740616999974,
+   "wall_s": 343.1785200999875,
    "return_period_yr": 25,
    "tide_on": true,
    "rain_total_mm": 113.86067962646484,
@@ -96,14 +96,14 @@
    "storage_mean_m": 0.02350682020187378,
    "kappa_mean": 1.0033595561981201,
    "baseline": false,
-   "peak_depth_land_m": 3.212792158126831
+   "peak_depth_land_m": 3.212244749069214
   },
   {
    "sim": 6,
-   "steps": 92446,
-   "dt_min_s": 0.001229419358423911,
-   "n_sub_max": 3,
-   "wall_s": 718.7763071999943,
+   "steps": 39526,
+   "dt_min_s": 0.03219221039216791,
+   "n_sub_max": 1,
+   "wall_s": 320.3241188999964,
    "return_period_yr": 50,
    "tide_on": true,
    "rain_total_mm": 138.0429229736328,
@@ -112,14 +112,14 @@
    "storage_mean_m": 0.08898507058620453,
    "kappa_mean": 1.0,
    "baseline": false,
-   "peak_depth_land_m": 34.46051025390625
+   "peak_depth_land_m": 3.2200417518615723
   },
   {
    "sim": 7,
-   "steps": 42903,
-   "dt_min_s": 0.0018201020357082598,
-   "n_sub_max": 2,
-   "wall_s": 341.94493479999073,
+   "steps": 42700,
+   "dt_min_s": 0.018188217384135896,
+   "n_sub_max": 1,
+   "wall_s": 342.4078363000008,
    "return_period_yr": 100,
    "tide_on": true,
    "rain_total_mm": 156.3865966796875,
@@ -128,14 +128,14 @@
    "storage_mean_m": 0.01960301212966442,
    "kappa_mean": 1.0,
    "baseline": false,
-   "peak_depth_land_m": 3.2486746311187744
+   "peak_depth_land_m": 3.248731851577759
   },
   {
    "sim": 8,
-   "steps": 50579,
-   "dt_min_s": 0.06473438426473876,
-   "n_sub_max": 2,
-   "wall_s": 405.3776608000044,
+   "steps": 40299,
+   "dt_min_s": 0.05911677383846836,
+   "n_sub_max": 1,
+   "wall_s": 328.4672263000102,
    "return_period_yr": 10,
    "tide_on": true,
    "rain_total_mm": 96.54827117919922,
@@ -144,14 +144,14 @@
    "storage_mean_m": 0.02808411419391632,
    "kappa_mean": 1.0,
    "baseline": false,
-   "peak_depth_land_m": 19.879064559936523
+   "peak_depth_land_m": 2.9925754070281982
   },
   {
    "sim": 9,
-   "steps": 43428,
-   "dt_min_s": 0.02282303958781995,
-   "n_sub_max": 2,
-   "wall_s": 350.6169244000048,
+   "steps": 43390,
+   "dt_min_s": 0.027969681683316594,
+   "n_sub_max": 1,
+   "wall_s": 352.1945660999918,
    "return_period_yr": 25,
    "tide_on": true,
    "rain_total_mm": 109.86556243896484,
@@ -160,14 +160,14 @@
    "storage_mean_m": 0.06002544239163399,
    "kappa_mean": 1.0654284954071045,
    "baseline": false,
-   "peak_depth_land_m": 3.2567861080169678
+   "peak_depth_land_m": 3.2567851543426514
   },
   {
    "sim": 10,
-   "steps": 42302,
-   "dt_min_s": 0.0018098154541803524,
-   "n_sub_max": 2,
-   "wall_s": 340.61590389999037,
+   "steps": 42242,
+   "dt_min_s": 0.002670113153726561,
+   "n_sub_max": 1,
+   "wall_s": 340.78386019999743,
    "return_period_yr": 50,
    "tide_on": true,
    "rain_total_mm": 138.0429229736328,
@@ -176,14 +176,14 @@
    "storage_mean_m": 0.019876930862665176,
    "kappa_mean": 1.0,
    "baseline": false,
-   "peak_depth_land_m": 3.1408634185791016
+   "peak_depth_land_m": 3.140476942062378
   },
   {
    "sim": 11,
-   "steps": 41990,
-   "dt_min_s": 0.008954456252467935,
+   "steps": 41924,
+   "dt_min_s": 0.02619599672834738,
    "n_sub_max": 1,
-   "wall_s": 339.48179700000037,
+   "wall_s": 341.17574929998955,
    "return_period_yr": 100,
    "tide_on": true,
    "rain_total_mm": 134.59503173828125,
@@ -192,14 +192,14 @@
    "storage_mean_m": 0.034398194402456284,
    "kappa_mean": 1.3244069814682007,
    "baseline": false,
-   "peak_depth_land_m": 3.0603411197662354
+   "peak_depth_land_m": 3.0603439807891846
   },
   {
    "sim": 12,
-   "steps": 42582,
-   "dt_min_s": 0.008400366612477228,
-   "n_sub_max": 2,
-   "wall_s": 344.5875038999948,
+   "steps": 42540,
+   "dt_min_s": 0.006984424218899221,
+   "n_sub_max": 1,
+   "wall_s": 345.72988490000716,
    "return_period_yr": 10,
    "tide_on": true,
    "rain_total_mm": 88.92604064941406,
@@ -208,14 +208,14 @@
    "storage_mean_m": 0.017645064741373062,
    "kappa_mean": 1.1955922842025757,
    "baseline": false,
-   "peak_depth_land_m": 3.170822858810425
+   "peak_depth_land_m": 3.1708531379699707
   },
   {
    "sim": 13,
-   "steps": 42132,
-   "dt_min_s": 0.018506328330659017,
-   "n_sub_max": 2,
-   "wall_s": 338.48883610000485,
+   "steps": 42067,
+   "dt_min_s": 0.019098743901849957,
+   "n_sub_max": 1,
+   "wall_s": 340.6696068000165,
    "return_period_yr": 25,
    "tide_on": true,
    "rain_total_mm": 104.87167358398438,
@@ -224,14 +224,14 @@
    "storage_mean_m": 0.02217361330986023,
    "kappa_mean": 1.0,
    "baseline": true,
-   "peak_depth_land_m": 3.2143218517303467
+   "peak_depth_land_m": 3.2143468856811523
   },
   {
    "sim": 14,
-   "steps": 42461,
-   "dt_min_s": 0.007017194444415509,
-   "n_sub_max": 2,
-   "wall_s": 340.60825259999547,
+   "steps": 42407,
+   "dt_min_s": 0.0023595266484335298,
+   "n_sub_max": 1,
+   "wall_s": 343.8368001000199,
    "return_period_yr": 50,
    "tide_on": true,
    "rain_total_mm": 118.80743408203125,
@@ -240,14 +240,14 @@
    "storage_mean_m": 0.02305787242949009,
    "kappa_mean": 1.0,
    "baseline": false,
-   "peak_depth_land_m": 3.0741381645202637
+   "peak_depth_land_m": 3.0741448402404785
   },
   {
    "sim": 15,
-   "steps": 42404,
-   "dt_min_s": 0.01044412398186978,
-   "n_sub_max": 2,
-   "wall_s": 339.21781940000074,
+   "steps": 42360,
+   "dt_min_s": 0.05552625358814112,
+   "n_sub_max": 1,
+   "wall_s": 344.36952879998717,
    "return_period_yr": 100,
    "tide_on": true,
    "rain_total_mm": 141.0043182373047,
@@ -256,14 +256,14 @@
    "storage_mean_m": 0.04258595034480095,
    "kappa_mean": 1.0,
    "baseline": false,
-   "peak_depth_land_m": 3.098151922225952
+   "peak_depth_land_m": 3.0981709957122803
   },
   {
    "sim": 16,
-   "steps": 42615,
-   "dt_min_s": 0.030805980359218665,
-   "n_sub_max": 2,
-   "wall_s": 344.30536280000524,
+   "steps": 42539,
+   "dt_min_s": 0.05169941888743779,
+   "n_sub_max": 1,
+   "wall_s": 346.0257461000001,
    "return_period_yr": 10,
    "tide_on": true,
    "rain_total_mm": 96.54827117919922,
@@ -272,14 +272,14 @@
    "storage_mean_m": 0.0483868345618248,
    "kappa_mean": 1.0,
    "baseline": false,
-   "peak_depth_land_m": 3.3612143993377686
+   "peak_depth_land_m": 3.361081123352051
   },
   {
    "sim": 17,
-   "steps": 43133,
-   "dt_min_s": 0.05812187210540287,
-   "n_sub_max": 2,
-   "wall_s": 367.73427329999686,
+   "steps": 43066,
+   "dt_min_s": 0.047522374017717084,
+   "n_sub_max": 1,
+   "wall_s": 350.12144809999154,
    "return_period_yr": 25,
    "tide_on": true,
    "rain_total_mm": 104.87167358398438,
@@ -288,14 +288,14 @@
    "storage_mean_m": 0.04385558143258095,
    "kappa_mean": 1.3185659646987915,
    "baseline": false,
-   "peak_depth_land_m": 3.2235913276672363
+   "peak_depth_land_m": 3.223590850830078
   },
   {
    "sim": 18,
-   "steps": 40059,
-   "dt_min_s": 0.005115093972563045,
-   "n_sub_max": 2,
-   "wall_s": 320.69824759999756,
+   "steps": 39989,
+   "dt_min_s": 0.002132486191840144,
+   "n_sub_max": 1,
+   "wall_s": 323.032280799991,
    "return_period_yr": 50,
    "tide_on": false,
    "rain_total_mm": 128.9909210205078,
@@ -304,14 +304,14 @@
    "storage_mean_m": 0.04080874100327492,
    "kappa_mean": 1.4305126667022705,
    "baseline": false,
-   "peak_depth_land_m": 2.3446717262268066
+   "peak_depth_land_m": 2.3446648120880127
   },
   {
    "sim": 19,
-   "steps": 40833,
-   "dt_min_s": 0.042713993478173506,
-   "n_sub_max": 2,
-   "wall_s": 327.36240819998784,
+   "steps": 40768,
+   "dt_min_s": 0.034515626190113835,
+   "n_sub_max": 1,
+   "wall_s": 327.90934680000646,
    "return_period_yr": 100,
    "tide_on": true,
    "rain_total_mm": 141.0043182373047,
@@ -320,14 +320,14 @@
    "storage_mean_m": 0.022015821188688278,
    "kappa_mean": 1.0,
    "baseline": true,
-   "peak_depth_land_m": 3.1372063159942627
+   "peak_depth_land_m": 3.137394666671753
   },
   {
    "sim": 20,
-   "steps": 40437,
-   "dt_min_s": 0.0018952429309138097,
-   "n_sub_max": 2,
-   "wall_s": 325.66221690000384,
+   "steps": 40369,
+   "dt_min_s": 0.011578830868529622,
+   "n_sub_max": 1,
+   "wall_s": 327.58706780002103,
    "return_period_yr": 10,
    "tide_on": true,
    "rain_total_mm": 103.32359313964844,
@@ -336,14 +336,14 @@
    "storage_mean_m": 0.022847609594464302,
    "kappa_mean": 1.0,
    "baseline": true,
-   "peak_depth_land_m": 2.9909698963165283
+   "peak_depth_land_m": 2.9909565448760986
   },
   {
    "sim": 21,
-   "steps": 42461,
-   "dt_min_s": 0.008199494996006251,
-   "n_sub_max": 2,
-   "wall_s": 835.6437620999932,
+   "steps": 42408,
+   "dt_min_s": 0.07628373632928742,
+   "n_sub_max": 1,
+   "wall_s": 343.484865299979,
    "return_period_yr": 25,
    "tide_on": true,
    "rain_total_mm": 109.86556243896484,
@@ -352,14 +352,14 @@
    "storage_mean_m": 0.024820217862725258,
    "kappa_mean": 1.0038737058639526,
    "baseline": false,
-   "peak_depth_land_m": 3.0980279445648193
+   "peak_depth_land_m": 3.098053216934204
   },
   {
    "sim": 22,
-   "steps": 41766,
-   "dt_min_s": 0.0059910873242188245,
-   "n_sub_max": 2,
-   "wall_s": 464.6569218000077,
+   "steps": 41723,
+   "dt_min_s": 0.008600634519098094,
+   "n_sub_max": 1,
+   "wall_s": 339.0738937999995,
    "return_period_yr": 50,
    "tide_on": true,
    "rain_total_mm": 118.80743408203125,
@@ -368,14 +368,14 @@
    "storage_mean_m": 0.048577502369880676,
    "kappa_mean": 1.477961540222168,
    "baseline": false,
-   "peak_depth_land_m": 2.97214674949646
+   "peak_depth_land_m": 2.9721546173095703
   },
   {
    "sim": 23,
-   "steps": 42648,
-   "dt_min_s": 0.012403630833432544,
-   "n_sub_max": 2,
-   "wall_s": 355.99907949999033,
+   "steps": 42565,
+   "dt_min_s": 0.00043749909673351794,
+   "n_sub_max": 1,
+   "wall_s": 343.1957439999969,
    "return_period_yr": 100,
    "tide_on": true,
    "rain_total_mm": 134.59503173828125,
@@ -384,14 +384,14 @@
    "storage_mean_m": 0.022204862907528877,
    "kappa_mean": 1.1322072744369507,
    "baseline": false,
-   "peak_depth_land_m": 3.2105634212493896
+   "peak_depth_land_m": 3.2105712890625
   },
   {
    "sim": 24,
-   "steps": 41878,
-   "dt_min_s": 0.02681844140170142,
+   "steps": 41842,
+   "dt_min_s": 0.015436207759194076,
    "n_sub_max": 1,
-   "wall_s": 350.7096332999936,
+   "wall_s": 339.44404929998564,
    "return_period_yr": 10,
    "tide_on": false,
    "rain_total_mm": 93.16061401367188,
@@ -400,14 +400,14 @@
    "storage_mean_m": 0.0571427121758461,
    "kappa_mean": 1.0,
    "baseline": false,
-   "peak_depth_land_m": 2.6827642917633057
+   "peak_depth_land_m": 2.682140350341797
   },
   {
    "sim": 25,
-   "steps": 44288,
-   "dt_min_s": 0.057630071918538306,
-   "n_sub_max": 2,
-   "wall_s": 374.04819830000633,
+   "steps": 37440,
+   "dt_min_s": 0.06623138521547389,
+   "n_sub_max": 1,
+   "wall_s": 304.8370514999842,
    "return_period_yr": 25,
    "tide_on": true,
    "rain_total_mm": 104.87167358398438,
@@ -416,14 +416,14 @@
    "storage_mean_m": 0.0512860082089901,
    "kappa_mean": 1.0,
    "baseline": false,
-   "peak_depth_land_m": 16.499338150024414
+   "peak_depth_land_m": 2.8691935539245605
   },
   {
    "sim": 26,
-   "steps": 41831,
-   "dt_min_s": 0.01689343695761636,
-   "n_sub_max": 2,
-   "wall_s": 369.7277296999964,
+   "steps": 41767,
+   "dt_min_s": 0.019693150527018588,
+   "n_sub_max": 1,
+   "wall_s": 337.9698892000015,
    "return_period_yr": 50,
    "tide_on": true,
    "rain_total_mm": 128.9909210205078,
@@ -432,14 +432,14 @@
    "storage_mean_m": 0.07294585555791855,
    "kappa_mean": 1.4098950624465942,
    "baseline": false,
-   "peak_depth_land_m": 3.0006909370422363
+   "peak_depth_land_m": 3.0006632804870605
   },
   {
    "sim": 27,
-   "steps": 40505,
-   "dt_min_s": 0.057595188156483346,
+   "steps": 40459,
+   "dt_min_s": 0.022430438350056647,
    "n_sub_max": 1,
-   "wall_s": 351.89910750000854,
+   "wall_s": 330.75781569999526,
    "return_period_yr": 100,
    "tide_on": true,
    "rain_total_mm": 134.59503173828125,
@@ -448,14 +448,14 @@
    "storage_mean_m": 0.12830430269241333,
    "kappa_mean": 1.0770282745361328,
    "baseline": false,
-   "peak_depth_land_m": 2.7526180744171143
+   "peak_depth_land_m": 2.751596450805664
   },
   {
    "sim": 28,
-   "steps": 42223,
-   "dt_min_s": 0.0005417582833615597,
+   "steps": 42187,
+   "dt_min_s": 0.022232790288398974,
    "n_sub_max": 1,
-   "wall_s": 349.7740438000037,
+   "wall_s": 343.5483932000061,
    "return_period_yr": 10,
    "tide_on": true,
    "rain_total_mm": 96.54827117919922,
@@ -464,14 +464,14 @@
    "storage_mean_m": 0.025560054928064346,
    "kappa_mean": 1.026467204093933,
    "baseline": false,
-   "peak_depth_land_m": 3.0799553394317627
+   "peak_depth_land_m": 3.0799882411956787
   },
   {
    "sim": 29,
-   "steps": 72551,
+   "steps": 41558,
    "dt_min_s": 0.01819617426303921,
-   "n_sub_max": 3,
-   "wall_s": 569.2221959000017,
+   "n_sub_max": 1,
+   "wall_s": 338.3491162999999,
    "return_period_yr": 25,
    "tide_on": true,
    "rain_total_mm": 109.86556243896484,
@@ -480,14 +480,14 @@
    "storage_mean_m": 0.05062383413314819,
    "kappa_mean": 1.0728447437286377,
    "baseline": false,
-   "peak_depth_land_m": 29.768566131591797
+   "peak_depth_land_m": 3.0303828716278076
   },
   {
    "sim": 30,
-   "steps": 42068,
-   "dt_min_s": 0.016505067729667644,
+   "steps": 42010,
+   "dt_min_s": 0.010417969615446054,
    "n_sub_max": 1,
-   "wall_s": 333.74865779999527,
+   "wall_s": 336.94956170002115,
    "return_period_yr": 50,
    "tide_on": false,
    "rain_total_mm": 124.46492004394531,
@@ -496,14 +496,14 @@
    "storage_mean_m": 0.01902816630899906,
    "kappa_mean": 1.0,
    "baseline": true,
-   "peak_depth_land_m": 2.707364559173584
+   "peak_depth_land_m": 2.706354856491089
   },
   {
    "sim": 31,
-   "steps": 42428,
-   "dt_min_s": 0.002860488235455705,
-   "n_sub_max": 2,
-   "wall_s": 339.98774540000886,
+   "steps": 42330,
+   "dt_min_s": 0.04021804663352668,
+   "n_sub_max": 1,
+   "wall_s": 343.0393669999903,
    "return_period_yr": 100,
    "tide_on": true,
    "rain_total_mm": 134.59503173828125,
@@ -512,14 +512,14 @@
    "storage_mean_m": 0.06452904641628265,
    "kappa_mean": 1.1336345672607422,
    "baseline": false,
-   "peak_depth_land_m": 3.1533048152923584
+   "peak_depth_land_m": 3.1533167362213135
   },
   {
    "sim": 32,
-   "steps": 54147,
-   "dt_min_s": 0.02366976740268001,
-   "n_sub_max": 2,
-   "wall_s": 430.7454199000058,
+   "steps": 42357,
+   "dt_min_s": 0.05313299640874902,
+   "n_sub_max": 1,
+   "wall_s": 343.55986339997617,
    "return_period_yr": 10,
    "tide_on": true,
    "rain_total_mm": 96.54827117919922,
@@ -528,14 +528,14 @@
    "storage_mean_m": 0.042724624276161194,
    "kappa_mean": 1.1177085638046265,
    "baseline": false,
-   "peak_depth_land_m": 17.53807830810547
+   "peak_depth_land_m": 3.21679425239563
   },
   {
    "sim": 33,
-   "steps": 43055,
-   "dt_min_s": 0.029436235268804012,
+   "steps": 43004,
+   "dt_min_s": 0.03226504869780911,
    "n_sub_max": 1,
-   "wall_s": 347.6490632999921,
+   "wall_s": 350.7134015999909,
    "return_period_yr": 25,
    "tide_on": true,
    "rain_total_mm": 109.86556243896484,
@@ -544,14 +544,14 @@
    "storage_mean_m": 0.04791421443223953,
    "kappa_mean": 2.018636465072632,
    "baseline": false,
-   "peak_depth_land_m": 3.310753107070923
+   "peak_depth_land_m": 3.310105323791504
   },
   {
    "sim": 34,
-   "steps": 39118,
-   "dt_min_s": 0.006165030183183262,
-   "n_sub_max": 2,
-   "wall_s": 314.5471905000013,
+   "steps": 39073,
+   "dt_min_s": 0.04111745126283495,
+   "n_sub_max": 1,
+   "wall_s": 318.250833099999,
    "return_period_yr": 50,
    "tide_on": true,
    "rain_total_mm": 128.9909210205078,
@@ -560,14 +560,14 @@
    "storage_mean_m": 0.16219931840896606,
    "kappa_mean": 1.0,
    "baseline": false,
-   "peak_depth_land_m": 3.0075795650482178
+   "peak_depth_land_m": 3.007608413696289
   },
   {
    "sim": 35,
-   "steps": 42019,
-   "dt_min_s": 0.004112678379897261,
-   "n_sub_max": 2,
-   "wall_s": 334.58479150000494,
+   "steps": 41950,
+   "dt_min_s": 0.01604026875065756,
+   "n_sub_max": 1,
+   "wall_s": 337.7179026999802,
    "return_period_yr": 100,
    "tide_on": true,
    "rain_total_mm": 141.0043182373047,
@@ -576,14 +576,14 @@
    "storage_mean_m": 0.022452935576438904,
    "kappa_mean": 1.1317880153656006,
    "baseline": false,
-   "peak_depth_land_m": 3.091970205307007
+   "peak_depth_land_m": 3.091984510421753
   },
   {
    "sim": 36,
-   "steps": 44504,
-   "dt_min_s": 0.05805992151363171,
+   "steps": 44460,
+   "dt_min_s": 0.0018338395675527863,
    "n_sub_max": 1,
-   "wall_s": 359.6977196999942,
+   "wall_s": 360.36910140002146,
    "return_period_yr": 10,
    "tide_on": true,
    "rain_total_mm": 103.32359313964844,
@@ -592,14 +592,14 @@
    "storage_mean_m": 0.019803674891591072,
    "kappa_mean": 1.2257269620895386,
    "baseline": false,
-   "peak_depth_land_m": 3.500322103500366
+   "peak_depth_land_m": 3.5003175735473633
   },
   {
    "sim": 37,
-   "steps": 42426,
-   "dt_min_s": 0.0039491162497142795,
-   "n_sub_max": 2,
-   "wall_s": 358.1177345000033,
+   "steps": 42364,
+   "dt_min_s": 0.03975947466369689,
+   "n_sub_max": 1,
+   "wall_s": 343.68601010000566,
    "return_period_yr": 25,
    "tide_on": true,
    "rain_total_mm": 104.87167358398438,
@@ -608,14 +608,14 @@
    "storage_mean_m": 0.023768598213791847,
    "kappa_mean": 1.0,
    "baseline": false,
-   "peak_depth_land_m": 3.073699712753296
+   "peak_depth_land_m": 3.073760986328125
   },
   {
    "sim": 38,
-   "steps": 40775,
-   "dt_min_s": 0.012401716830936493,
-   "n_sub_max": 2,
-   "wall_s": 340.8434736999916,
+   "steps": 40706,
+   "dt_min_s": 0.06536007105660246,
+   "n_sub_max": 1,
+   "wall_s": 330.1452422000002,
    "return_period_yr": 50,
    "tide_on": true,
    "rain_total_mm": 124.46492004394531,
@@ -624,14 +624,14 @@
    "storage_mean_m": 0.027044719085097313,
    "kappa_mean": 1.0,
    "baseline": false,
-   "peak_depth_land_m": 2.770616054534912
+   "peak_depth_land_m": 2.7706100940704346
   },
   {
    "sim": 39,
-   "steps": 44160,
-   "dt_min_s": 0.0018965376184496563,
+   "steps": 44103,
+   "dt_min_s": 0.02766336110607881,
    "n_sub_max": 1,
-   "wall_s": 349.63255680000293,
+   "wall_s": 354.64350160001777,
    "return_period_yr": 100,
    "tide_on": true,
    "rain_total_mm": 156.3865966796875,
@@ -640,14 +640,14 @@
    "storage_mean_m": 0.019535109400749207,
    "kappa_mean": 1.3175386190414429,
    "baseline": false,
-   "peak_depth_land_m": 3.5154824256896973
+   "peak_depth_land_m": 3.5149085521698
   },
   {
    "sim": 40,
-   "steps": 42113,
-   "dt_min_s": 0.010106139259733027,
+   "steps": 42056,
+   "dt_min_s": 0.056585180092952214,
    "n_sub_max": 1,
-   "wall_s": 339.6244432000094,
+   "wall_s": 342.6513691,
    "return_period_yr": 10,
    "tide_on": true,
    "rain_total_mm": 88.92604064941406,
@@ -656,14 +656,14 @@
    "storage_mean_m": 0.043649233877658844,
    "kappa_mean": 1.006203055381775,
    "baseline": false,
-   "peak_depth_land_m": 3.0166573524475098
+   "peak_depth_land_m": 3.016636371612549
   },
   {
    "sim": 41,
-   "steps": 40886,
-   "dt_min_s": 0.0056827722655725665,
+   "steps": 40834,
+   "dt_min_s": 0.057092559667239584,
    "n_sub_max": 1,
-   "wall_s": 327.881443899998,
+   "wall_s": 329.732400399982,
    "return_period_yr": 25,
    "tide_on": false,
    "rain_total_mm": 104.87167358398438,
@@ -672,14 +672,14 @@
    "storage_mean_m": 0.040045663714408875,
    "kappa_mean": 1.1031793355941772,
    "baseline": false,
-   "peak_depth_land_m": 2.4967169761657715
+   "peak_depth_land_m": 2.4965105056762695
   },
   {
    "sim": 42,
-   "steps": 42531,
-   "dt_min_s": 0.0022806990309618413,
+   "steps": 42445,
+   "dt_min_s": 0.014707421247294405,
    "n_sub_max": 1,
-   "wall_s": 342.03126730000076,
+   "wall_s": 344.09521269999095,
    "return_period_yr": 50,
    "tide_on": true,
    "rain_total_mm": 124.46492004394531,
@@ -688,14 +688,14 @@
    "storage_mean_m": 0.07406163215637207,
    "kappa_mean": 1.0,
    "baseline": false,
-   "peak_depth_land_m": 3.0855302810668945
+   "peak_depth_land_m": 3.0855042934417725
   },
   {
    "sim": 43,
-   "steps": 42371,
-   "dt_min_s": 0.03165854391409084,
-   "n_sub_max": 2,
-   "wall_s": 337.3576764999889,
+   "steps": 42297,
+   "dt_min_s": 0.033075937599278404,
+   "n_sub_max": 1,
+   "wall_s": 340.90829150000354,
    "return_period_yr": 100,
    "tide_on": true,
    "rain_total_mm": 134.59503173828125,
@@ -704,14 +704,14 @@
    "storage_mean_m": 0.022236112505197525,
    "kappa_mean": 1.0,
    "baseline": true,
-   "peak_depth_land_m": 3.2021994590759277
+   "peak_depth_land_m": 3.2016642093658447
   },
   {
    "sim": 44,
-   "steps": 40249,
-   "dt_min_s": 0.019339765360200545,
-   "n_sub_max": 2,
-   "wall_s": 324.88187660000403,
+   "steps": 40148,
+   "dt_min_s": 0.001444902936782455,
+   "n_sub_max": 1,
+   "wall_s": 328.34666340000695,
    "return_period_yr": 10,
    "tide_on": true,
    "rain_total_mm": 93.16061401367188,
@@ -720,14 +720,14 @@
    "storage_mean_m": 0.07697843760251999,
    "kappa_mean": 1.0,
    "baseline": false,
-   "peak_depth_land_m": 2.949457883834839
+   "peak_depth_land_m": 2.949481964111328
   },
   {
    "sim": 45,
-   "steps": 39765,
-   "dt_min_s": 0.029324599849132937,
-   "n_sub_max": 2,
-   "wall_s": 338.080990500006,
+   "steps": 39680,
+   "dt_min_s": 0.002516794491384644,
+   "n_sub_max": 1,
+   "wall_s": 324.5169511999993,
    "return_period_yr": 25,
    "tide_on": true,
    "rain_total_mm": 109.86556243896484,
@@ -736,14 +736,14 @@
    "storage_mean_m": 0.033266618847846985,
    "kappa_mean": 1.829061508178711,
    "baseline": false,
-   "peak_depth_land_m": 2.9052398204803467
+   "peak_depth_land_m": 2.905289888381958
   },
   {
    "sim": 46,
-   "steps": 41843,
-   "dt_min_s": 0.028915891091855883,
-   "n_sub_max": 2,
-   "wall_s": 349.7053839999862,
+   "steps": 41779,
+   "dt_min_s": 0.011138089763335302,
+   "n_sub_max": 1,
+   "wall_s": 337.8888415999827,
    "return_period_yr": 50,
    "tide_on": true,
    "rain_total_mm": 124.46492004394531,
@@ -752,14 +752,14 @@
    "storage_mean_m": 0.10956642776727676,
    "kappa_mean": 1.0,
    "baseline": false,
-   "peak_depth_land_m": 3.2239573001861572
+   "peak_depth_land_m": 3.223968267440796
   },
   {
    "sim": 47,
-   "steps": 39892,
-   "dt_min_s": 0.018923192203146755,
+   "steps": 39826,
+   "dt_min_s": 0.05350674086730578,
    "n_sub_max": 1,
-   "wall_s": 334.4578773999965,
+   "wall_s": 322.3251152999874,
    "return_period_yr": 100,
    "tide_on": false,
    "rain_total_mm": 134.59503173828125,
@@ -768,14 +768,14 @@
    "storage_mean_m": 0.023300543427467346,
    "kappa_mean": 1.4960269927978516,
    "baseline": false,
-   "peak_depth_land_m": 2.318589687347412
+   "peak_depth_land_m": 2.318608283996582
   },
   {
    "sim": 48,
-   "steps": 40258,
-   "dt_min_s": 0.10721222067877534,
+   "steps": 40197,
+   "dt_min_s": 0.04956600822879409,
    "n_sub_max": 1,
-   "wall_s": 323.6809820999915,
+   "wall_s": 326.8587337999779,
    "return_period_yr": 10,
    "tide_on": false,
    "rain_total_mm": 103.32359313964844,
@@ -784,14 +784,14 @@
    "storage_mean_m": 0.0418391153216362,
    "kappa_mean": 1.0,
    "baseline": false,
-   "peak_depth_land_m": 2.384352445602417
+   "peak_depth_land_m": 2.3842976093292236
   },
   {
    "sim": 49,
-   "steps": 39688,
-   "dt_min_s": 0.0024702579480617715,
+   "steps": 39655,
+   "dt_min_s": 0.08943804128284683,
    "n_sub_max": 1,
-   "wall_s": 317.93275029999495,
+   "wall_s": 334.3984233000083,
    "return_period_yr": 25,
    "tide_on": false,
    "rain_total_mm": 104.87167358398438,
@@ -800,14 +800,14 @@
    "storage_mean_m": 0.06059107184410095,
    "kappa_mean": 1.0593030452728271,
    "baseline": false,
-   "peak_depth_land_m": 2.289156436920166
+   "peak_depth_land_m": 2.2891719341278076
   },
   {
    "sim": 50,
-   "steps": 42614,
-   "dt_min_s": 0.0866827483077941,
+   "steps": 42554,
+   "dt_min_s": 0.030223500303691253,
    "n_sub_max": 1,
-   "wall_s": 337.3267879999912,
+   "wall_s": 362.6078171999834,
    "return_period_yr": 50,
    "tide_on": false,
    "rain_total_mm": 138.0429229736328,
@@ -816,14 +816,14 @@
    "storage_mean_m": 0.017787424847483635,
    "kappa_mean": 1.0,
    "baseline": true,
-   "peak_depth_land_m": 2.8068716526031494
+   "peak_depth_land_m": 2.805549144744873
   },
   {
    "sim": 51,
-   "steps": 42648,
-   "dt_min_s": 0.010701246039388934,
+   "steps": 42597,
+   "dt_min_s": 0.0346288495366025,
    "n_sub_max": 1,
-   "wall_s": 340.94759209999756,
+   "wall_s": 355.18363159999717,
    "return_period_yr": 100,
    "tide_on": true,
    "rain_total_mm": 141.0043182373047,
@@ -832,14 +832,14 @@
    "storage_mean_m": 0.05391572043299675,
    "kappa_mean": 1.3614513874053955,
    "baseline": false,
-   "peak_depth_land_m": 3.2096431255340576
+   "peak_depth_land_m": 3.2088470458984375
   },
   {
    "sim": 52,
-   "steps": 42224,
-   "dt_min_s": 0.07345387165571537,
-   "n_sub_max": 2,
-   "wall_s": 340.62222000000475,
+   "steps": 42130,
+   "dt_min_s": 0.016881217810805538,
+   "n_sub_max": 1,
+   "wall_s": 341.877719799988,
    "return_period_yr": 10,
    "tide_on": true,
    "rain_total_mm": 96.54827117919922,
@@ -848,14 +848,14 @@
    "storage_mean_m": 0.03584591671824455,
    "kappa_mean": 1.1697684526443481,
    "baseline": false,
-   "peak_depth_land_m": 3.087770462036133
+   "peak_depth_land_m": 3.087801456451416
   },
   {
    "sim": 53,
-   "steps": 41087,
-   "dt_min_s": 0.006133701666840352,
+   "steps": 41028,
+   "dt_min_s": 0.008869040055287769,
    "n_sub_max": 1,
-   "wall_s": 328.1929252000118,
+   "wall_s": 329.2024846000131,
    "return_period_yr": 25,
    "tide_on": false,
    "rain_total_mm": 113.86067962646484,
@@ -864,14 +864,14 @@
    "storage_mean_m": 0.028422070667147636,
    "kappa_mean": 1.056793451309204,
    "baseline": false,
-   "peak_depth_land_m": 2.5318593978881836
+   "peak_depth_land_m": 2.5319244861602783
   },
   {
    "sim": 54,
-   "steps": 42468,
-   "dt_min_s": 0.02961519214841246,
-   "n_sub_max": 2,
-   "wall_s": 338.9418622999947,
+   "steps": 42409,
+   "dt_min_s": 0.00034257219203936984,
+   "n_sub_max": 1,
+   "wall_s": 341.83496330000344,
    "return_period_yr": 50,
    "tide_on": true,
    "rain_total_mm": 138.0429229736328,
@@ -880,14 +880,14 @@
    "storage_mean_m": 0.021764662116765976,
    "kappa_mean": 1.0,
    "baseline": true,
-   "peak_depth_land_m": 3.0741240978240967
+   "peak_depth_land_m": 3.0742244720458984
   },
   {
    "sim": 55,
-   "steps": 41329,
-   "dt_min_s": 0.029680880330488435,
-   "n_sub_max": 2,
-   "wall_s": 331.03560819999257,
+   "steps": 41255,
+   "dt_min_s": 0.014960110802348936,
+   "n_sub_max": 1,
+   "wall_s": 335.9078038999869,
    "return_period_yr": 100,
    "tide_on": true,
    "rain_total_mm": 134.59503173828125,
@@ -896,14 +896,14 @@
    "storage_mean_m": 0.02303742617368698,
    "kappa_mean": 1.0476558208465576,
    "baseline": false,
-   "peak_depth_land_m": 2.984100103378296
+   "peak_depth_land_m": 2.983931303024292
   },
   {
    "sim": 56,
-   "steps": 41893,
-   "dt_min_s": 0.022776008898290456,
-   "n_sub_max": 2,
-   "wall_s": 338.03814129999955,
+   "steps": 41819,
+   "dt_min_s": 0.003878587881445128,
+   "n_sub_max": 1,
+   "wall_s": 361.90848420001566,
    "return_period_yr": 10,
    "tide_on": true,
    "rain_total_mm": 96.54827117919922,
@@ -912,14 +912,14 @@
    "storage_mean_m": 0.04837951809167862,
    "kappa_mean": 1.0820541381835938,
    "baseline": false,
-   "peak_depth_land_m": 3.024090051651001
+   "peak_depth_land_m": 3.024091958999634
   },
   {
    "sim": 57,
-   "steps": 43236,
-   "dt_min_s": 0.11960179920470182,
+   "steps": 43159,
+   "dt_min_s": 0.06506094665019191,
    "n_sub_max": 1,
-   "wall_s": 347.3506747999927,
+   "wall_s": 364.50795110000763,
    "return_period_yr": 25,
    "tide_on": true,
    "rain_total_mm": 109.86556243896484,
@@ -928,14 +928,14 @@
    "storage_mean_m": 0.02133258990943432,
    "kappa_mean": 1.0,
    "baseline": false,
-   "peak_depth_land_m": 3.2632548809051514
+   "peak_depth_land_m": 3.2632458209991455
   },
   {
    "sim": 58,
-   "steps": 41586,
-   "dt_min_s": 0.009380806486660731,
+   "steps": 41580,
+   "dt_min_s": 0.020307681395934196,
    "n_sub_max": 1,
-   "wall_s": 331.83067460000166,
+   "wall_s": 335.6003503999964,
    "return_period_yr": 50,
    "tide_on": true,
    "rain_total_mm": 138.0429229736328,
@@ -944,14 +944,14 @@
    "storage_mean_m": 0.05185291916131973,
    "kappa_mean": 1.2064778804779053,
    "baseline": false,
-   "peak_depth_land_m": 3.550657272338867
+   "peak_depth_land_m": 3.550813674926758
   },
   {
    "sim": 59,
-   "steps": 41546,
-   "dt_min_s": 0.007700059277340188,
-   "n_sub_max": 2,
-   "wall_s": 331.68371019999904,
+   "steps": 41491,
+   "dt_min_s": 0.04649524276601369,
+   "n_sub_max": 1,
+   "wall_s": 350.85412999999244,
    "return_period_yr": 100,
    "tide_on": true,
    "rain_total_mm": 141.0043182373047,
@@ -960,25 +960,22 @@
    "storage_mean_m": 0.06943784654140472,
    "kappa_mean": 1.0202027559280396,
    "baseline": false,
-   "peak_depth_land_m": 2.9131252765655518
+   "peak_depth_land_m": 2.9131174087524414
   }
  ],
  "spearman_vs_steps": {
-  "return_period_yr": -0.08630175048624619,
-  "rain_total_mm": -0.04623506529591554,
-  "gamma_mean": 0.011280911364267855,
-  "gamma_max": -0.11686579605445958,
-  "storage_mean_m": -0.20644623506529597,
-  "kappa_mean": -0.12014448457904975,
-  "tide_on": 0.08296749096971383,
-  "peak_depth_land_m": 0.7934426229508198
+  "return_period_yr": -0.026285079188663525,
+  "rain_total_mm": 0.03484301194776327,
+  "gamma_mean": -0.2057793831619895,
+  "gamma_max": -0.266296193387052,
+  "storage_mean_m": -0.4114476243400946,
+  "kappa_mean": 0.05557099194220618,
+  "tide_on": 0.08546818560711311,
+  "peak_depth_land_m": 0.6732425673798278
  },
- "outliers": [
-  6,
-  29
- ],
+ "outliers": [],
  "rehearsal_estimator": {
   "n": 16,
-  "spearman_80m_vs_true": 0.3323529411764706
+  "spearman_80m_vs_true": 0.9970588235294118
  }
 }

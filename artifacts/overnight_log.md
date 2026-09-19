@@ -133,3 +133,17 @@ Push each task's commit to GitHub.
       without a trained quick model: they test mechanics, not accuracy, so they fall
       back to an untrained model of the same architecture. The accuracy-dependent
       interchangeability test still needs a trained model and skips without one.
+
+11. **Stopped after generation, on the user's instruction (16:53).** The chain was
+    detached so training and evaluation did not start; generation finished on its own.
+    Dataset dbdd410428f6d7f1 (fixed engine): 60/60 storms, 0 unstable, 0 quarantined;
+    train 45 / val 6 / test 9; mass error max 4.69e-15; wall time median 341 s, max
+    365 s (the unstable engine's worst was 836 s); max 2-D depth 4.72 m, max 1-D rise
+    above bank 1.63 m, max |Q| 482 m^3/s.
+    Step demand is now uniform: median 42,033 steps, range 39,526-43,390, no outliers.
+    The 80 m rehearsal estimator ranks it with Spearman 0.997 (16 storms) -- it scored
+    0.09 last night only because the "truth" came from the unstable engine. So the
+    grouping study's verdict on the estimator was wrong for the same reason, and with
+    demand this uniform, plain batching would pay the shared-step cost only a few
+    percent. It still failed the 1 mm peak-depth requirement on clean storms (20-49 mm),
+    so generation stayed one storm at a time.
