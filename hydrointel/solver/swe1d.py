@@ -17,9 +17,10 @@ Discretisation
       dQ_i/dt = -[ (F_{i+1/2} - p(y*_{L,i+1/2})) - (F_{i-1/2} - p(y*_{R,i-1/2})) ] / dx_i
   which is exactly balanced for still water and consistent with
   -g A d(eta)/dx for any section variation (d I1/dy = A).
-* Trapezoidal sections with a Preissmann slot above the bank crest
-  (width = slot_width_frac x bankfull top width) so surcharged reaches need no
-  special-casing.
+* Trapezoidal sections, continued above the bank crest with vertical walls of
+  width slot_width_frac x bankfull top width. The default 1.0 stores above-bank
+  water at a physical level; a narrow Preissmann slot (the old 0.015) made the
+  tidal mouth reach numerically unstable (see config.SolverConfig).
 * Semi-implicit Manning friction, CFL time step on wet cells, and the same
   conservative outflow limiter as the 2-D solver.
 

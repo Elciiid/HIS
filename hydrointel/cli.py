@@ -6,6 +6,7 @@
     python -m hydrointel.cli grouping-study
     python -m hydrointel.cli predict-speed
     python -m hydrointel.cli cost
+    python -m hydrointel.cli step-demand
     python -m hydrointel.cli generate  [--quick]
     python -m hydrointel.cli train     [--quick] [--resume]
     python -m hydrointel.cli evaluate  [--quick] [--calibrate]
@@ -122,6 +123,12 @@ def cmd_cost(cfg, args) -> int:
     return 0
 
 
+def cmd_step_demand(cfg, args) -> int:
+    from .benchmarks.step_demand import write
+    print(f"report: {write(cfg)}")
+    return 0
+
+
 def cmd_generate(cfg, args) -> int:
     from .data.generate import generate
     from .api import dataset_dir
@@ -198,6 +205,7 @@ def main(argv=None) -> int:
     sub.add_parser("grouping-study")
     sub.add_parser("predict-speed")
     sub.add_parser("cost")
+    sub.add_parser("step-demand")
     bs = sub.add_parser("batch-study")
     bs.add_argument("--quick", action="store_true")
     bs.add_argument("--stage", choices=["all", "scaling", "full", "profile"], default="all")
@@ -236,7 +244,7 @@ def main(argv=None) -> int:
     t0 = time.perf_counter()
     rc = {"benchmark": cmd_benchmark, "precision-study": cmd_precision_study,
           "batch-study": cmd_batch_study, "grouping-study": cmd_grouping_study,
-          "predict-speed": cmd_predict_speed, "cost": cmd_cost, "generate": cmd_generate,
+          "predict-speed": cmd_predict_speed, "cost": cmd_cost, "step-demand": cmd_step_demand, "generate": cmd_generate,
           "train": cmd_train, "evaluate": cmd_evaluate, "figures": cmd_figures, "all": cmd_all}[args.command](cfg, args)
     print(f"done in {(time.perf_counter() - t0) / 60:.1f} min")
     return rc

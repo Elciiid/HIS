@@ -111,7 +111,19 @@ class SolverConfig:
     recession_h: float = 2.0            # simulated time after the storm ends
     output_interval_s: float = 900.0
     # 1-D
-    slot_width_frac: float = 0.015      # Preissmann slot width / bankfull top width
+    # Width of the 1-D section above the bank crest, as a fraction of the bankfull top
+    # width. 1.0 = vertical walls at bankfull width: water above the bank is stored at
+    # a physical level and spilled to the floodplain by the 1-D/2-D exchange.
+    # It was 0.015, a Preissmann slot -- a device for closed conduits. In an open
+    # channel coupled to a floodplain it stores above-bank water in a sliver 1.6 m wide,
+    # so small volumes become huge heads: the tidal mouth reach (bank crest below the
+    # tide) went unstable in 6 of 60 Phase 1 storms, reaching 60-112 m above the bank
+    # with mass conserved to 1e-14 (found 2026-09-19; see artifacts/overnight_log.md).
+    # At 1.0 the same storms are stable, peak at 4.2-4.4 m and take ~40k steps.
+    # Known approximation: above-bank water in the 1-D reach and in the 2-D cells over
+    # the channel footprint both occupy the channel strip; the exchange keeps their
+    # levels together, so volume is conserved but the strip's storage is double.
+    slot_width_frac: float = 1.0
     cfl_1d: float = 0.45
     # coupling
     weir_cw: float = 1.7                # SI free-weir coefficient

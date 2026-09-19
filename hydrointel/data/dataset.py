@@ -69,7 +69,9 @@ class SimDataset:
     def __init__(self, root: str | Path, split: str | None = None, cache: int = 24):
         self.root = Path(root)
         self.index = json.loads((self.root / "index.json").read_text(encoding="utf-8"))
-        self.ids = sorted(int(k) for k, v in self.index.items() if split is None or v["split"] == split)
+        # storms the engine could not simulate are listed in the index but are not data
+        self.ids = sorted(int(k) for k, v in self.index.items()
+                          if (split is None or v["split"] == split) and v.get("status") != "failed_numerical")
         if not self.ids:
             raise RuntimeError(f"{self.root}: no simulations in split {split!r}")
         self.static = torch.load(self.root / "domain.pt", weights_only=False)

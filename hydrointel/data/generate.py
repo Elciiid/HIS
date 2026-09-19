@@ -22,9 +22,11 @@ from .. import api
 from ..config import RunConfig, seed_everything
 from ..domain import landuse as LU
 from ..viz.provenance import markdown_header
+from ..solver.coupling import NumericalInstabilityError
 from . import sampler as SMP
 
 log = logging.getLogger("hydrointel.data")
+FAILED = "failed_numerical"      # index status of a storm the engine could not simulate
 
 
 def coarsen_mean(a: np.ndarray, f: int) -> np.ndarray:
@@ -75,9 +77,15 @@ def generate(cfg: RunConfig, device=None, check_benchmarks: bool = True) -> Path
     torch.save(static_fields(dom, f), out / "domain.pt")
     index_path = out / "index.json"
     index = json.loads(index_path.read_text(encoding="utf-8")) if index_path.exists() else {}
+    if index:
+        _recheck(out, index, dom)
+        index_path.write_text(json.dumps(index, indent=1), encoding="utf-8")
     t_start = time.perf_counter()
     done_now = 0
-    todo = [i for i in range(n) if not ((out / f"sim_{i:05d}.pt").exists() and str(i) in index)]
+    # a storm the engine could not simulate stays recorded as failed; it is deterministic
+    # and would fail again, so it is not retried
+    todo = [i for i in range(n) if not ((out / f"sim_{i:05d}.pt").exists() and str(i) in index)
+            and index.get(str(i), {}).get("status") != FAILED]
     bs = max(1, int(cfg.data.batch))
     log.info("%d/%d simulations to run, %d at a time", len(todo), n, bs)
     for c0 in range(0, len(todo), bs):
@@ -91,7 +99,17 @@ def generate(cfg: RunConfig, device=None, check_benchmarks: bool = True) -> Path
         t0 = time.perf_counter()
         # mass balance is asserted per member inside the run: a batch aborts if any
         # single storm violates cfg.solver.mass_tol
-        results = api.simulate_batch(sites, scens)
+        try:
+            results = api.simulate_batch(sites, scens)
+        except NumericalInstabilityError as e:
+            if len(chunk) > 1:
+                raise                       # which member failed cannot be separated from a shared step
+            i, smp = chunk[0], smps[0]
+            index[str(i)] = {**smp.meta(), "status": FAILED, "error": str(e),
+                             "wall_s": time.perf_counter() - t0}
+            index_path.write_text(json.dumps(index, indent=1), encoding="utf-8")
+            log.error("sim %d/%d %s: ENGINE UNSTABLE, excluded from the dataset: %s", i + 1, n, _desc(smp), e)
+            continue
         batch_wall = time.perf_counter() - t0
         wall = batch_wall / len(chunk)
         for i, smp, scen, lu, mat, res in zip(chunk, smps, scens, lus, mats, results):
@@ -109,6 +127,37 @@ def generate(cfg: RunConfig, device=None, check_benchmarks: bool = True) -> Path
     env.save(out / "envelope.json")
     write_card(cfg, out, index, env, ctx)
     return out
+
+
+def _recheck(out: Path, index: dict, dom) -> None:
+    """Apply the engine's physical-plausibility bounds to records already on disk.
+
+    Records written before the engine checked plausibility for itself (or by any
+    older build) are re-validated here with the same bounds. A record that fails is
+    moved to ``quarantine/`` -- kept, not deleted -- and marked failed in the index,
+    so it leaves every split and the envelope but stays inspectable."""
+    from ..solver.coupling import MAX_PLAUSIBLE_DEPTH_2D_M, MAX_PLAUSIBLE_RISE_1D_M
+    from ..solver.swe1d import build_topology
+    tp = build_topology(dom.network)
+    bank = tp.zbank[tp.kind <= 1]
+    qdir = out / "quarantine"
+    for k, meta in list(index.items()):
+        path = out / f"sim_{int(k):05d}.pt"
+        if meta.get("status") == FAILED or not path.exists():
+            continue
+        rec = torch.load(path, weights_only=False, mmap=True)
+        d2 = float(np.asarray(rec["depth_max_full"]).max())
+        rise = float((np.asarray(rec["eta1"]) - bank[None]).max())
+        if d2 > MAX_PLAUSIBLE_DEPTH_2D_M or rise > MAX_PLAUSIBLE_RISE_1D_M or not np.isfinite(d2 + rise):
+            del rec
+            qdir.mkdir(exist_ok=True)
+            path.replace(qdir / path.name)
+            meta.update({"status": FAILED, "error": f"physically impossible state found on re-check of the stored "
+                         f"record: max 2-D depth {d2:.2f} m, max 1-D rise above bank {rise:.2f} m (bounds "
+                         f"{MAX_PLAUSIBLE_DEPTH_2D_M:g} m and {MAX_PLAUSIBLE_RISE_1D_M:g} m); record moved to "
+                         f"quarantine/"})
+            log.error("sim %s: stored record is physically impossible (2-D %.1f m, 1-D rise %.1f m): quarantined",
+                      k, d2, rise)
 
 
 def _write_sim(cfg, dom, f, i, smp, lu, storage, kappa, manning, gamma, res, path, index,
@@ -189,7 +238,7 @@ def _envelope(cfg, dom, index, out, ctx):
     env = SMP.envelope_from(cfg.data)
     active = ~(dom.sea | dom.channel)
     for k, meta in index.items():
-        if meta["split"] != "train":
+        if meta["split"] != "train" or meta.get("status") == FAILED:
             continue
         smp = SMP.draw(int(k), dom, cfg.data, cfg.seed, meta["split"])
         lu = ctx.landuse(smp.ssp, smp.horizon_year)
@@ -205,7 +254,8 @@ def _envelope(cfg, dom, index, out, ctx):
 def write_card(cfg, out: Path, index: dict, env, ctx) -> Path:
     prov = ctx.provenance("engine", ("domain", "solver", "forcing", "data"))
     s = markdown_header(prov, "Dataset card: engine simulations for GeoKAN-PINO")
-    rows = list(index.values())
+    failed = {k: v for k, v in index.items() if v.get("status") == FAILED}
+    rows = [v for v in index.values() if v.get("status") != FAILED]
     s += f"- simulations: {len(rows)} (train {sum(r['split'] == 'train' for r in rows)}, "
     s += f"val {sum(r['split'] == 'val' for r in rows)}, test {sum(r['split'] == 'test' for r in rows)}); "
     s += "split by whole scenario, stratified by return period\n"
@@ -220,6 +270,15 @@ def write_card(cfg, out: Path, index: dict, env, ctx) -> Path:
               f"batches of {int(bsz.min())}-{int(bsz.max())} storms advanced together on one set of kernels\n")
         s += f"- mass-balance error: max {me.max():.2e} (every run asserted < {cfg.solver.mass_tol:g})\n"
         s += f"- baseline (no intervention) samples: {sum(r['baseline'] for r in rows)}\n"
+    if failed:
+        s += (f"\n**{len(failed)} storm(s) excluded: the engine went numerically unstable** and was stopped by its "
+              "physical-plausibility check (mass balance cannot catch an instability that conserves volume). "
+              "They are not in any split. This is an engine defect, not a property of the storms; see the "
+              "validation report.\n\n| sim | split | RP | gamma (per reach) | error |\n|---|---|---|---|---|\n")
+        for k, v in sorted(failed.items(), key=lambda kv: int(kv[0])):
+            g = ", ".join(f"{x:.2f}" for x in v.get("gamma", []))
+            s += f"| {k} | {v['split']} | {v['return_period_yr']} | {g} | {v['error'][:160]} |\n"
+        s += "\n"
         for rp in cfg.data.return_periods:
             s += f"- RP{rp}: {sum(r['return_period_yr'] == rp for r in rows)} simulations\n"
     s += "\n## Sampled intervention envelope (Part B must stay inside it)\n\n| field | range |\n|---|---|\n"

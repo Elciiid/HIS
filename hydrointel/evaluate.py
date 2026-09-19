@@ -202,6 +202,7 @@ def evaluate(cfg: RunConfig, device=None, n_probe: int | None = None) -> Path:
                  sc["csi"]["0.3"]["csi"])
     # edge-of-envelope probes (engine + surrogate, cached)
     n_probe = n_probe if n_probe is not None else (1 if cfg.quick else 4)
+    unstable = []                  # designs the engine could not simulate
     for k in range(n_probe):
         smp = edge_probe(k, dom, cfg, cfg.seed)
         site, scen = site_from_sample(smp, dom, ctx)
@@ -209,8 +210,15 @@ def evaluate(cfg: RunConfig, device=None, n_probe: int | None = None) -> Path:
         if cache.exists():
             eng = torch.load(cache, weights_only=False)
         else:
+            from .solver.coupling import NumericalInstabilityError
             t0 = time.perf_counter()
-            res = api.simulate(site, scen)
+            try:
+                res = api.simulate(site, scen)
+            except NumericalInstabilityError as e:
+                # the ground truth itself is invalid here: record it, score nothing against it
+                unstable.append({"case": f"edge probe {k}", "error": str(e)})
+                log.error("edge probe %d: engine unstable, not scored: %s", k, e)
+                continue
             eng = _eng_from_result(res, f)
             eng.update({"wall_s": time.perf_counter() - t0, "mass_err": res.mass_balance_error})
             torch.save(eng, cache)
@@ -225,10 +233,13 @@ def evaluate(cfg: RunConfig, device=None, n_probe: int | None = None) -> Path:
     directional = storage_direction_check(ctx)
     from . import evaluate_effects as EE
     eff = EE.run(cfg, ctx, test.ids, mdir, edge_probe(0, dom, cfg, cfg.seed))
+    unstable += eff.get("unstable", [])
     eng_check = EE.storage_check_engine(ctx, mdir)
     prov = ctx.provenance("surrogate", ("domain", "solver", "forcing", "data", "model", "train"))
     write_json(out / "intervention_effects.json", {"effects": eff, "storage_check_engine": eng_check,
-                                                    "storage_check_surrogate": directional}, prov)
+                                                    "storage_check_surrogate": directional,
+                                                    "engine_unstable": unstable}, prov)
+    eff["unstable"] = unstable
     report = write_validation_report(cfg, ctx, rows, directional, out, mdir, effects=(eff, eng_check))
     return report
 
@@ -293,7 +304,7 @@ def limitations(cfg: RunConfig, ctx) -> list[str]:
                "RCP rainfall/SLR factors and SSP modifiers are placeholders.")
     out.append(f"Numerics: {'MUSCL + SSP-RK2' if sv.spatial_order == 2 else 'first-order'} finite volumes on a "
                f"{dm.nx} x {dm.ny} grid at {dm.dx:g} m, dry threshold {sv.h_dry:g} m, CFL {sv.cfl:g}, "
-               f"{sv.precision}; 1-D channels first order with a Preissmann slot of {sv.slot_width_frac:g} x top width; "
+               f"{sv.precision}; 1-D channels first order, above-bank width {sv.slot_width_frac:g} x bankfull top width; "
                f"weir exchange Cw = {sv.weir_cw:g}.")
     out.append(f"The surrogate is trained on a {cfg.data.coarsen}x-coarsened grid and upsampled bilinearly; the "
                "error this adds is reported separately (upsampling_only).")

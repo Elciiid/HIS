@@ -25,3 +25,6 @@ artifacts/*
 !artifacts/cost_projection.md
 !artifacts/cost_projection.json
 !artifacts/training_speed.json
+!artifacts/step_demand.md
+!artifacts/step_demand.json
+!artifacts/phase1.json

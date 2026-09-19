@@ -30,6 +30,19 @@ from .swe2d import SWE2D
 
 log = logging.getLogger("hydrointel.solver")
 
+# Physical plausibility bounds. They detect a solver that has gone unstable; they do
+# not judge accuracy. Mass balance cannot catch an instability that conserves
+# volume -- found 2026-09-19, when the 1-D model's tidal mouth reach went unstable
+# under channel dredging and parked 35 m of water on a cell at 0.96 m elevation with
+# a mass error of 1e-14. Real peaks in this domain are < 5 m; the bounds sit well
+# outside anything a flood here can produce.
+MAX_PLAUSIBLE_DEPTH_2D_M = 10.0
+MAX_PLAUSIBLE_RISE_1D_M = 10.0      # 1-D water level above the bank crest
+
+
+class NumericalInstabilityError(RuntimeError):
+    """The engine produced a physically impossible state. The run is invalid."""
+
 
 @dataclass
 class Links:
@@ -153,6 +166,31 @@ class CoupledEngine:
         self._ex_in = torch.zeros(self.bshape, dtype=torch.float64, device=dev1)
         self._ex_out = torch.zeros(self.bshape, dtype=torch.float64, device=dev1)
 
+    def check_plausible(self, t: float, label: str = "") -> None:
+        """Raise NumericalInstabilityError if any member's state is physically impossible."""
+        h = self.two.h
+        dmax = h.flatten(-2).amax(-1) if h.dim() == 3 else h.max()
+        bad2 = ~torch.isfinite(dmax) | (dmax > MAX_PLAUSIBLE_DEPTH_2D_M)
+        bad1 = torch.zeros_like(bad2)
+        rise = None
+        if self.one is not None:
+            one = self.one
+            level = one.z + one.sec.depth(one.A)
+            zb = torch.as_tensor(one.topo.zbank, dtype=level.dtype, device=level.device)
+            rise = torch.where(one.interior, level - zb, torch.full_like(level, -1e9)).amax(-1)
+            bad1 = (~torch.isfinite(rise) | (rise > MAX_PLAUSIBLE_RISE_1D_M)).to(bad2.device)
+        bad = (bad2 | bad1).reshape(-1)
+        if bool(bad.any()):
+            members = torch.nonzero(bad).reshape(-1).tolist()
+            d2 = dmax.reshape(-1).tolist()
+            d1 = rise.reshape(-1).tolist() if rise is not None else [float("nan")] * len(d2)
+            who = ", ".join(f"member {m}: max 2-D depth {d2[m]:.2f} m, max 1-D rise above bank {d1[m]:.2f} m"
+                            for m in members) if self.batch is not None else \
+                f"max 2-D depth {d2[0]:.2f} m, max 1-D rise above bank {d1[0]:.2f} m"
+            raise NumericalInstabilityError(
+                f"physically impossible state{(' in ' + label) if label else ''} at t = {t / 3600:.3f} h ({who}; "
+                f"bounds {MAX_PLAUSIBLE_DEPTH_2D_M:g} m and {MAX_PLAUSIBLE_RISE_1D_M:g} m). The run is invalid.")
+
     def total_volume(self):
         """Total water in the coupled system; 0-d unbatched, one entry per member batched."""
         v = self.two.volume() + self.two.storage_volume()
@@ -223,11 +261,13 @@ class CoupledEngine:
             limit = outs[0] if outs else t_end
             t = self.step(t, limit)
             if outs and t >= outs[0] - 1e-9:
+                self.check_plausible(t, label)          # never hand an impossible state to a caller
                 on_snapshot and on_snapshot(self.snapshot(t))
                 outs.pop(0)
             k += 1
             if k % check_every == 0:
                 self.mb.check(self.total_volume(), t)
+                self.check_plausible(t, label)
             if progress_s and time.perf_counter() - last_report >= progress_s:
                 last_report = time.perf_counter()
                 done = (t - t0) / (t_end - t0) if t_end > t0 else 1.0
@@ -242,4 +282,5 @@ class CoupledEngine:
         self.log.exchanged_in_m3 = num(self._ex_in)
         self.log.exchanged_out_m3 = num(self._ex_out)
         self.log.n_dt_clamped = self.two.n_dt_clamped
+        self.check_plausible(t, label)
         return self.mb.assert_ok(self.total_volume(), t, self.cfg.mass_tol, label)

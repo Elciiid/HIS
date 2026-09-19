@@ -69,3 +69,51 @@ Push each task's commit to GitHub.
      ~350 s). Any future grouping needs a better estimator. Storm 6's mean gamma is
      1.72; Phase 1 records every storm's true step count, so the final report checks
      whether gamma (or anything else in the sample) predicts step demand.
+
+8. **ENGINE DEFECT FOUND in Phase 1 data: the 1-D solver goes numerically unstable.**
+   Found 10:40 by the step-demand analysis. 6 of 60 storms had physically impossible
+   states: 1-D levels 60-112 m above the bank crest, |Q| 10,000-64,000 m^3/s, and in
+   5 of them 2-D depths of 16-34 m around the river mouth -- all with a mass-balance
+   error of ~1e-14, which is why nothing caught it. Every other storm stays at
+   <= 4.3 m above bank and <= 1,066 m^3/s, so the partition is unambiguous.
+   Mechanism (traced in sim 6): the last 1-D cell before the tidal (stage) boundary of
+   the mouth reach sits in the Preissmann slot (its bank crest is -0.29 m, below the
+   tide). An odd-even oscillation there grows slowly until the level crosses the bank
+   crest, where the section's storage width jumps 66x (106 m -> 1.6 m); in one step
+   the level goes to 214 m. Channel dredging (gamma > 1) makes it worse, but sim 20 is
+   a baseline storm (gamma = 1) and failed too. Tried and rejected: lower 1-D Courant
+   number (only delays the blow-up), wider slot (fixes sim 6, not sim 29), gentler
+   coupling relaxation (no effect), counting ghost cells in the time step (no effect).
+   **Not fixed.** Root cause beyond the mechanism is open.
+   What I did (conservative, reversible):
+   - the engine now checks physical plausibility (2-D depth <= 10 m, 1-D level <= 10 m
+     above bank) at every mass check and snapshot and raises NumericalInstabilityError;
+   - generation re-checks stored records with the same bounds, moves failures to
+     `quarantine/` (kept, not deleted) and marks them failed in the index; generation
+     records new failures instead of writing garbage;
+   - Phase 1 trains on the 54 clean storms (train 43, val 5, test 6).
+   **Correction to Tasks 1 and 2**: their storm 6 (the "92k-step outlier") and Task 1's
+   storm 20 were unstable runs. Task 1's 9.75 m fp32 divergence and Task 2's "batching
+   does not pay" came from them. Task 1's verdict still stands on clean storm 0 (82 mm,
+   mass 1.03e-4). Task 2's conclusion should read: a batch is only as fast as its
+   slowest member, and an unstable member destroys it; batches of clean storms gave
+   1.44x (grouping study) but still failed the 1 mm accuracy bound.
+
+9. **Engine fixed; Phase 1 restarted from scratch.** Diagnosis narrowed to model
+   structure: the 1-D section continued above the bank crest as a Preissmann slot
+   (1.5% of top width), a device for closed conduits. In an open channel coupled to a
+   floodplain it stores above-bank water in a 1.6 m sliver, so small volumes become huge
+   heads (the detector also caught a quick-mode test channel at 12.45 m above bank;
+   that test had been passing on mass balance alone). Fix: `slot_width_frac` 0.015 ->
+   1.0, i.e. vertical walls at bankfull width. Verified full-length on all three
+   unstable storms: sim 6 92,446 -> 39,526 steps, max 2-D depth 34.46 -> 4.39 m,
+   max |Q| 63,707 -> 435 m^3/s; sim 29 29.77 -> 4.20 m; sim 20 (baseline) 1-D rise
+   112 m -> 0.9 m. All mass errors ~1e-15, and each storm now runs in ~290 s.
+   Known approximation (documented in config): above-bank water in the 1-D reach and
+   in the 2-D cells over the channel footprint share the channel strip, so that strip's
+   storage is counted twice while levels are held together by the exchange.
+   This is a solver-config change, so the benchmark suite reruns, the test suite
+   reruns, and the whole dataset is regenerated under the new hash. The first Phase 1
+   dataset (ea92140a6e4158f4, with its quarantine) is kept on disk for comparison.
+   Consequence for Tasks 1 and 2 (recorded, not re-run tonight): their outlier storm
+   was an instability; the corrected engine would change their numbers.

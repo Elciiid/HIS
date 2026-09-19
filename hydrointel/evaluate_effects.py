@@ -118,9 +118,18 @@ def single_field_sites(smp, dom, ctx, cfg):
 
 def run(cfg, ctx, test_ids, mdir: Path, probe_sample) -> dict:
     """All effect comparisons. Engine runs are cached under ``mdir``."""
+    from .solver.coupling import NumericalInstabilityError
     dom = ctx.domain
     land = ~(dom.sea | dom.channel)
-    rows = []
+    rows, unstable = [], []
+
+    def engine(site, scen, cache, case):
+        try:
+            return _engine_peak(site, scen, cache)[0]
+        except NumericalInstabilityError as e:
+            unstable.append({"case": case, "error": str(e)})
+            log.error("%s: engine unstable, not scored: %s", case, e)
+            return None
     for sid in test_ids:
         smp = SMP.draw(sid, dom, cfg.data, cfg.seed, "test")
         if smp.baseline:
@@ -131,7 +140,9 @@ def run(cfg, ctx, test_ids, mdir: Path, probe_sample) -> dict:
         from .data.dataset import SimDataset
         rec = SimDataset(api.dataset_dir(cfg), "test").load(sid)
         pk_e = np.asarray(rec["depth_max_full"])
-        pk_e0, _ = _engine_peak(base, scen, mdir / "effects" / f"test_base_{sid}.pt")
+        pk_e0 = engine(base, scen, mdir / "effects" / f"test_base_{sid}.pt", f"test {sid} baseline")
+        if pk_e0 is None:
+            continue
         sur = api.predict([site, base], scen)
         pk_s, pk_s0 = sur[0].depth_max.numpy(), sur[1].depth_max.numpy()
         m = effect_metrics(pk_e - pk_e0, pk_s - pk_s0, pk_e, pk_e0, pk_s, pk_s0, land, dom.dx)
@@ -139,18 +150,22 @@ def run(cfg, ctx, test_ids, mdir: Path, probe_sample) -> dict:
                      "intensity": intensity(site, base, dom, cfg), **m})
         log.info("effect, test %d: RMSE %.3f m, sign agreement %.2f", sid, m["effect_rmse_m"], m["sign_agreement"])
     scen, base, sites = single_field_sites(probe_sample, dom, ctx, cfg)
-    pk_e0, _ = _engine_peak(base, scen, mdir / "effects" / "single_base.pt")
+    pk_e0 = engine(base, scen, mdir / "effects" / "single_base.pt", "single-field baseline")
+    if pk_e0 is None:
+        sites = {}
     names = list(sites)
     sur = api.predict([sites[n] for n in names] + [base], scen)
     pk_s0 = sur[-1].depth_max.numpy()
     for k, name in enumerate(names):
-        pk_e, _ = _engine_peak(sites[name], scen, mdir / "effects" / f"single_{name.split()[0]}.pt")
+        pk_e = engine(sites[name], scen, mdir / "effects" / f"single_{name.split()[0]}.pt", name)
+        if pk_e is None:
+            continue
         pk_s = sur[k].depth_max.numpy()
         m = effect_metrics(pk_e - pk_e0, pk_s - pk_s0, pk_e, pk_e0, pk_s, pk_s0, land, dom.dx)
         rows.append({"case": name, "kind": "single field", "patterns": [name],
                      "intensity": intensity(sites[name], base, dom, cfg), **m})
         log.info("effect, %s: RMSE %.3f m, sign agreement %.2f", name, m["effect_rmse_m"], m["sign_agreement"])
-    return {"rows": rows, "single_field_scenario": {"return_period_yr": scen.return_period_yr, "rcp": scen.rcp,
+    return {"rows": rows, "unstable": unstable, "single_field_scenario": {"return_period_yr": scen.return_period_yr, "rcp": scen.rcp,
                                                     "ssp": scen.ssp, "horizon_year": scen.horizon_year,
                                                     "tide_on": scen.tide_on}}
 
@@ -206,6 +221,10 @@ def report(eff: dict, eng_check: dict, sur_check: dict) -> str:
     s += ("\nArea change at thresholds (engine / surrogate, ha): " + "; ".join(
         f"{r['case']}: " + ", ".join(f"{t:g} m {r[f'area_change_{t:g}_engine_ha']:+.1f}/{r[f'area_change_{t:g}_surrogate_ha']:+.1f}"
                                      for t in AREA_THRESHOLDS) for r in rows) + "\n\n")
+    if eff.get("unstable"):
+        s += ("**Designs the engine could not simulate** (physical-plausibility check; not scored, because "
+              "there is no valid ground truth to score against):" + chr(10) * 2
+              + "".join(f"- {u['case']}: {u['error'][:200]}" + chr(10) for u in eff["unstable"]) + chr(10))
     s += ("### Storage-direction test on the engine itself (same grid, scenario and criteria)\n\n"
           "| item | engine | surrogate |\n|---|---|---|\n")
     for k in ("footprint_max_increase_m", "land_max_increase_m", "land_fraction_increase_gt_1cm", "passed"):
