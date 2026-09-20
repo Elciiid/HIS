@@ -14,10 +14,13 @@ import torch
 
 class GradNormBalancer:
     def __init__(self, names, alpha: float = 0.9, every: int = 50, eps: float = 1e-12,
-                 lo: float = 1e-4, hi: float = 1e4):
+                 lo: float = 1e-4, hi: float = 1e4, floors: dict | None = None):
+        """``floors`` gives a term its own lower bound (x lambda_data = 1): a term the
+        balancing must not be allowed to suppress, as the effect loss must not be."""
         self.names = list(names)
         self.lam = {n: 1.0 for n in self.names}
         self.alpha, self.every, self.eps, self.lo, self.hi = alpha, every, eps, lo, hi
+        self.floors = dict(floors or {})
         self.initialised = False
 
     def due(self, step: int) -> bool:
@@ -41,7 +44,7 @@ class GradNormBalancer:
             target = gd / (gi + self.eps)
             # the first update (when the physics terms switch on) starts from the target itself
             new = target if not self.initialised else self.alpha * self.lam[n] + (1 - self.alpha) * target
-            self.lam[n] = float(min(max(new, self.lo), self.hi))
+            self.lam[n] = float(min(max(new, self.lo, self.floors.get(n, 0.0)), self.hi))
         self.initialised = True
 
     def state_dict(self):

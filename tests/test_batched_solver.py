@@ -159,6 +159,32 @@ def test_shared_timestep_cost_is_measured(setup):
                                              f"worse than the {PEAK_DEPTH_REGRESSION_M * 1e3:.1f} mm on record")
 
 
+def test_shared_timestep_agreement_criteria(setup):
+    """The shared time step judged by the agreement criteria that replaced the max-over-all-
+    cells limits (hydrointel/criteria.py): depth RMSE over wet cells, its 99th percentile, the
+    maximum where both runs are deeper than 0.10 m, flooded area, flood volume and per-reach
+    peak discharge, at every output time."""
+    from hydrointel.criteria import agreement
+    cfg, dom, mem = setup
+    eb, bf = _batched(cfg, dom, mem)
+    es = _sequential(cfg, dom, mem)
+    times = bf.times(cfg.solver.output_interval_s / 3)
+    hb, qb = [], []
+    eb.run(bf.t_end, out_times=times, on_snapshot=lambda s: (hb.append(s.h), qb.append(s.q1)))
+    land = ~(dom.sea | dom.channel)
+    interior = eb.one.topo.kind <= 1
+    reach = eb.one.topo.reach_of[interior]
+    for b, (e, m) in enumerate(zip(es, mem)):
+        hs, qs = [], []
+        e.run(m["fo"].t_end, out_times=times, on_snapshot=lambda s: (hs.append(s.h), qs.append(s.q1)))
+        res = agreement(np.stack(hs), np.stack([h[b] for h in hb]), land, dom.dx, cfg.solver.h_dry,
+                        np.stack(qs)[:, interior], np.stack([q[b] for q in qb])[:, interior], reach)
+        print(f"member {b}: " + ", ".join(f"{k} {c['value']:.3g} ({'ok' if c['passed'] else 'FAIL'})"
+                                          for k, c in res["checks"].items()))
+        assert res["passed"], f"member {b}: batched run disagrees with the same storm run alone: " + \
+            ", ".join(f"{k} {c['value']:.3g} > {c['limit']:g}" for k, c in res["checks"].items() if not c["passed"])
+
+
 def test_batch_rejects_mismatched_inputs(setup):
     cfg, dom, mem = setup
     with pytest.raises(ValueError, match="disagree in length"):

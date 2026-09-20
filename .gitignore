@@ -45,3 +45,4 @@ artifacts/figures/*
 artifacts/diagnostics/*
 !artifacts/diagnostics/*.json
 !artifacts/diagnostics/*.jsonl
+!artifacts/phase2_paired.json

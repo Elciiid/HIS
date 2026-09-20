@@ -1,0 +1,13 @@
+{
+ "data": {
+  "n_sims": 60
+ },
+ "model": {
+  "two_stage": true
+ },
+ "train": {
+  "steps": 10000,
+  "paired": true,
+  "effect_floor": 0.5
+ }
+}

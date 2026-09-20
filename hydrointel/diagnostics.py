@@ -755,6 +755,64 @@ def run_c5(cfg, device=None) -> dict:
 
 
 # ---------------------------------------------------------------------------
+# C3: what does a candidate cost when stage 1 is cached?
+# ---------------------------------------------------------------------------
+def run_c3_speed(cfg, device=None, sizes=(1, 8, 32)) -> dict:
+    """Per-candidate inference cost of the two-stage model, with stage 1 encoded once per
+    scenario as Part B would use it. Weights are untrained (this measures the architecture,
+    not accuracy), so it can be run before E."""
+    from .data import sampler as SMP
+    from .evaluate import site_from_sample
+    from .model.batch import SampleBuilder, build_model
+    from .model.two_stage import TwoStage
+    import copy
+    two_cfg = copy.deepcopy(cfg)
+    two_cfg.model.two_stage = True
+    ctx = api.configure(two_cfg, device)
+    dom = ctx.domain
+    base = build_model(two_cfg, api.dataset_dir(cfg), ctx.device)
+    model = TwoStage(two_cfg.model, len(base.scales.feat_mean), base.graph, base.scales).to(ctx.device)
+    model.eval()
+    del base
+    builder = SampleBuilder.from_context(ctx, model)
+    sites, scen = [], None
+    for sid in range(40):
+        smp = SMP.draw(sid, dom, cfg.data, cfg.seed, "train")
+        site, sc = site_from_sample(smp, dom, ctx)
+        if scen is None:
+            scen = sc
+        if sc == scen:
+            sites.append(site)
+    if len(sites) < max(sizes):
+        sites = (sites * (max(sizes) // max(len(sites), 1) + 1))[:max(sizes)]
+    sync = lambda: torch.cuda.synchronize() if ctx.device.type == "cuda" else None
+    rows = []
+    for n in sizes:
+        pop = sites[:n]
+        model.predict_many(pop[:1], scen, ctx, None, detail="summary")          # warm-up
+        sync()
+        t0 = time.perf_counter()
+        model._prepare_call(pop, scen, builder)
+        sync()
+        t_stage1 = time.perf_counter() - t0
+        model._release_call()
+        sync()
+        t0 = time.perf_counter()
+        model.predict_many(pop, scen, ctx, None, detail="summary")
+        sync()
+        total = time.perf_counter() - t0
+        rows.append({"n_candidates": n, "total_s": total, "stage1_s": t_stage1,
+                     "per_candidate_s": (total - t_stage1) / n, "per_candidate_including_stage1_s": total / n})
+        log.info("C3 speed %s", rows[-1])
+    res = {"scenario": api._label(scen), "rows": rows, "peak_gpu_mb":
+           torch.cuda.max_memory_allocated() / 2 ** 20 if ctx.device.type == "cuda" else None,
+           "note": "untrained weights; stage 1 is encoded once per scenario and cached, so the marginal cost of a "
+                   "candidate is stage 2's encode plus both decoders"}
+    _save(cfg, "c3_speed", res, ctx)
+    return res
+
+
+# ---------------------------------------------------------------------------
 def report(cfg) -> Path:
     """Collect every part that has run into artifacts/diagnostics_A.md."""
     from .diagnostics_report import write

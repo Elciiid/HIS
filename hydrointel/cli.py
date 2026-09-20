@@ -232,7 +232,7 @@ def main(argv=None) -> int:
     sub.add_parser("cost")
     sub.add_parser("step-demand")
     gb = sub.add_parser("generate-baselines"); gb.add_argument("--limit", type=int)
-    dg = sub.add_parser("diagnose"); dg.add_argument("--part", choices=["a1", "a3", "a4", "a5", "all"], default="all")
+    dg = sub.add_parser("diagnose"); dg.add_argument("--part", choices=["a1", "a3", "a4", "a5", "c5", "c3_speed", "all"], default="all")
     bs = sub.add_parser("batch-study")
     bs.add_argument("--quick", action="store_true")
     bs.add_argument("--stage", choices=["all", "scaling", "full", "profile"], default="all")

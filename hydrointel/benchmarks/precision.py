@@ -332,3 +332,105 @@ def report(d: dict, prov) -> str:
           "This case has no sources or sinks, so the mass-balance ratio degenerates to the absolute volume drift in "
           "cubic metres (the accounting divides by `max(gross sources, 1 m^3)`); it is not a relative error.\n")
     return s
+
+
+# ---------------------------------------------------------------------------
+# v2: the same storms on the fixed engine, judged by hydrointel.criteria
+# ---------------------------------------------------------------------------
+def run_study_v2(cfg: RunConfig, device=None) -> dict:
+    """float32 against float64 under the agreement criteria of ``hydrointel.criteria``
+    (which replaced the max-over-all-cells limits above). The storms are the ones the
+    original study chose; every run passes the engine's physical-plausibility check or
+    raises, so only clean storms can be scored. Lake at rest is unchanged."""
+    from .. import api
+    from ..config import seed_everything
+    from ..criteria import AGREEMENT, agreement
+    from ..data import sampler as SMP
+
+    seed_everything(cfg.seed)
+    ctx = api.configure(cfg, device)
+    dom = ctx.domain
+    land = ~(dom.sea | dom.channel)
+    results = []
+    for spec in choose_storms(cfg, dom):
+        smp = spec["sample"]
+        smp.return_period_yr = spec["return_period_yr"]
+        smp.tide_on = spec["tide_on"]
+        scen = api.Scenario(smp.return_period_yr, smp.rcp, smp.ssp, smp.horizon_year, smp.tide_on,
+                            smp.storm_tide_offset_h)
+        lu = ctx.landuse(smp.ssp, smp.horizon_year)
+        storage, kappa, manning, gamma, _, _ = SMP.materialise(smp, dom, lu)
+        site = api.SiteState(*(torch.as_tensor(a, dtype=torch.float32) for a in (storage, kappa, manning, gamma)))
+        log.info("precision study v2: storm %d (%s)", smp.index, spec["role"])
+        runs = {}
+        for p in ("fp64", "fp32"):
+            ctx.cfg.solver.precision = p
+            t0 = time.perf_counter()
+            res = api.simulate(site, scen, output_interval_s=STUDY_OUTPUT_INTERVAL_S)
+            lg = res.extras["run_log"]
+            tp = res.extras["topology"]
+            runs[p] = {"wall_s": time.perf_counter() - t0, "loop_wall_s": float(lg.wall_s), "steps": int(lg.steps),
+                       "mass_balance_error": float(res.mass_balance_error),
+                       "_h": res.depth_series.numpy(), "_q": res.channel_q.numpy(),
+                       "_reach": tp.reach_of[tp.kind <= 1]}
+            del res
+            if torch.cuda.is_available():
+                torch.cuda.empty_cache()
+        a, b = runs["fp64"], runs["fp32"]
+        cmp = agreement(a["_h"], b["_h"], land, dom.dx, cfg.solver.h_dry, a["_q"], b["_q"], a["_reach"])
+        mb_ok = b["mass_balance_error"] < CRITERIA["mass_balance_error"]
+        cmp["checks"]["mass_balance_error fp32"] = {"value": b["mass_balance_error"],
+                                                    "limit": CRITERIA["mass_balance_error"], "passed": mb_ok}
+        cmp["passed"] = all(c["passed"] for c in cmp["checks"].values())
+        results.append({"index": smp.index, "role": spec["role"], "patterns": smp.patterns,
+                        "runs": {p: {k: v for k, v in r.items() if not k.startswith("_")} for p, r in runs.items()},
+                        "speed_ratio": a["loop_wall_s"] / b["loop_wall_s"], "comparison": cmp})
+        log.info("storm %d: %s", smp.index, {k: (round(c["value"], 5), c["passed"]) for k, c in cmp["checks"].items()})
+        del runs
+    cfg.solver.precision = "fp64"
+    ctx.cfg.solver.precision = "fp64"
+    lake = lake_at_rest_fp32(cfg, ctx.device)
+    passed = all(r["comparison"]["passed"] for r in results) and lake["passed"]
+    out = {"criteria": AGREEMENT, "mass_balance_limit": CRITERIA["mass_balance_error"],
+           "lake_limit_ms": CRITERIA["lake_at_rest_fp32_velocity_ms"], "output_interval_s": STUDY_OUTPUT_INTERVAL_S,
+           "grid": {"nx": dom.nx, "ny": dom.ny, "dx": dom.dx}, "storms": results, "lake_at_rest_fp32": lake,
+           "passed": passed}
+    prov = ctx.provenance("engine").replace(precision="fp64+fp32",
+                                            notes=("float32 vs float64, agreement criteria v2, fixed engine",))
+    write_json(Path(cfg.outdir) / "precision_study_v2.json", _jsonable(out), prov)
+    (Path(cfg.outdir) / "precision_study_v2.md").write_text(report_v2(out, prov), encoding="utf-8")
+    return out
+
+
+def report_v2(d: dict, prov) -> str:
+    s = markdown_header(prov, "Precision study v2: float32 vs float64 under the agreement criteria")
+    g = d["grid"]
+    s += (f"\nThe three storms of the original study, rerun on the fixed engine (1-D above-bank width 1 x bankfull), "
+          f"at full resolution ({g['nx']}x{g['ny']} @ {g['dx']:g} m), snapshots every {d['output_interval_s']:g} s, "
+          "and judged by `hydrointel/criteria.py`, which replaced the max-over-all-cells limits (see its docstring "
+          "for the reasoning; the limits were fixed before this study ran).\n\n")
+    s += f"**Result: {'PASS' if d['passed'] else 'FAIL'}** "
+    s += "— dataset generation may run in float32.\n\n" if d["passed"] else "— dataset generation stays in float64.\n\n"
+    s += "| criterion | limit |\n|---|---|\n" + "".join(f"| {k} | {v:g} |\n" for k, v in d["criteria"].items())
+    s += (f"| mass_balance_error (fp32) | {d['mass_balance_limit']:g} |\n"
+          f"| lake-at-rest velocity (fp32) | {d['lake_limit_ms']:g} m/s |\n\n")
+    s += "## Timing\n\n| # | role | fp64 loop [s] | fp32 loop [s] | speedup | fp64 steps | fp32 steps |\n"
+    s += "|---|---|---|---|---|---|---|\n"
+    for r in d["storms"]:
+        a, b = r["runs"]["fp64"], r["runs"]["fp32"]
+        s += (f"| {r['index']} | {r['role']} | {a['loop_wall_s']:.0f} | {b['loop_wall_s']:.0f} | "
+              f"{r['speed_ratio']:.2f}x | {a['steps']} | {b['steps']} |\n")
+    s += "\n## Checks\n\n| # | check | value | limit | result |\n|---|---|---|---|---|\n"
+    for r in d["storms"]:
+        for k, c in r["comparison"]["checks"].items():
+            s += (f"| {r['index']} | {k} | {c['value']:.3e} | {c['limit']:.1e} | "
+                  f"{'PASS' if c['passed'] else 'FAIL'} |\n")
+    s += "\n## Reported, not judged\n\n| # | max abs dh, any cell [m] | wet samples | samples deeper than 0.10 m in both |\n"
+    s += "|---|---|---|---|\n"
+    for r in d["storms"]:
+        c = r["comparison"]
+        s += f"| {r['index']} | {c['depth_max_abs_any_m']:.3f} | {c['n_wet_samples']} | {c['n_deep_samples']} |\n"
+    lk = d["lake_at_rest_fp32"]
+    s += (f"\n## Lake at rest in float32\n\nmax spurious velocity {lk['max_abs_velocity_ms']:.3e} m/s "
+          f"(limit {d['lake_limit_ms']:g}): {'PASS' if lk['passed'] else 'FAIL'}\n")
+    return s

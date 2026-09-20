@@ -177,6 +177,7 @@ def evaluate(cfg: RunConfig, device=None, n_probe: int | None = None) -> Path:
     pts = monitoring_points(dom)
     out = Path(cfg.outdir)
     mdir = model_dir(cfg)
+    ecache = api.engine_cache_dir(cfg)
     rows = []
     warm = None
     for sid in test.ids:
@@ -206,7 +207,7 @@ def evaluate(cfg: RunConfig, device=None, n_probe: int | None = None) -> Path:
     for k in range(n_probe):
         smp = edge_probe(k, dom, cfg, cfg.seed)
         site, scen = site_from_sample(smp, dom, ctx)
-        cache = mdir / f"probe_{k}.pt"
+        cache = ecache / f"probe_{k}.pt"
         if cache.exists():
             eng = torch.load(cache, weights_only=False)
         else:
@@ -232,15 +233,20 @@ def evaluate(cfg: RunConfig, device=None, n_probe: int | None = None) -> Path:
                      "in_distribution": pred.in_distribution, **sc})
     directional = storage_direction_check(ctx)
     from . import evaluate_effects as EE
-    eff = EE.run(cfg, ctx, test.ids, mdir, edge_probe(0, dom, cfg, cfg.seed))
+    eff = EE.run(cfg, ctx, test.ids, ecache, edge_probe(0, dom, cfg, cfg.seed))
+    eff["rows"].append(EE.storage_case(cfg, ctx, ecache))
     unstable += eff.get("unstable", [])
-    eng_check = EE.storage_check_engine(ctx, mdir)
+    eng_check = EE.storage_check_engine(ctx, ecache)
+    g1 = EE.gate1(eff["rows"], [r for r in rows if r["kind"] == "test"])
+    r2 = EE.report2(eff["rows"])
     prov = ctx.provenance("surrogate", ("domain", "solver", "forcing", "data", "model", "train"))
-    write_json(out / "intervention_effects.json", {"effects": eff, "storage_check_engine": eng_check,
+    write_json(out / "intervention_effects.json", {"gate1": g1, "report2": r2, "effects": eff,
+                                                    "storage_check_engine": eng_check,
                                                     "storage_check_surrogate": directional,
                                                     "engine_unstable": unstable}, prov)
     eff["unstable"] = unstable
-    report = write_validation_report(cfg, ctx, rows, directional, out, mdir, effects=(eff, eng_check))
+    report = write_validation_report(cfg, ctx, rows, directional, out, mdir, effects=(eff, eng_check),
+                                     gates=(g1, r2))
     return report
 
 
@@ -327,7 +333,7 @@ def limitations(cfg: RunConfig, ctx) -> list[str]:
     return out
 
 
-def write_validation_report(cfg, ctx, rows, directional, out: Path, mdir: Path, effects=None) -> Path:
+def write_validation_report(cfg, ctx, rows, directional, out: Path, mdir: Path, effects=None, gates=None) -> Path:
     import matplotlib
     matplotlib.use("Agg")
     import matplotlib.pyplot as plt
@@ -335,21 +341,14 @@ def write_validation_report(cfg, ctx, rows, directional, out: Path, mdir: Path, 
     test = [r for r in rows if r["kind"] == "test"]
     probes = [r for r in rows if r["kind"] == "edge_probe"]
     s = markdown_header(prov, "Validation report: GeoKAN-PINO surrogate vs. held-out engine runs")
-    # the gate first: nothing below matters for Part B if the surrogate gets the
-    # direction of an intervention wrong
-    ok = bool(directional.get("passed"))
-    s += (f"## {'PASSED' if ok else 'FAILED'}: storage-direction sign test (hard gate for Part B)\n\n"
-          "Adding retention storage around the city core must not raise predicted flooding beyond the tolerance "
-          "established for the engine: at most 5 mm inside the storage footprint, 2 cm anywhere on land, more than "
-          "1 cm on at most 0.1% of land, and total flood volume must fall.\n\n"
-          f"Measured: footprint max rise {directional['footprint_max_increase_m'] * 1000:.1f} mm, land max rise "
-          f"{directional['land_max_increase_m'] * 1000:.1f} mm, share of land rising > 1 cm "
-          f"{directional['land_fraction_increase_gt_1cm'] * 100:.3f}%, volume ratio "
-          f"{directional['total_depth_volume_ratio']:.4f}.\n\n")
-    if not ok:
-        s += ("**This surrogate does not reliably get the direction of an intervention's effect right. Part B must "
-              "not be built against it: every recommendation it produced would rest on effects the model cannot "
-              "sign correctly, however good the accuracy numbers below look.**\n\n")
+    # the gate first: nothing below matters for Part B if the surrogate cannot reproduce
+    # the engine's effect of a design
+    if gates is not None:
+        from .evaluate_effects import gate_report
+        s += gate_report(*gates)
+        if not gates[0]["passed"]:
+            s += ("**This surrogate does not reproduce the engine's effect of a design. Part B must not be built "
+                  "against it, however good the accuracy numbers below look.**\n\n")
     s += (f"Test set: **{len(test)} simulations** held out by scenario (whole storms, stratified by return period), "
           f"plus {len(probes)} edge-of-envelope probe runs. All numbers below are computed by `evaluate.py`.\n\n")
 
@@ -424,7 +423,8 @@ def write_validation_report(cfg, ctx, rows, directional, out: Path, mdir: Path, 
                   f"{_pool(rs, ('depth_wet', 'rmse')):.4g} | {_pool(rs, ('csi', '0.3', 'csi')):.3f} |\n")
     s += ("\nPart B must clip its search to the envelope in `dataset_card.md`; `FloodResult.in_distribution` and "
           "`distribution_warnings` flag queries outside it.\n\n")
-    s += "## Directional check: storage must not increase depth (surrogate)\n\n| item | value |\n|---|---|\n"
+    s += ("## Phase 1 storage-direction criteria (surrogate; reported for continuity, no longer a gate)\n\n"
+          "| item | value |\n|---|---|\n")
     for k, v in directional.items():
         s += f"| {k} | {v} |\n"
     s += "\n"

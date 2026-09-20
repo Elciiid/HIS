@@ -170,6 +170,117 @@ def run(cfg, ctx, test_ids, mdir: Path, probe_sample) -> dict:
                                                     "tide_on": scen.tide_on}}
 
 
+def storage_case(cfg, ctx, ecache: Path) -> dict:
+    """The storage-direction design (0.6 m of storage within 1.5 km of the city core, RP100
+    RCP4.5/SSP2 2050) as one more effect case: engine against surrogate."""
+    dom = ctx.domain
+    scen = api.Scenario(100, "RCP4.5", "SSP2", 2050, True, 0.0)
+    base = api.baseline_site(scen)
+    X, Y = np.meshgrid(dom.x, dom.y)
+    land = ~(dom.sea | dom.channel)
+    blob = (np.hypot(X - dom.urban_core[0], Y - dom.urban_core[1]) < 1500) & land
+    S = base.storage_depth.numpy().copy()
+    S[blob] = np.maximum(S[blob], 0.6)
+    more = base.replace(storage_depth=torch.as_tensor(S))
+    a, _ = _engine_peak(base, scen, ecache / "effects" / "storage_check_base.pt")
+    b, _ = _engine_peak(more, scen, ecache / "effects" / "storage_check_more.pt")
+    sur = api.predict([more, base], scen)
+    pk_s, pk_s0 = sur[0].depth_max.numpy(), sur[1].depth_max.numpy()
+    m = effect_metrics(b - a, pk_s - pk_s0, b, a, pk_s, pk_s0, land, dom.dx)
+    m["footprint_max_rise_engine_m"] = float((b - a)[blob].max())
+    m["footprint_max_rise_surrogate_m"] = float((pk_s - pk_s0)[blob].max())
+    return {"case": "storage check", "kind": "storage check", "patterns": ["storage:disc 0.6 m"],
+            "intensity": intensity(more, base, dom, cfg), **m}
+
+
+# ---------------------------------------------------------------------------
+# Gate 1 (model quality, the gate for Part B) and Report 2 (physical finding)
+# ---------------------------------------------------------------------------
+# Acceptance targets fixed 2026-09-20 before the paired surrogate was trained. Every
+# effect case must meet the per-case targets.
+ACCEPT = {"sign_agreement_min": 0.85, "effect_corr_min": 0.70, "area_change_rel_tol": 0.30,
+          "mass_err_max": 0.02, "nse_min": 0.50, "local_rise_rel_tol": 0.30}
+
+
+def gate1(rows: list, test_rows: list) -> dict:
+    """Does the surrogate's predicted effect agree with the engine's? The engine is the
+    reference by definition, so it cannot fail this; the surrogate is judged on reproducing
+    the engine's effect, including its local depth increase, however large that is."""
+    per = []
+    tol = ACCEPT
+    for r in rows:
+        chk = {}
+        chk["sign agreement >= 0.85"] = (r["sign_agreement"], r["sign_agreement"] >= tol["sign_agreement_min"])
+        c = r["effect_corr"]
+        chk["effect correlation >= 0.7"] = (c, bool(np.isfinite(c) and c >= tol["effect_corr_min"]))
+        for t in ("0.15", "0.3"):
+            e, s_ = r[f"area_change_{t}_engine_ha"], r[f"area_change_{t}_surrogate_ha"]
+            rel = abs(s_ - e) / abs(e) if e != 0 else (0.0 if s_ == 0 else float("inf"))
+            chk[f"area change @{t} m within 30%"] = (rel, rel <= tol["area_change_rel_tol"])
+        e, s_ = r["max_rise_engine_m"], r["max_rise_surrogate_m"]
+        rel = abs(s_ - e) / e if e > 0 else (0.0 if s_ == 0 else float("inf"))
+        chk["local depth increase within 30%"] = (rel, rel <= tol["local_rise_rel_tol"])
+        per.append({"case": r["case"], "checks": {k: {"value": float(v), "passed": bool(p)} for k, (v, p) in chk.items()},
+                    "passed": all(p for _, p in chk.values())})
+    mass = [r["surrogate_mass_err"] for r in test_rows]
+    glob = {"implied mass-balance error < 2% (test mean)": {"value": float(np.mean(mass)),
+                                                           "passed": bool(np.mean(mass) < tol["mass_err_max"])},
+            "implied mass-balance error, worst test storm (reported)": {"value": float(np.max(mass)), "passed": None}}
+    names = list(test_rows[0]["hydrographs"]) if test_rows else []
+    for n in names:
+        ns = [r["hydrographs"][n]["nse"] for r in test_rows if np.isfinite(r["hydrographs"][n]["nse"])]
+        v = float(np.mean(ns)) if ns else float("nan")
+        glob[f"hydrograph NSE > 0.5 at {n} (test mean)"] = {"value": v, "passed": bool(np.isfinite(v) and v > tol["nse_min"])}
+    passed = all(p["passed"] for p in per) and all(g["passed"] for g in glob.values() if g["passed"] is not None)
+    return {"targets": ACCEPT, "cases": per, "global": glob, "passed": passed,
+            "n_cases_passed": sum(p["passed"] for p in per), "n_cases": len(per)}
+
+
+def report2(rows: list) -> list:
+    """What each design does to the place it makes worst, according to the engine. A property
+    of the design that an LGU must be told, never a pass/fail on any model."""
+    return [{"case": r["case"], "max_depth_increase_m": r["max_rise_engine_m"],
+             "area_worsened_ha": r["area_worsened_engine_ha"],
+             **{f"area_change_{t:g}_ha": r[f"area_change_{t:g}_engine_ha"] for t in AREA_THRESHOLDS}}
+            for r in rows]
+
+
+def gate_report(g1: dict, r2: list) -> str:
+    s = (f"## Gate 1 (model quality, the gate for Part B): {'PASSED' if g1['passed'] else 'FAILED'}\n\n"
+         "Does the surrogate's predicted effect of a design agree with the engine's? Per case: sign agreement "
+         ">= 0.85 on cells the engine moved by more than 1 cm; effect correlation >= 0.7 and positive; flooded-area "
+         "change within 30% of the engine's at 0.15 and 0.30 m; the engine's largest local depth increase reproduced "
+         "within 30%. Overall: implied mass-balance error < 2%; hydrograph NSE > 0.5 at every monitoring point. "
+         f"**{g1['n_cases_passed']} of {g1['n_cases']} cases pass every per-case target.**\n\n")
+    keys = list(g1["cases"][0]["checks"]) if g1["cases"] else []
+    s += "| case | " + " | ".join(keys) + " | all |\n|---|" + "---|" * (len(keys) + 1) + "\n"
+    for c in g1["cases"]:
+        s += f"| {c['case']} | " + " | ".join(
+            f"{c['checks'][k]['value']:.2f} {'ok' if c['checks'][k]['passed'] else '**FAIL**'}" for k in keys) + \
+            f" | {'PASS' if c['passed'] else '**FAIL**'} |\n"
+    s += "\n| overall target | value | result |\n|---|---|---|\n"
+    for k, v in g1["global"].items():
+        s += f"| {k} | {v['value']:.3f} | {'-' if v['passed'] is None else ('ok' if v['passed'] else '**FAIL**')} |\n"
+    s += ("\nFor sign agreement and correlation the value shown is the metric itself; for the area and local-rise "
+          "targets it is the relative difference |surrogate - engine| / |engine|.\n\n")
+    s += ("## Report 2 (physical finding per design; not a gate)\n\nWhat the engine says each design does to the "
+          "place it makes worst. This is a property of the design, which an LGU must be told and which Part B "
+          "constrains on as a design objective; it says nothing about the surrogate.\n\n"
+          "| design | largest local depth increase [m] | land worsened by > 1 cm [ha] | flooded-area change "
+          "@0.15 / 0.30 / 0.50 m [ha] |\n|---|---|---|---|\n")
+    for r in r2:
+        s += (f"| {r['case']} | {r['max_depth_increase_m']:.3f} | {r['area_worsened_ha']:.1f} | "
+              f"{r['area_change_0.15_ha']:+.1f} / {r['area_change_0.3_ha']:+.1f} / {r['area_change_0.5_ha']:+.1f} |\n")
+    s += ("\n**Deliberate change from Phase 1.** Phase 1 gated Part B on a storage-direction sign test that mixed "
+          "two questions: whether the surrogate reproduces the engine, and whether the design is harmless. The "
+          "engine itself failed it (a 40 mm local rise where the storage was added), which is impossible for a "
+          "test of agreement with the engine and shows the test was measuring the design. The two are now "
+          "separate: Gate 1 judges the model against the engine, which is the reference by definition; Report 2 "
+          "states what each design physically does. The engine's 40 mm rise is now a reported finding, and the "
+          "surrogate is judged on whether it reproduces that 40 mm, not on whether it is small.\n\n")
+    return s
+
+
 def storage_check_engine(ctx, mdir: Path) -> dict:
     """The surrogate's storage-direction test, run on the engine at full resolution with the
     same scenario and criteria, so the tolerance is shown to be one the physics can meet."""
