@@ -191,7 +191,43 @@ def measured_s_per_storm(cfg: RunConfig) -> float | None:
     return None
 
 
-def generate(cfg: RunConfig, device=None, check_benchmarks: bool = True, budget_hours: float | None = None) -> Path:
+def shard_index_path(out: Path, shard: tuple[int, int] | None) -> Path:
+    """Where a worker records what it produced. Two GPUs run two processes over the same
+    directory, and a shared index.json would be a write race, so each shard keeps its own and
+    ``merge_shards`` combines them once the workers are done."""
+    return out / (f"index_shard{shard[0]}of{shard[1]}.json" if shard else "index.json")
+
+
+def merge_shard_indexes(out: Path) -> dict:
+    """Fold every worker's index into index.json. Repeatable; the first entry for a storm wins."""
+    index_path = out / "index.json"
+    index = json.loads(index_path.read_text(encoding="utf-8")) if index_path.exists() else {}
+    found = sorted(out.glob("index_shard*.json"))
+    for p in found:
+        for k, v in json.loads(p.read_text(encoding="utf-8")).items():
+            index.setdefault(k, v)
+    index_path.write_text(json.dumps(index, indent=1), encoding="utf-8")
+    log.info("%s: merged %d shard index files, %d records", out.name, len(found), len(index))
+    return index
+
+
+def merge_shards(cfg: RunConfig, device=None) -> dict:
+    """Merge the dataset's and the baselines' worker indexes, then write the envelope and the
+    dataset card, which need the whole index and so cannot be written by a single worker."""
+    from .paired import pair_dir
+    ctx = api.configure(cfg, device)
+    out = api.dataset_dir(cfg)
+    index = merge_shard_indexes(out)
+    if (pair_dir(cfg)).exists():
+        merge_shard_indexes(pair_dir(cfg))
+    env = _envelope(cfg, ctx.domain, index, out, ctx)
+    env.save(out / "envelope.json")
+    write_card(cfg, out, index, env, ctx)
+    return index
+
+
+def generate(cfg: RunConfig, device=None, check_benchmarks: bool = True, budget_hours: float | None = None,
+             shard: tuple[int, int] | None = None) -> Path:
     if check_benchmarks:
         require_benchmarks(cfg)
     seed_everything(cfg.seed)
@@ -204,18 +240,27 @@ def generate(cfg: RunConfig, device=None, check_benchmarks: bool = True, budget_
     splits = SMP.assign_splits(n, cfg.data, cfg.seed, cfg.data.return_periods)
     # a paired dataset also holds a baseline for most storms: budget for both
     check_capacity(cfg, dom, n * 2)
-    torch.save(static_fields(dom, sf), out / "domain.pt")
-    index_path = out / "index.json"
+    if shard is None or shard[0] == 0:
+        torch.save(static_fields(dom, sf), out / "domain.pt")
+    index_path = shard_index_path(out, shard)
+    # what this worker writes, and what every worker has already written
     index = json.loads(index_path.read_text(encoding="utf-8")) if index_path.exists() else {}
-    if index:
+    done_elsewhere = dict(index)
+    for p in [out / "index.json", *out.glob("index_shard*.json")]:
+        if p.exists() and p != index_path:
+            done_elsewhere.update(json.loads(p.read_text(encoding="utf-8")))
+    if index and shard is None:
         _recheck(out, index, dom)
         index_path.write_text(json.dumps(index, indent=1), encoding="utf-8")
     t_start = time.perf_counter()
     done_now = 0
     # a storm the engine could not simulate stays recorded as failed; it is deterministic
     # and would fail again, so it is not retried
-    todo = [i for i in range(n) if not (record_path(out, i).exists() and str(i) in index)
-            and index.get(str(i), {}).get("status") != FAILED]
+    todo = [i for i in range(n) if not (record_path(out, i).exists() and str(i) in done_elsewhere)
+            and done_elsewhere.get(str(i), {}).get("status") != FAILED]
+    if shard is not None:
+        todo = [i for i in todo if i % shard[1] == shard[0]]
+        log.info("shard %d of %d: %d of this configuration's storms", shard[0], shard[1], len(todo))
     bs = max(1, int(cfg.data.batch))
     budget = Budget(budget_hours, assume_s=measured_s_per_storm(cfg))
     log.info("%d/%d simulations to run, %d at a time; %s", len(todo), n, bs, budget.note())
@@ -266,6 +311,10 @@ def generate(cfg: RunConfig, device=None, check_benchmarks: bool = True, budget_
                      "ETA %.1f h; %s", i + 1, n, _desc(smp), wall, len(chunk), batch_wall,
                      res.mass_balance_error, index[str(i)]["peak_depth_land"], path.stat().st_size / 2 ** 20,
                      left * rate / 3600, budget.note())
+    if shard is not None:
+        log.info("shard %d of %d finished: %d simulations written. The envelope and the card are written by "
+                 "the merge step once every worker has stopped.", shard[0], shard[1], done_now)
+        return out
     env = _envelope(cfg, dom, index, out, ctx)
     env.save(out / "envelope.json")
     write_card(cfg, out, index, env, ctx)

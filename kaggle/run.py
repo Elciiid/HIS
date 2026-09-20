@@ -258,12 +258,54 @@ def stage_precision(repo: Path, args, info: dict) -> None:
     cli(repo, args, "--config", args.config, "precision-study", "--v2", log="precision_v2.log")
 
 
+def n_gpus() -> int:
+    try:
+        import torch
+        return torch.cuda.device_count() if torch.cuda.is_available() else 0
+    except ImportError:
+        return 0
+
+
+def parallel_cli(repo: Path, args, *cmd: str, log: str) -> None:
+    """Run one worker per GPU over the same dataset directory, each pinned to its own device
+    and taking every n-th storm. Kaggle's GPU offering is two T4s, and generation is one storm
+    at a time, so this halves the wall time. With one GPU it is the plain single run."""
+    n = max(1, min(n_gpus(), args.max_workers))
+    if n == 1:
+        cli(repo, args, *cmd, log=log)
+        return
+    env_base = dict(os.environ, PYTHONUNBUFFERED="1", PYTHONPATH=str(repo))
+    procs = []
+    for i in range(n):
+        full = [sys.executable, "-u", "-m", "hydrointel.cli", "--outdir", str(outdir(args)), *cmd,
+                "--shard", f"{i}/{n}"]
+        env = dict(env_base, CUDA_VISIBLE_DEVICES=str(i))
+        fh = open(outdir(args) / f"{log}.gpu{i}", "a", encoding="utf-8")
+        print(f"$ CUDA_VISIBLE_DEVICES={i} " + " ".join(full), flush=True)
+        procs.append((subprocess.Popen(full, cwd=str(repo), env=env, stdout=fh, stderr=subprocess.STDOUT,
+                                       text=True), fh, i))
+    print(f"[parallel] {n} workers started; per-worker logs are {log}.gpu0 .. {log}.gpu{n - 1}", flush=True)
+    codes = []
+    for p, fh, i in procs:
+        codes.append(p.wait())
+        fh.close()
+        print(f"[parallel] worker {i} exited with {codes[-1]}", flush=True)
+        tail = (outdir(args) / f"{log}.gpu{i}").read_text(encoding="utf-8", errors="replace").splitlines()[-12:]
+        print("\n".join(tail), flush=True)
+    if any(codes):
+        raise RuntimeError(f"generation workers failed with codes {codes}: see {log}.gpu*")
+
+
 def stage_generate(repo: Path, args, info: dict) -> None:
-    """K1: a paired dataset, as much of it as this session's budget allows."""
-    cli(repo, args, "--config", args.config, "generate", "--budget-hours", str(args.budget_hours),
-        log="generate.log")
-    cli(repo, args, "--config", args.config, "generate-baselines", "--budget-hours", str(args.budget_hours),
-        log="generate.log")
+    """K1: a paired dataset, as much of it as this session's budget allows. Storms first, then
+    their baselines, each across every GPU the session has; the merge writes the envelope and
+    the dataset card, which need the whole index."""
+    parallel_cli(repo, args, "--config", args.config, "generate", "--budget-hours", str(args.budget_hours),
+                 log="generate.log")
+    cli(repo, args, "--config", args.config, "merge-shards", log="generate.log")
+    parallel_cli(repo, args, "--config", args.config, "generate-baselines",
+                 "--budget-hours", str(args.budget_hours), log="baselines.log")
+    cli(repo, args, "--config", args.config, "merge-shards", log="generate.log")
 
 
 def stage_train(repo: Path, args, info: dict) -> None:
@@ -323,6 +365,8 @@ def main(argv=None) -> int:
     ap.add_argument("--budget-hours", type=float, default=10.5,
                     help="wall-clock budget for generation; it stops cleanly before this")
     ap.add_argument("--storms", type=int, default=1, help="storms to time in the hardware stage")
+    ap.add_argument("--max-workers", type=int, default=2,
+                    help="most generation workers to run at once (one per GPU)")
     ap.add_argument("--part", default="all", help="which diagnose part to run")
     ap.add_argument("--resume-from", help="a previous session's artifacts directory, usually "
                                          "/kaggle/input/<notebook-slug>/artifacts, copied in before the stage runs")

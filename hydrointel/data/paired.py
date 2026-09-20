@@ -34,7 +34,8 @@ import torch
 from .. import api
 from ..config import RunConfig, seed_everything
 from . import sampler as SMP
-from .generate import Budget, FAILED, _write_sim, check_capacity, measured_s_per_storm, record_path
+from .generate import (Budget, FAILED, _write_sim, check_capacity, measured_s_per_storm, record_path,
+                       shard_index_path)
 
 log = logging.getLogger("hydrointel.data")
 
@@ -84,7 +85,7 @@ def plan(cfg: RunConfig, dom, index: dict, eval_cache: Path | None) -> list[dict
 
 
 def generate_baselines(cfg: RunConfig, device=None, limit: int | None = None,
-                       budget_hours: float | None = None) -> Path:
+                       budget_hours: float | None = None, shard: tuple[int, int] | None = None) -> Path:
     from ..model.geokan_pino import model_dir
     from ..solver.coupling import NumericalInstabilityError
     seed_everything(cfg.seed)
@@ -94,13 +95,20 @@ def generate_baselines(cfg: RunConfig, device=None, limit: int | None = None,
     index = json.loads((root / "index.json").read_text(encoding="utf-8"))
     out = pair_dir(cfg)
     out.mkdir(parents=True, exist_ok=True)
-    ip = out / "index.json"
+    ip = shard_index_path(out, shard)
     pidx = json.loads(ip.read_text(encoding="utf-8")) if ip.exists() else {}
+    done_elsewhere = dict(pidx)
+    for q in [out / "index.json", *out.glob("index_shard*.json")]:
+        if q.exists() and q != ip:
+            done_elsewhere.update(json.loads(q.read_text(encoding="utf-8")))
     f = cfg.store_factor
     rows = plan(cfg, dom, index, api.engine_cache_dir(cfg) / "effects")
     eng = [r for r in rows if r["source"] == "engine"]
     done = [r for r in eng if record_path(out, r["sim"]).exists()]
-    todo = [r for r in eng if r not in done and pidx.get(str(r["sim"]), {}).get("status") != FAILED]
+    todo = [r for r in eng if r not in done and done_elsewhere.get(str(r["sim"]), {}).get("status") != FAILED]
+    if shard is not None:
+        todo = [r for r in todo if r["sim"] % shard[1] == shard[0]]
+        log.info("shard %d of %d: %d baselines for this worker", shard[0], shard[1], len(todo))
     if limit is not None:
         todo = todo[:limit]
     check_capacity(cfg, dom, len(index) + len(eng))
@@ -109,7 +117,7 @@ def generate_baselines(cfg: RunConfig, device=None, limit: int | None = None,
              sum(r["source"] == "self" for r in rows), sum(r["source"] == "eval_cache" for r in rows),
              len(eng), len(done), len(todo))
     for r in rows:
-        if r["source"] != "engine":
+        if r["source"] != "engine" and (shard is None or r["sim"] % shard[1] == shard[0]):
             pidx[str(r["sim"])] = {**r, "record": ("../" + record_path(root, r["sim"]).name) if r["source"] == "self"
                                    else str(api.engine_cache_dir(cfg) / "effects" / f"test_base_{r['sim']}.pt")}
     ip.write_text(json.dumps(pidx, indent=1), encoding="utf-8")

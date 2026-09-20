@@ -165,9 +165,27 @@ def cmd_diagnose(cfg, args) -> int:
     return 0
 
 
+def _shard(args) -> tuple[int, int] | None:
+    """``--shard i/n``: this worker takes the storms with index % n == i. Two GPUs run two
+    processes over one dataset directory this way; `merge-shards` combines their indexes."""
+    if not getattr(args, "shard", None):
+        return None
+    i, n = (int(x) for x in str(args.shard).split("/"))
+    if not 0 <= i < n:
+        raise ValueError(f"--shard {args.shard}: need 0 <= i < n")
+    return i, n
+
+
 def cmd_generate_baselines(cfg, args) -> int:
     from .data.paired import generate_baselines
-    print(f"index: {generate_baselines(cfg, limit=args.limit, budget_hours=args.budget_hours)}")
+    print(f"index: {generate_baselines(cfg, limit=args.limit, budget_hours=args.budget_hours, shard=_shard(args))}")
+    return 0
+
+
+def cmd_merge_shards(cfg, args) -> int:
+    from .data.generate import merge_shards
+    idx = merge_shards(cfg)
+    print(f"dataset index: {len(idx)} simulations")
     return 0
 
 
@@ -177,7 +195,8 @@ def cmd_generate(cfg, args) -> int:
     idx = dataset_dir(cfg) / "index.json"
     _eta(f"dataset generation ({cfg.data.n_sims} sims)",
          _recorded(idx, lambda d: (cfg.data.n_sims - len(d)) * sum(v["wall_s"] for v in d.values()) / len(d)))
-    out = generate(cfg, check_benchmarks=not args.skip_benchmark_check, budget_hours=args.budget_hours)
+    out = generate(cfg, check_benchmarks=not args.skip_benchmark_check, budget_hours=args.budget_hours,
+                   shard=_shard(args))
     print(f"dataset: {out}")
     return 0
 
@@ -259,6 +278,8 @@ def main(argv=None) -> int:
     sc.add_argument("--quick", action="store_true")
     gb = sub.add_parser("generate-baselines"); gb.add_argument("--limit", type=int)
     gb.add_argument("--budget-hours", type=float, help="stop cleanly before this much wall time")
+    gb.add_argument("--shard", help="i/n: this worker runs the storms with index %% n == i")
+    sub.add_parser("merge-shards")
     dg = sub.add_parser("diagnose"); dg.add_argument("--part", choices=["a1", "a3", "a4", "a5", "c5", "c3_speed", "all"], default="all")
     bs = sub.add_parser("batch-study")
     bs.add_argument("--quick", action="store_true")
@@ -270,6 +291,7 @@ def main(argv=None) -> int:
     g = sub.add_parser("generate"); g.add_argument("--quick", action="store_true")
     g.add_argument("--skip-benchmark-check", action="store_true", help=argparse.SUPPRESS)
     g.add_argument("--budget-hours", type=float, help="stop cleanly before this much wall time")
+    g.add_argument("--shard", help="i/n: this worker runs the storms with index %% n == i")
     t = sub.add_parser("train"); t.add_argument("--quick", action="store_true"); t.add_argument("--resume", action="store_true")
     e = sub.add_parser("evaluate"); e.add_argument("--quick", action="store_true"); e.add_argument("--calibrate", action="store_true")
     f = sub.add_parser("figures")
@@ -294,13 +316,15 @@ def main(argv=None) -> int:
     args.skip_benchmark_check = getattr(args, "skip_benchmark_check", False)
     args.resume = getattr(args, "resume", False)
     for name, default in (("stage", "all"), ("batch", None), ("full_storms", None), ("sequential", 4),
-                          ("full_hours", None), ("budget_hours", None), ("storms", 1), ("sim", 0), ("limit", None)):
+                          ("full_hours", None), ("budget_hours", None), ("storms", 1), ("sim", 0), ("limit", None),
+                          ("shard", None)):
         setattr(args, name, getattr(args, name, default))
     t0 = time.perf_counter()
     rc = {"benchmark": cmd_benchmark, "precision-study": cmd_precision_study,
           "batch-study": cmd_batch_study, "grouping-study": cmd_grouping_study,
           "predict-speed": cmd_predict_speed, "cost": cmd_cost, "step-demand": cmd_step_demand, "diagnose": cmd_diagnose, "kaggle-hardware": cmd_kaggle_hardware,
-          "storage-check": cmd_storage_check, "generate-baselines": cmd_generate_baselines, "generate": cmd_generate,
+          "storage-check": cmd_storage_check, "generate-baselines": cmd_generate_baselines,
+          "merge-shards": cmd_merge_shards, "generate": cmd_generate,
           "train": cmd_train, "evaluate": cmd_evaluate, "figures": cmd_figures, "all": cmd_all}[args.command](cfg, args)
     print(f"done in {(time.perf_counter() - t0) / 60:.1f} min")
     return rc

@@ -37,12 +37,22 @@ local machine's faulty RAM corrupted the results we already have.
 
 Open the panel on the right (**Session options** / the `⋮` menu -> **Accelerator**):
 
-1. **Accelerator -> GPU.** If Kaggle offers a choice, pick **P100** for anything that runs the
-   flood engine (stages `k0`, `generate`), because the engine computes in float64 and a P100
-   does double precision at roughly half its single-precision rate while a T4 does it at
-   around a thirty-second. For `train` only, a T4 is fine — the surrogate trains in mixed
-   precision. The `k0` stage measures this on whatever you get, so after the first run you
-   will have the real numbers rather than my reasoning.
+1. **Accelerator -> GPU T4 x2.** Your account offers `None`, `GPU T4 x2` and `TPU v5e-8`.
+   Pick **GPU T4 x2** for every stage.
+   - **Not the TPU.** This code is CUDA PyTorch with a hand-written finite-volume solver;
+     running it on a TPU would need an XLA port that does not exist. It would fail immediately.
+   - **About the T4 and float64.** The engine computes in double precision, and a T4 runs
+     double precision at about a thirty-second of its single-precision rate. That sounds
+     alarming but probably is not: the 2-D solver is limited by memory bandwidth, not
+     arithmetic, and a T4's 320 GB/s is about the same as the local machine's 336 GB/s. So
+     expect roughly the local rate of ~341 s per storm. `k0` measures it; if it comes back
+     much slower, tell me and we will reconsider.
+   - **Two GPUs is the win.** Generation runs one storm at a time, so the `generate` stage
+     starts one worker per GPU, each taking every other storm, and merges their indexes at the
+     end. That halves the wall time. You do not have to do anything: it detects the two cards.
+   - **16 GB each** may be enough to train at full 20 m resolution, which the local 6 GB card
+     could not. `k0` reports whether it fits; if it does, a whole class of workarounds is
+     unnecessary.
 2. **Internet -> On.** The notebook clones from GitHub. **Without this the first cell fails
    with `fatal: unable to access ... Could not resolve host: github.com`.** This is the single
    most common mistake.
@@ -137,8 +147,16 @@ loses at most the storm in flight. When the budget is nearly used it stops clean
 so, rather than being killed mid-storm. Re-running continues where it left off.
 
 **How many storms fit** is computed from the seconds per storm that `k0` measured, keeping 20%
-of the session in reserve. At the local machine's 341 s per storm, one 12-hour session fits
-about 45 pairs; a faster GPU fits more. The log prints the projection.
+of the session in reserve. At the local machine's 341 s per storm and two T4s running in
+parallel, one 12-hour session should fit the whole 60-storm paired set (104 engine runs, about
+5 hours). The log prints the projection before the first storm.
+
+**Watching two workers.** The stage prints `[parallel] 2 workers started` and then goes quiet,
+because each worker writes its own log: `generate.log.gpu0` and `generate.log.gpu1` in the
+artifacts directory. To watch progress live, open a second cell and run
+`!tail -5 /kaggle/working/artifacts/generate.log.gpu0`. When both finish, the runner prints the
+last dozen lines of each and merges their indexes. If one worker dies and the other does not,
+the stage fails loudly and re-running picks up only the missing storms.
 
 ## 8. Save & Run All versus interactive
 
@@ -233,6 +251,8 @@ If you are pushing to the `kaggle-results` branch, just tell me the branch has n
 | `fatal: unable to access ... Could not resolve host` | Internet off | Settings -> Internet -> On |
 | `Your notebook tried to allocate more memory than is available` | CPU RAM, not GPU | Re-run; if it repeats in `train`, tell me — the batch cache size is a config value |
 | `torch.OutOfMemoryError` during `train` | The model grid is too fine for this GPU | Tell me the GPU; `kaggle_hardware.md` already says which grids fit |
+| `generation workers failed with codes [...]` | One of the two GPU workers died | Look at `generate.log.gpu0` / `.gpu1`; re-run the stage, it resumes from what was written |
+| Only one GPU shows activity in `nvidia-smi` | A stage that is not `generate` | Only generation is parallel; training uses one GPU |
 | `RuntimeError: ... benchmark_results.json not found` before generation | `k0` has not run in this session's working directory | Run `k0`, or `--resume-from` a session that did |
 | `projected dataset size ... exceeds the 15 GB limit` | Too many storms for the working directory | Lower `data.n_sims` in `kaggle/configs/kaggle.json`, or raise `data.store_coarsen` to 2 |
 | `overfit sanity check failed` | Training cannot fit four storms; the pipeline is broken, not undertrained | Send me `train.log`; do not delete the gate file |
