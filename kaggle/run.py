@@ -330,6 +330,40 @@ def stage_workers(repo: Path, args, info: dict) -> None:
     cli(repo, args, *cmd, log="worker_scaling.log")
 
 
+def benchmarks_satisfied(repo: Path, args) -> bool:
+    """Would `generate` accept the benchmark record in this session's artifacts? The gate checks
+    three things -- the file exists, every benchmark passed, and it was produced for the current
+    solver/domain/forcing hash -- so ask the gate itself rather than reimplementing it here."""
+    probe = ("import sys; from hydrointel.config import RunConfig; "
+             "from hydrointel.data.generate import require_benchmarks; "
+             "cfg = RunConfig.load(sys.argv[1]); cfg.outdir = sys.argv[2]; require_benchmarks(cfg)")
+    r = subprocess.run([sys.executable, "-c", probe, args.config, str(outdir(args))],
+                       cwd=str(repo), env=dict(os.environ, PYTHONPATH=str(repo)),
+                       capture_output=True, text=True)
+    if r.returncode:
+        print(f"[benchmark] {(r.stderr or '').strip().splitlines()[-1] if r.stderr else 'no record'}", flush=True)
+    return r.returncode == 0
+
+
+def ensure_benchmarks(repo: Path, args) -> None:
+    """Generation refuses to run without a passing benchmark record for this configuration, and
+    it is right to: the engine must pass the analytical suite on the machine that makes the
+    data. A fresh Kaggle session starts with an empty working directory, so unless a previous
+    session was attached with --resume-from, that record is simply absent -- k0 wrote it into a
+    session that no longer exists. Run the suite here instead of failing a minute into a
+    ten-hour stage. The gate is satisfied, never skipped."""
+    if benchmarks_satisfied(repo, args):
+        print("[benchmark] this session has a passing record for this configuration", flush=True)
+        return
+    t0 = time.perf_counter()
+    print("[benchmark] running the analytical suite first; generation starts when it passes", flush=True)
+    cli(repo, args, "--config", args.config, "benchmark", log="benchmark.log")
+    if not benchmarks_satisfied(repo, args):
+        raise RuntimeError("the benchmark suite did not leave a passing record: refusing to generate "
+                           "training data. Read artifacts/benchmark.log")
+    print(f"[benchmark] passed in {(time.perf_counter() - t0) / 60:.1f} min", flush=True)
+
+
 def stage_generate(repo: Path, args, info: dict) -> None:
     """K1: a paired dataset, as much of it as this session's budget allows. Storms first, then
     their baselines, each across every GPU the session has; the merge writes the envelope and
@@ -339,6 +373,7 @@ def stage_generate(repo: Path, args, info: dict) -> None:
     # figure would let the storms eat a session the baselines still need -- and a storm without
     # its baseline is not a pair, so it is wasted work. Storms get half; the baselines get
     # whatever is actually left, which is more than half whenever the storm pool ran out first.
+    ensure_benchmarks(repo, args)
     t0 = time.perf_counter()
     half = args.budget_hours / 2.0
     parallel_cli(repo, args, "--config", args.config, "generate", "--budget-hours", f"{half:.3f}",

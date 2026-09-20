@@ -188,7 +188,12 @@ intervention does.
    if your session limit is 12 hours.
 2. Use **Save & Run All (Commit)** for this one — see section 8.
 
-The stage refuses to start if `k0`'s benchmark record is missing, and it refuses to start if
+The engine must pass the analytical suite on the machine that makes the data, and a fresh
+Kaggle session starts with an empty working directory -- the record `k0` wrote belongs to a
+session that no longer exists. So the stage runs the suite itself when this session has no
+passing record for this configuration, and only then starts generating. Expect that to add
+roughly half an hour at the front. (Attaching the earlier notebook output with
+`--resume-from` also satisfies it, and skips the re-run.) The stage refuses to start if
 the projected dataset would not fit: at full fidelity a record is **39 MB** and 104 records
 (60 storms plus 44 baselines) is **4.0 GB**, against a 15 GB internal limit and Kaggle's
 roughly 20 GB working directory. It prints the projection before the first storm.
