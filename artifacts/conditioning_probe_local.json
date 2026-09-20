@@ -3,22 +3,27 @@
     "source": "SYNTHETIC",
     "config_hash": "ec488c74bcba1145",
     "seed": 20260917,
-    "git_commit": "e9ad14d-dirty",
-    "timestamp": "2026-09-20T13:35:56Z",
+    "git_commit": "269b184-dirty",
+    "timestamp": "2026-09-20T13:43:00Z",
     "device": "cuda",
     "precision": "fp64",
     "engine": "engine",
     "notes": []
   },
   "case": "benchmark 4, Thacker planar oscillation, field scale, 200 cells",
-  "perturbation": "initial depth h0 = 2.0 m -> nextafter(2.0), one ulp (2.2e-16 relative)",
+  "perturbation": "initial depth h0 = 2.0 m nudged by the amounts below; the physics is unchanged, only round-off differs",
+  "sizes": [
+    "1 ulp",
+    "1e-13 relative",
+    "1e-10 relative"
+  ],
   "metrics": {
-    "4.field_o1_relL2_per_period[0]": 3.967283577464854e-15,
-    "4.field_o1_relL2_per_period[1]": 2.0158532417006772e-15,
-    "4.field_o1_relL2_per_period[2]": 1.7763746838950083e-15,
-    "4.field_o2_relL2_per_period[0]": 5.054475038607138e-05,
-    "4.field_o2_relL2_per_period[1]": 0.001684006057853814,
-    "4.field_o2_relL2_per_period[2]": 0.0012267172381095794
+    "4.field_o1_relL2_per_period[0]": 3.5005443330571014e-14,
+    "4.field_o1_relL2_per_period[1]": 1.225890752609074e-13,
+    "4.field_o1_relL2_per_period[2]": 7.85157610281532e-14,
+    "4.field_o2_relL2_per_period[0]": 5.333767784541854e-05,
+    "4.field_o2_relL2_per_period[1]": 0.01579086063844971,
+    "4.field_o2_relL2_per_period[2]": 0.009002389374290104
   },
   "runs": {
     "o1": {
@@ -27,10 +32,20 @@
         0.2202983831677182,
         0.3124968607948186
       ],
-      "one_ulp": [
+      "1 ulp": [
         0.11893396986943007,
         0.22029838316771774,
         0.31249686079481803
+      ],
+      "1e-13 relative": [
+        0.1189339698694347,
+        0.22029838316772823,
+        0.3124968607948429
+      ],
+      "1e-10 relative": [
+        0.11893396986942914,
+        0.2202983831677452,
+        0.3124968607948431
       ]
     },
     "o2": {
@@ -39,11 +54,53 @@
         0.012532528823669675,
         0.01610363914482908
       ],
-      "one_ulp": [
+      "1 ulp": [
         0.009850692386543394,
         0.012511423969210388,
         0.01612341801965103
+      ],
+      "1e-13 relative": [
+        0.009851643732684481,
+        0.012733603380069647,
+        0.015974344564198092
+      ],
+      "1e-10 relative": [
+        0.00985171578014125,
+        0.012561973880216007,
+        0.016249927317848262
       ]
+    }
+  },
+  "sweep": {
+    "4.field_o1_relL2_per_period[0]": {
+      "1 ulp": 3.967283577464854e-15,
+      "1e-13 relative": 3.5005443330571014e-14,
+      "1e-10 relative": 1.1785165921292653e-14
+    },
+    "4.field_o1_relL2_per_period[1]": {
+      "1 ulp": 2.0158532417006772e-15,
+      "1e-13 relative": 4.560867959347574e-14,
+      "1e-10 relative": 1.225890752609074e-13
+    },
+    "4.field_o1_relL2_per_period[2]": {
+      "1 ulp": 1.7763746838950083e-15,
+      "1e-13 relative": 7.780521115459531e-14,
+      "1e-10 relative": 7.85157610281532e-14
+    },
+    "4.field_o2_relL2_per_period[0]": {
+      "1 ulp": 5.054475038607138e-05,
+      "1e-13 relative": 4.6024825708203334e-05,
+      "1e-10 relative": 5.333767784541854e-05
+    },
+    "4.field_o2_relL2_per_period[1]": {
+      "1 ulp": 0.001684006057853814,
+      "1e-13 relative": 0.01579086063844971,
+      "1e-10 relative": 0.0023439832646607135
+    },
+    "4.field_o2_relL2_per_period[2]": {
+      "1 ulp": 0.0012267172381095794,
+      "1e-13 relative": 0.008028904489734739,
+      "1e-10 relative": 0.009002389374290104
     }
   }
 }

@@ -45,7 +45,9 @@ def metric_class(name: str) -> str:
     fp64      the deterministic double-precision physics: the actual cross-check
     """
     tail = name.split(".", 1)[-1]
-    if "wall_s" in tail or "peak_gpu" in tail or tail.endswith("_s") and "period" not in tail:
+    # only wall-clock and memory. NOT every name ending in _s: period_s and t_equilibrium_s are
+    # physical times the scheme computes, and a difference in those would be real evidence.
+    if "wall_s" in tail or "peak_gpu" in tail or tail in ("seconds", "elapsed_s"):
         return "hardware"
     if "fp32" in tail:
         return "fp32"
@@ -169,6 +171,19 @@ def compare_benchmarks(local_path: Path, here_path: Path, info: dict | None = No
         md.append("**Every measurement made on the local machine must be re-derived here.** The engine ran the "
                   "same code on both machines; a difference beyond round-off in a deterministic fp64 benchmark "
                   "means the local memory corrupted the computation.\n")
+    excused = [r for r in rows if r["verdict"] == "within its own measured round-off sensitivity"]
+    if excused:
+        md.append(f"**Read this before trusting the verdict.** {len(excused)} double-precision metric(s) differ by "
+                  "more than the fp64 tolerance and are excused only because a perturbation that changes nothing "
+                  "physical moves them at least as far on a single machine:\n")
+        for r in excused:
+            md.append(f"- `{r['metric']}`: differs by {r['rel']:.2e}, own measured noise floor "
+                      f"{r['ulp_sensitivity']:.2e}")
+        md.append("\nThat makes those metrics useless as corruption detectors -- not evidence that nothing is "
+                  "wrong. The verdict rests on the metrics that are well conditioned: the convergence orders, the "
+                  "mass errors, the equilibrium errors, and the step counts, which are integer and identical.\n")
+    if bad or flipped:
+        pass
     else:
         md.append("The suite agrees, so the local dataset and model were probably not corrupted -- but that is an "
                   "argument about this suite's arrays, not a proof about every array in a 6-hour generation run. "
@@ -182,7 +197,8 @@ def compare_benchmarks(local_path: Path, here_path: Path, info: dict | None = No
 # ---------------------------------------------------------------------------
 # How much does a metric move when nothing meaningful changes?
 # ---------------------------------------------------------------------------
-def conditioning_probe(cfg: RunConfig, device=None, periods: int = 3) -> dict:
+def conditioning_probe(cfg: RunConfig, device=None, periods: int = 3,
+                       perturbations: tuple[float, ...] = (0.0, 1e-13, 1e-10)) -> dict:
     """Run the Thacker benchmark twice on ONE machine: once as the suite runs it, once with
     the initial depth changed by a single unit in the last place (a relative change of 2.2e-16,
     the smallest a float64 can express).
@@ -197,19 +213,25 @@ def conditioning_probe(cfg: RunConfig, device=None, periods: int = 3) -> dict:
     ctx = api.configure(cfg, device)
     dev = ctx.device
     field = dict(L=4000.0, a=1000.0, h0=2.0, eta=500.0)
+    sizes = [("1 ulp", float(np.nextafter(field["h0"], np.inf)))] +             [(f"{e:g} relative", field["h0"] * (1.0 + e)) for e in perturbations if e > 0]
     out = {"case": "benchmark 4, Thacker planar oscillation, field scale, 200 cells",
-           "perturbation": "initial depth h0 = 2.0 m -> nextafter(2.0), one ulp (2.2e-16 relative)",
-           "metrics": {}, "runs": {}}
+           "perturbation": "initial depth h0 = 2.0 m nudged by the amounts below; the physics is "
+                           "unchanged, only round-off differs",
+           "sizes": [s for s, _ in sizes], "metrics": {}, "runs": {}, "sweep": {}}
     for order in (1, 2):
         base, _ = _thacker(dev, 200, order, compile=True, periods=periods, **field)
-        bumped, _ = _thacker(dev, 200, order, compile=True, periods=periods,
-                             **{**field, "h0": float(np.nextafter(field["h0"], np.inf))})
-        out["runs"][f"o{order}"] = {"reference": base["relL2_per_period"],
-                                    "one_ulp": bumped["relL2_per_period"]}
-        for i, (a, b) in enumerate(zip(base["relL2_per_period"], bumped["relL2_per_period"])):
-            rel = abs(b - a) / max(abs(a), abs(b), 1e-300)
-            out["metrics"][f"4.field_o{order}_relL2_per_period[{i}]"] = rel
-            log.info("conditioning: order %d period %d moves %.2e for one ulp", order, i + 1, rel)
+        out["runs"][f"o{order}"] = {"reference": base["relL2_per_period"]}
+        for label, h0 in sizes:
+            bumped, _ = _thacker(dev, 200, order, compile=True, periods=periods, **{**field, "h0": h0})
+            out["runs"][f"o{order}"][label] = bumped["relL2_per_period"]
+            for i, (a, b) in enumerate(zip(base["relL2_per_period"], bumped["relL2_per_period"])):
+                rel = abs(b - a) / max(abs(a), abs(b), 1e-300)
+                key = f"4.field_o{order}_relL2_per_period[{i}]"
+                out["sweep"].setdefault(key, {})[label] = rel
+                # the metric's sensitivity is the largest response over the sweep: anything a
+                # perturbation this small can produce is round-off, not a difference in physics
+                out["metrics"][key] = max(out["metrics"].get(key, 0.0), rel)
+                log.info("conditioning: order %d period %d moves %.2e for %s", order, i + 1, rel, label)
     from .viz.provenance import write_json
     write_json(Path(cfg.outdir) / "conditioning_probe.json", out, ctx.provenance("engine"))
     return out

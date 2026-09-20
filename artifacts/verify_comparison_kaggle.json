@@ -1,0 +1,1625 @@
+{
+ "verdict": "this machine reproduces the local benchmark numbers to the precision they are reported at",
+ "reproduced": true,
+ "rows": [
+  {
+   "metric": "1.o1_mass_err",
+   "class": "fp64",
+   "local": 1.9564788851534466e-28,
+   "kaggle": 1.0793544001135703e-27,
+   "rel": null,
+   "verdict": "both negligible"
+  },
+  {
+   "metric": "1.o1_max_abs_u",
+   "class": "fp64",
+   "local": 2.3060683697684247e-14,
+   "kaggle": 2.354249286294016e-14,
+   "rel": null,
+   "verdict": "both negligible"
+  },
+  {
+   "metric": "1.o1_max_abs_v",
+   "class": "fp64",
+   "local": 1.7842420590203678e-14,
+   "kaggle": 2.0003842327108822e-14,
+   "rel": null,
+   "verdict": "both negligible"
+  },
+  {
+   "metric": "1.o1_max_eta_dev",
+   "class": "fp64",
+   "local": 2.220446049250313e-15,
+   "kaggle": 1.7763568394002505e-15,
+   "rel": null,
+   "verdict": "both negligible"
+  },
+  {
+   "metric": "1.o1_wet_fraction",
+   "class": "fp64",
+   "local": 0.42478461538461537,
+   "kaggle": 0.42478461538461537,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "1.o2_mass_err",
+   "class": "fp64",
+   "local": 4.232523382930428e-28,
+   "kaggle": 1.6602290561746296e-27,
+   "rel": null,
+   "verdict": "both negligible"
+  },
+  {
+   "metric": "1.o2_max_abs_u",
+   "class": "fp64",
+   "local": 2.5884776282462563e-14,
+   "kaggle": 3.131166694024935e-14,
+   "rel": null,
+   "verdict": "both negligible"
+  },
+  {
+   "metric": "1.o2_max_abs_v",
+   "class": "fp64",
+   "local": 2.821669235806383e-14,
+   "kaggle": 2.889948278420591e-14,
+   "rel": null,
+   "verdict": "both negligible"
+  },
+  {
+   "metric": "1.o2_max_eta_dev",
+   "class": "fp64",
+   "local": 2.220446049250313e-15,
+   "kaggle": 1.7763568394002505e-15,
+   "rel": null,
+   "verdict": "both negligible"
+  },
+  {
+   "metric": "1.o2_wet_fraction",
+   "class": "fp64",
+   "local": 0.42478461538461537,
+   "kaggle": 0.42478461538461537,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "1.passed",
+   "class": "fp64",
+   "local": 1.0,
+   "kaggle": 1.0,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "2.grids[0]",
+   "class": "fp64",
+   "local": 200.0,
+   "kaggle": 200.0,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "2.grids[1]",
+   "class": "fp64",
+   "local": 400.0,
+   "kaggle": 400.0,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "2.grids[2]",
+   "class": "fp64",
+   "local": 800.0,
+   "kaggle": 800.0,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "2.grids[3]",
+   "class": "fp64",
+   "local": 1600.0,
+   "kaggle": 1600.0,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "2.isolated_o1_L1[0]",
+   "class": "fp64",
+   "local": 0.014135894632199003,
+   "kaggle": 0.014135894632198942,
+   "rel": 4.295117022228629e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.isolated_o1_L1[1]",
+   "class": "fp64",
+   "local": 0.008907852970893408,
+   "kaggle": 0.008907852970893353,
+   "rel": 6.231709415573163e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.isolated_o1_L1[2]",
+   "class": "fp64",
+   "local": 0.005430854454139359,
+   "kaggle": 0.005430854454139332,
+   "rel": 4.9510098465530604e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.isolated_o1_L1[3]",
+   "class": "fp64",
+   "local": 0.003224284764158051,
+   "kaggle": 0.0032242847641580944,
+   "rel": 1.3450451827800696e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.isolated_o1_order_L1[0]",
+   "class": "fp64",
+   "local": 0.6662135403670507,
+   "kaggle": 0.6662135403670535,
+   "rel": 4.166168042807543e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.isolated_o1_order_L1[1]",
+   "class": "fp64",
+   "local": 0.7138985460028272,
+   "kaggle": 0.7138985460028254,
+   "rel": 2.488248294307656e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.isolated_o1_order_L1[2]",
+   "class": "fp64",
+   "local": 0.7522000336007978,
+   "kaggle": 0.752200033600771,
+   "rel": 3.5570823847724296e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.isolated_o2_L1[0]",
+   "class": "fp64",
+   "local": 0.005121789837349766,
+   "kaggle": 0.005121789837349754,
+   "rel": 2.3708634515392362e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.isolated_o2_L1[1]",
+   "class": "fp64",
+   "local": 0.002537432009638281,
+   "kaggle": 0.002537432009638293,
+   "rel": 4.614659001055403e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.isolated_o2_L1[2]",
+   "class": "fp64",
+   "local": 0.0012699853260672803,
+   "kaggle": 0.0012699853260672983,
+   "rel": 1.4171625210026755e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.isolated_o2_L1[3]",
+   "class": "fp64",
+   "local": 0.0006354440544792139,
+   "kaggle": 0.0006354440544792003,
+   "rel": 2.1327648060498336e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.isolated_o2_order_L1[0]",
+   "class": "fp64",
+   "local": 1.013278890099043,
+   "kaggle": 1.0132788900990328,
+   "rel": 1.0080197985327678e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.isolated_o2_order_L1[1]",
+   "class": "fp64",
+   "local": 0.998557338273468,
+   "kaggle": 0.9985573382734543,
+   "rel": 1.3786654984835465e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.isolated_o2_order_L1[2]",
+   "class": "fp64",
+   "local": 0.9989748088693354,
+   "kaggle": 0.9989748088693866,
+   "rel": 5.123380587859402e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.o1_L1[0]",
+   "class": "fp64",
+   "local": 0.014506866057006807,
+   "kaggle": 0.014506866057006821,
+   "rel": 9.56635827013201e-16,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.o1_L1[1]",
+   "class": "fp64",
+   "local": 0.009799964919612944,
+   "kaggle": 0.009799964919612922,
+   "rel": 2.3011720320106182e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.o1_L1[2]",
+   "class": "fp64",
+   "local": 0.006773142265764339,
+   "kaggle": 0.00677314226576433,
+   "rel": 1.280589870926804e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.o1_L1[3]",
+   "class": "fp64",
+   "local": 0.004831513915866772,
+   "kaggle": 0.004831513915866832,
+   "rel": 1.2386999388464432e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.o1_L2[0]",
+   "class": "fp64",
+   "local": 0.019013288659087264,
+   "kaggle": 0.019013288659087284,
+   "rel": 1.0948490860770937e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.o1_L2[1]",
+   "class": "fp64",
+   "local": 0.0131415000708866,
+   "kaggle": 0.013141500070886599,
+   "rel": 1.3200345977396267e-16,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.o1_L2[2]",
+   "class": "fp64",
+   "local": 0.00938992102170101,
+   "kaggle": 0.009389921021701032,
+   "rel": 2.401660795184536e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.o1_L2[3]",
+   "class": "fp64",
+   "local": 0.007219082209641675,
+   "kaggle": 0.007219082209641725,
+   "rel": 6.968611707474112e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.o1_mass_err",
+   "class": "fp64",
+   "local": 0.0,
+   "kaggle": 0.0,
+   "rel": null,
+   "verdict": "both negligible"
+  },
+  {
+   "metric": "2.o1_order_L1[0]",
+   "class": "fp64",
+   "local": 0.565887395182055,
+   "kaggle": 0.5658873951820598,
+   "rel": 8.436234923296488e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.o1_order_L1[1]",
+   "class": "fp64",
+   "local": 0.532951285888089,
+   "kaggle": 0.5329512858880875,
+   "rel": 2.9164245881969765e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.o1_order_L1[2]",
+   "class": "fp64",
+   "local": 0.4873499822740967,
+   "kaggle": 0.4873499822740768,
+   "rel": 4.089156461857285e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.o1_order_L2[0]",
+   "class": "fp64",
+   "local": 0.5328781260035513,
+   "kaggle": 0.5328781260035531,
+   "rel": 3.333514274122046e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.o1_order_L2[1]",
+   "class": "fp64",
+   "local": 0.4849450366726047,
+   "kaggle": 0.484945036672601,
+   "rel": 7.554950982489325e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.o1_order_L2[2]",
+   "class": "fp64",
+   "local": 0.3792975902051983,
+   "kaggle": 0.37929759020519166,
+   "rel": 1.7562300209044788e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.o2_L1[0]",
+   "class": "fp64",
+   "local": 0.005977452599511156,
+   "kaggle": 0.00597745259951113,
+   "rel": 4.3531674582881886e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.o2_L1[1]",
+   "class": "fp64",
+   "local": 0.0037394736263691363,
+   "kaggle": 0.003739473626369147,
+   "rel": 2.8993443484670692e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.o2_L1[2]",
+   "class": "fp64",
+   "local": 0.002761953548611918,
+   "kaggle": 0.002761953548611889,
+   "rel": 1.0520313868860892e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.o2_L1[3]",
+   "class": "fp64",
+   "local": 0.0023161073347202905,
+   "kaggle": 0.002316107334720266,
+   "rel": 1.06729982510309e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.o2_L2[0]",
+   "class": "fp64",
+   "local": 0.008099618808196207,
+   "kaggle": 0.0080996188081962,
+   "rel": 8.566938850116734e-16,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.o2_L2[1]",
+   "class": "fp64",
+   "local": 0.005726495270716238,
+   "kaggle": 0.005726495270716285,
+   "rel": 8.17909238323971e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.o2_L2[2]",
+   "class": "fp64",
+   "local": 0.0051943681438671434,
+   "kaggle": 0.005194368143867137,
+   "rel": 1.1688682815228117e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.o2_L2[3]",
+   "class": "fp64",
+   "local": 0.005235997421201615,
+   "kaggle": 0.005235997421201657,
+   "rel": 7.95137202605584e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.o2_mass_err",
+   "class": "fp64",
+   "local": 0.0,
+   "kaggle": 4.440892084622838e-16,
+   "rel": null,
+   "verdict": "both negligible"
+  },
+  {
+   "metric": "2.o2_order_L1[0]",
+   "class": "fp64",
+   "local": 0.6766955759854877,
+   "kaggle": 0.6766955759854772,
+   "rel": 1.5422143725822558e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.o2_order_L1[1]",
+   "class": "fp64",
+   "local": 0.43714615248744726,
+   "kaggle": 0.43714615248746663,
+   "rel": 4.43178824049342e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.o2_order_L1[2]",
+   "class": "fp64",
+   "local": 0.253986942816256,
+   "kaggle": 0.2539869428162562,
+   "rel": 8.7423629916939e-16,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.o2_order_L2[0]",
+   "class": "fp64",
+   "local": 0.5002015612016061,
+   "kaggle": 0.500201561201593,
+   "rel": 2.6190705321082837e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.o2_order_L2[1]",
+   "class": "fp64",
+   "local": 0.1407041842220582,
+   "kaggle": 0.14070418422207154,
+   "rel": 9.488297696994354e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.o2_order_L2[2]",
+   "class": "fp64",
+   "local": -0.011516120023197749,
+   "kaggle": -0.011516120023210825,
+   "rel": 1.1354818754543804e-12,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2.passed",
+   "class": "fp64",
+   "local": 1.0,
+   "kaggle": 1.0,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "2b.grids[0]",
+   "class": "fp64",
+   "local": 100.0,
+   "kaggle": 100.0,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "2b.grids[1]",
+   "class": "fp64",
+   "local": 200.0,
+   "kaggle": 200.0,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "2b.grids[2]",
+   "class": "fp64",
+   "local": 400.0,
+   "kaggle": 400.0,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "2b.grids[3]",
+   "class": "fp64",
+   "local": 800.0,
+   "kaggle": 800.0,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "2b.o1_L1[0]",
+   "class": "fp64",
+   "local": 0.22042425179714767,
+   "kaggle": 0.22042425179715586,
+   "rel": 3.7146070542842956e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2b.o1_L1[1]",
+   "class": "fp64",
+   "local": 0.12430534922850292,
+   "kaggle": 0.12430534922850164,
+   "rel": 1.0271130617009463e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2b.o1_L1[2]",
+   "class": "fp64",
+   "local": 0.06637101840550856,
+   "kaggle": 0.06637101840551261,
+   "rel": 6.105547477248362e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2b.o1_L1[3]",
+   "class": "fp64",
+   "local": 0.03438327832161992,
+   "kaggle": 0.03438327832162403,
+   "rel": 1.1947159757973462e-13,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2b.o1_order_L1[0]",
+   "class": "fp64",
+   "local": 0.8263945814886058,
+   "kaggle": 0.8263945814886741,
+   "rel": 8.262241493821181e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2b.o1_order_L1[1]",
+   "class": "fp64",
+   "local": 0.9052630647673782,
+   "kaggle": 0.9052630647672755,
+   "rel": 1.1344285851783455e-13,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2b.o1_order_L1[2]",
+   "class": "fp64",
+   "local": 0.9488463041555996,
+   "kaggle": 0.9488463041555153,
+   "rel": 8.880882730953944e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2b.o2_L1[0]",
+   "class": "fp64",
+   "local": 0.05536997134405204,
+   "kaggle": 0.055369971344085035,
+   "rel": 5.958905109060264e-13,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2b.o2_L1[1]",
+   "class": "fp64",
+   "local": 0.017133039996037644,
+   "kaggle": 0.017133039996043365,
+   "rel": 3.339231114322223e-13,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2b.o2_L1[2]",
+   "class": "fp64",
+   "local": 0.004641300372205641,
+   "kaggle": 0.004641300372216777,
+   "rel": 2.3991530604119765e-12,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2b.o2_L1[3]",
+   "class": "fp64",
+   "local": 0.001171922956710355,
+   "kaggle": 0.0011719229567290202,
+   "rel": 1.5926977804699957e-11,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2b.o2_order_L1[0]",
+   "class": "fp64",
+   "local": 1.6923226169063967,
+   "kaggle": 1.6923226169067747,
+   "rel": 2.2331434550769336e-13,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2b.o2_order_L1[1]",
+   "class": "fp64",
+   "local": 1.8841801854150475,
+   "kaggle": 1.8841801854120679,
+   "rel": 1.5813862052862235e-12,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2b.o2_order_L1[2]",
+   "class": "fp64",
+   "local": 1.9856513390050656,
+   "kaggle": 1.985651338985549,
+   "rel": 9.828820481477205e-12,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "2b.passed",
+   "class": "fp64",
+   "local": 1.0,
+   "kaggle": 1.0,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "2b.reference_grid",
+   "class": "fp64",
+   "local": 6400.0,
+   "kaggle": 6400.0,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "3.grids[0]",
+   "class": "fp64",
+   "local": 200.0,
+   "kaggle": 200.0,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "3.grids[1]",
+   "class": "fp64",
+   "local": 400.0,
+   "kaggle": 400.0,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "3.grids[2]",
+   "class": "fp64",
+   "local": 800.0,
+   "kaggle": 800.0,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "3.grids[3]",
+   "class": "fp64",
+   "local": 1600.0,
+   "kaggle": 1600.0,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "3.isolated_o1_L1[0]",
+   "class": "fp64",
+   "local": 0.013476186662658186,
+   "kaggle": 0.013476186662658155,
+   "rel": 2.31705180027711e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.isolated_o1_L1[1]",
+   "class": "fp64",
+   "local": 0.007892721203112256,
+   "kaggle": 0.00789272120311226,
+   "rel": 4.3957551048243553e-16,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.isolated_o1_L1[2]",
+   "class": "fp64",
+   "local": 0.004437212309315786,
+   "kaggle": 0.004437212309315782,
+   "rel": 9.77372365265693e-16,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.isolated_o1_L1[3]",
+   "class": "fp64",
+   "local": 0.0025438034741661992,
+   "kaggle": 0.002543803474166099,
+   "rel": 3.938208346479966e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.isolated_o1_order_L1[0]",
+   "class": "fp64",
+   "local": 0.7718176224066976,
+   "kaggle": 0.7718176224066936,
+   "rel": 5.1784291685225465e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.isolated_o1_order_L1[1]",
+   "class": "fp64",
+   "local": 0.8308692052927422,
+   "kaggle": 0.8308692052927443,
+   "rel": 2.538815656363836e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.isolated_o1_order_L1[2]",
+   "class": "fp64",
+   "local": 0.8026663670100812,
+   "kaggle": 0.8026663670101367,
+   "rel": 6.915843682105692e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.isolated_o2_L1[0]",
+   "class": "fp64",
+   "local": 0.0048980494189044144,
+   "kaggle": 0.004898049418904382,
+   "rel": 6.552074420014588e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.isolated_o2_L1[1]",
+   "class": "fp64",
+   "local": 0.002488419320577253,
+   "kaggle": 0.002488419320577276,
+   "rel": 9.236821891963328e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.isolated_o2_L1[2]",
+   "class": "fp64",
+   "local": 0.0011845584425100556,
+   "kaggle": 0.0011845584425100827,
+   "rel": 2.2881989895493822e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.isolated_o2_L1[3]",
+   "class": "fp64",
+   "local": 0.0005924483198265084,
+   "kaggle": 0.0005924483198265182,
+   "rel": 1.66533340368104e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.isolated_o2_order_L1[0]",
+   "class": "fp64",
+   "local": 0.9769777172797367,
+   "kaggle": 0.9769777172797139,
+   "rel": 2.32958967254511e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.isolated_o2_order_L1[1]",
+   "class": "fp64",
+   "local": 1.0708802342588406,
+   "kaggle": 1.0708802342588208,
+   "rel": 1.845394956981824e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.isolated_o2_order_L1[2]",
+   "class": "fp64",
+   "local": 0.9995881624024199,
+   "kaggle": 0.9995881624024288,
+   "rel": 8.88544355672901e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.o1_L1[0]",
+   "class": "fp64",
+   "local": 0.013476186662658186,
+   "kaggle": 0.013476186662658155,
+   "rel": 2.31705180027711e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.o1_L1[1]",
+   "class": "fp64",
+   "local": 0.007892721203112256,
+   "kaggle": 0.00789272120311226,
+   "rel": 4.3957551048243553e-16,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.o1_L1[2]",
+   "class": "fp64",
+   "local": 0.004437212309315786,
+   "kaggle": 0.004437212309315782,
+   "rel": 9.77372365265693e-16,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.o1_L1[3]",
+   "class": "fp64",
+   "local": 0.0025438034741661992,
+   "kaggle": 0.002543803474166099,
+   "rel": 3.938208346479966e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.o1_L2[0]",
+   "class": "fp64",
+   "local": 0.025408615728381285,
+   "kaggle": 0.025408615728381247,
+   "rel": 1.5020069129095005e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.o1_L2[1]",
+   "class": "fp64",
+   "local": 0.01901441017489242,
+   "kaggle": 0.01901441017489243,
+   "rel": 5.473922546177389e-16,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.o1_L2[2]",
+   "class": "fp64",
+   "local": 0.011803593303726274,
+   "kaggle": 0.011803593303726287,
+   "rel": 1.028759973287473e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.o1_L2[3]",
+   "class": "fp64",
+   "local": 0.008198910121867846,
+   "kaggle": 0.008198910121867952,
+   "rel": 1.290636565857082e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.o1_mass_err",
+   "class": "fp64",
+   "local": 0.0,
+   "kaggle": 0.0,
+   "rel": null,
+   "verdict": "both negligible"
+  },
+  {
+   "metric": "3.o1_order_L1[0]",
+   "class": "fp64",
+   "local": 0.7718176224066976,
+   "kaggle": 0.7718176224066936,
+   "rel": 5.1784291685225465e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.o1_order_L1[1]",
+   "class": "fp64",
+   "local": 0.8308692052927422,
+   "kaggle": 0.8308692052927443,
+   "rel": 2.538815656363836e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.o1_order_L1[2]",
+   "class": "fp64",
+   "local": 0.8026663670100812,
+   "kaggle": 0.8026663670101367,
+   "rel": 6.915843682105692e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.o1_order_L2[0]",
+   "class": "fp64",
+   "local": 0.4182245915190431,
+   "kaggle": 0.41822459151903996,
+   "rel": 7.565637421484869e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.o1_order_L2[1]",
+   "class": "fp64",
+   "local": 0.6878670691487089,
+   "kaggle": 0.6878670691487082,
+   "rel": 9.684048628748697e-16,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.o1_order_L2[2]",
+   "class": "fp64",
+   "local": 0.5257220675945286,
+   "kaggle": 0.5257220675945115,
+   "rel": 3.2521812632780855e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.o2_L1[0]",
+   "class": "fp64",
+   "local": 0.0048980494189044144,
+   "kaggle": 0.004898049418904382,
+   "rel": 6.552074420014588e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.o2_L1[1]",
+   "class": "fp64",
+   "local": 0.002488419320577253,
+   "kaggle": 0.002488419320577276,
+   "rel": 9.236821891963328e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.o2_L1[2]",
+   "class": "fp64",
+   "local": 0.0011845584425100556,
+   "kaggle": 0.0011845584425100827,
+   "rel": 2.2881989895493822e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.o2_L1[3]",
+   "class": "fp64",
+   "local": 0.0005924483198265084,
+   "kaggle": 0.0005924483198265182,
+   "rel": 1.66533340368104e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.o2_L2[0]",
+   "class": "fp64",
+   "local": 0.01563985740669242,
+   "kaggle": 0.01563985740669233,
+   "rel": 5.76767539531366e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.o2_L2[1]",
+   "class": "fp64",
+   "local": 0.011641273421108423,
+   "kaggle": 0.011641273421108309,
+   "rel": 9.834984994585578e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.o2_L2[2]",
+   "class": "fp64",
+   "local": 0.006648496888384471,
+   "kaggle": 0.006648496888384635,
+   "rel": 2.4656906851563282e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.o2_L2[3]",
+   "class": "fp64",
+   "local": 0.004710226287901475,
+   "kaggle": 0.004710226287901873,
+   "rel": 8.452227417592196e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.o2_mass_err",
+   "class": "fp64",
+   "local": 4.4408920832350593e-16,
+   "kaggle": 8.881784166470119e-16,
+   "rel": null,
+   "verdict": "both negligible"
+  },
+  {
+   "metric": "3.o2_order_L1[0]",
+   "class": "fp64",
+   "local": 0.9769777172797367,
+   "kaggle": 0.9769777172797139,
+   "rel": 2.32958967254511e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.o2_order_L1[1]",
+   "class": "fp64",
+   "local": 1.0708802342588406,
+   "kaggle": 1.0708802342588208,
+   "rel": 1.845394956981824e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.o2_order_L1[2]",
+   "class": "fp64",
+   "local": 0.9995881624024199,
+   "kaggle": 0.9995881624024288,
+   "rel": 8.88544355672901e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.o2_order_L2[0]",
+   "class": "fp64",
+   "local": 0.4259784781344063,
+   "kaggle": 0.42597847813441203,
+   "rel": 1.3422388384174248e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.o2_order_L2[1]",
+   "class": "fp64",
+   "local": 0.8081487672055632,
+   "kaggle": 0.8081487672055133,
+   "rel": 6.168296708295266e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.o2_order_L2[2]",
+   "class": "fp64",
+   "local": 0.49723183754960915,
+   "kaggle": 0.4972318375495229,
+   "rel": 1.734891503297353e-13,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "3.passed",
+   "class": "fp64",
+   "local": 1.0,
+   "kaggle": 1.0,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "4.field_o1_clip_m3",
+   "class": "fp64",
+   "local": 0.0,
+   "kaggle": 0.0,
+   "rel": null,
+   "verdict": "both negligible"
+  },
+  {
+   "metric": "4.field_o1_dx_m",
+   "class": "fp64",
+   "local": 20.0,
+   "kaggle": 20.0,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "4.field_o1_mass_err",
+   "class": "fp64",
+   "local": 0.0,
+   "kaggle": 1.4822240282185291e-16,
+   "rel": null,
+   "verdict": "both negligible"
+  },
+  {
+   "metric": "4.field_o1_n",
+   "class": "fp64",
+   "local": 200.0,
+   "kaggle": 200.0,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "4.field_o1_period_s",
+   "class": "fp64",
+   "local": 1003.0333403553236,
+   "kaggle": 1003.0333403553236,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "4.field_o1_relL2_per_period[0]",
+   "class": "fp64",
+   "local": 0.11893396986943054,
+   "kaggle": 0.11893396986943064,
+   "rel": 8.167936777133516e-16,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "4.field_o1_relL2_per_period[1]",
+   "class": "fp64",
+   "local": 0.2202983831677182,
+   "kaggle": 0.22029838316771844,
+   "rel": 1.1339174484566297e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "4.field_o1_relL2_per_period[2]",
+   "class": "fp64",
+   "local": 0.3124968607948186,
+   "kaggle": 0.3124968607948188,
+   "rel": 7.105498735580028e-16,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "4.field_o2_clip_m3",
+   "class": "fp64",
+   "local": 0.0,
+   "kaggle": 0.0,
+   "rel": null,
+   "verdict": "both negligible"
+  },
+  {
+   "metric": "4.field_o2_dx_m",
+   "class": "fp64",
+   "local": 20.0,
+   "kaggle": 20.0,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "4.field_o2_mass_err",
+   "class": "fp64",
+   "local": 1.4822240282185291e-16,
+   "kaggle": 1.4822240282185291e-16,
+   "rel": null,
+   "verdict": "both negligible"
+  },
+  {
+   "metric": "4.field_o2_n",
+   "class": "fp64",
+   "local": 200.0,
+   "kaggle": 200.0,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "4.field_o2_period_s",
+   "class": "fp64",
+   "local": 1003.0333403553236,
+   "kaggle": 1003.0333403553236,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "4.field_o2_relL2_per_period[0]",
+   "class": "fp64",
+   "local": 0.009851190312498745,
+   "kaggle": 0.00985106020240338,
+   "rel": 1.32075506854503e-05,
+   "verdict": "differs"
+  },
+  {
+   "metric": "4.field_o2_relL2_per_period[1]",
+   "class": "fp64",
+   "local": 0.012532528823669675,
+   "kaggle": 0.012482468647533164,
+   "rel": 0.003994419389801391,
+   "verdict": "within its own measured round-off sensitivity",
+   "ulp_sensitivity": 0.01579086063844971
+  },
+  {
+   "metric": "4.field_o2_relL2_per_period[2]",
+   "class": "fp64",
+   "local": 0.01610363914482908,
+   "kaggle": 0.016242998482245193,
+   "rel": 0.00857965587871258,
+   "verdict": "within its own measured round-off sensitivity",
+   "ulp_sensitivity": 0.009002389374290104
+  },
+  {
+   "metric": "4.lab_o2_clip_m3",
+   "class": "fp64",
+   "local": 0.0,
+   "kaggle": 0.0,
+   "rel": null,
+   "verdict": "both negligible"
+  },
+  {
+   "metric": "4.lab_o2_dx_m",
+   "class": "fp64",
+   "local": 0.02,
+   "kaggle": 0.02,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "4.lab_o2_hdry1e-6_clip_m3",
+   "class": "fp64",
+   "local": 0.0,
+   "kaggle": 0.0,
+   "rel": null,
+   "verdict": "both negligible"
+  },
+  {
+   "metric": "4.lab_o2_hdry1e-6_dx_m",
+   "class": "fp64",
+   "local": 0.02,
+   "kaggle": 0.02,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "4.lab_o2_hdry1e-6_mass_err",
+   "class": "fp64",
+   "local": 0.0,
+   "kaggle": 0.0,
+   "rel": null,
+   "verdict": "both negligible"
+  },
+  {
+   "metric": "4.lab_o2_hdry1e-6_n",
+   "class": "fp64",
+   "local": 200.0,
+   "kaggle": 200.0,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "4.lab_o2_hdry1e-6_period_s",
+   "class": "fp64",
+   "local": 4.485701465466374,
+   "kaggle": 4.485701465466374,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "4.lab_o2_hdry1e-6_relL2_per_period[0]",
+   "class": "fp64",
+   "local": 0.009554223040642781,
+   "kaggle": 0.009554223040642783,
+   "rel": 1.815661481417645e-16,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "4.lab_o2_hdry1e-6_relL2_per_period[1]",
+   "class": "fp64",
+   "local": 0.012622710520427276,
+   "kaggle": 0.012622710520427276,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "4.lab_o2_hdry1e-6_relL2_per_period[2]",
+   "class": "fp64",
+   "local": 0.01687231554181534,
+   "kaggle": 0.01687231554181534,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "4.lab_o2_mass_err",
+   "class": "fp64",
+   "local": 0.0,
+   "kaggle": 0.0,
+   "rel": null,
+   "verdict": "both negligible"
+  },
+  {
+   "metric": "4.lab_o2_n",
+   "class": "fp64",
+   "local": 200.0,
+   "kaggle": 200.0,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "4.lab_o2_period_s",
+   "class": "fp64",
+   "local": 4.485701465466374,
+   "kaggle": 4.485701465466374,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "4.lab_o2_relL2_per_period[0]",
+   "class": "fp64",
+   "local": 0.052247642977089045,
+   "kaggle": 0.05224764297708905,
+   "rel": 1.32807788227882e-16,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "4.lab_o2_relL2_per_period[1]",
+   "class": "fp64",
+   "local": 0.09252213466431447,
+   "kaggle": 0.09252213466431447,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "4.lab_o2_relL2_per_period[2]",
+   "class": "fp64",
+   "local": 0.13984026463023488,
+   "kaggle": 0.13984026463023488,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "4.passed",
+   "class": "fp64",
+   "local": 1.0,
+   "kaggle": 1.0,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "5.passed",
+   "class": "fp64",
+   "local": 1.0,
+   "kaggle": 1.0,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "6.default_order",
+   "class": "fp64",
+   "local": 2.0,
+   "kaggle": 2.0,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "6.o1_equilibrium_rel_error",
+   "class": "fp64",
+   "local": 0.0001390365622324155,
+   "kaggle": 0.00013903656223257163,
+   "rel": 1.1229068838508561e-12,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "6.o1_mass_err",
+   "class": "fp64",
+   "local": 1.512885983111582e-16,
+   "kaggle": 2.4206175729785317e-16,
+   "rel": null,
+   "verdict": "both negligible"
+  },
+  {
+   "metric": "6.o1_rising_limb_nrmse",
+   "class": "fp64",
+   "local": 0.12490251025993257,
+   "kaggle": 0.12490251025993274,
+   "rel": 1.333307499962997e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "6.o2_equilibrium_rel_error",
+   "class": "fp64",
+   "local": 0.000253156108985797,
+   "kaggle": 0.00025315610898564087,
+   "rel": 6.167147751772083e-13,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "6.o2_mass_err",
+   "class": "fp64",
+   "local": 1.2571604866899507e-15,
+   "kaggle": 1.493802460655118e-15,
+   "rel": null,
+   "verdict": "both negligible"
+  },
+  {
+   "metric": "6.o2_rising_limb_nrmse",
+   "class": "fp64",
+   "local": 0.00818371428512319,
+   "kaggle": 0.008183714285123279,
+   "rel": 1.0810604353043399e-14,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "6.passed",
+   "class": "fp64",
+   "local": 1.0,
+   "kaggle": 1.0,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "6.t_equilibrium_s",
+   "class": "fp64",
+   "local": 478.3224327444235,
+   "kaggle": 478.3224327444235,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "7.event_mass_err",
+   "class": "fp64",
+   "local": 6.897042956748e-16,
+   "kaggle": 8.440437184831465e-16,
+   "rel": null,
+   "verdict": "both negligible"
+  },
+  {
+   "metric": "7.exchange_only_worst_rel",
+   "class": "fp64",
+   "local": 7.962285051070764e-14,
+   "kaggle": 7.962285051070764e-14,
+   "rel": null,
+   "verdict": "both negligible"
+  },
+  {
+   "metric": "7.exchanged_1d_to_2d_m3",
+   "class": "fp64",
+   "local": 127149.20842896267,
+   "kaggle": 127149.20842896271,
+   "rel": 3.4334264620680424e-16,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "7.exchanged_2d_to_1d_m3",
+   "class": "fp64",
+   "local": 127094.44141398181,
+   "kaggle": 127094.44141398185,
+   "rel": 3.4349059801051156e-16,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "7.final_2d_volume_m3",
+   "class": "fp64",
+   "local": 54.76701498075154,
+   "kaggle": 54.76701498075155,
+   "rel": 1.2973917530649205e-16,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "7.passed",
+   "class": "fp64",
+   "local": 1.0,
+   "kaggle": 1.0,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "7.peak_2d_volume_m3",
+   "class": "fp64",
+   "local": 124943.75767637728,
+   "kaggle": 124943.7576763773,
+   "rel": 1.164677251508511e-16,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "8.fp32_clip_m3",
+   "class": "fp32",
+   "local": 0.0,
+   "kaggle": 0.0,
+   "rel": null,
+   "verdict": "both negligible"
+  },
+  {
+   "metric": "8.fp32_exchanged_1d_to_2d_m3",
+   "class": "fp32",
+   "local": 428480.70711263147,
+   "kaggle": 428480.66548549855,
+   "rel": 9.715054196115649e-08,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "8.fp32_exchanged_2d_to_1d_m3",
+   "class": "fp32",
+   "local": 1186244.3790665015,
+   "kaggle": 1186244.8073330077,
+   "rel": 3.610270860863015e-07,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "8.fp32_infiltration_m3",
+   "class": "fp32",
+   "local": 2647772.8933102353,
+   "kaggle": 2647772.73657084,
+   "rel": 5.91966916699965e-08,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "8.fp32_mass_err",
+   "class": "fp32",
+   "local": 7.004548298571471e-05,
+   "kaggle": 7.013599531868293e-05,
+   "rel": 0.0012905261065585144,
+   "verdict": "differs, within the fp32 tolerance"
+  },
+  {
+   "metric": "8.fp32_rain_m3",
+   "class": "fp32",
+   "local": 8153853.28807272,
+   "kaggle": 8153853.171434577,
+   "rel": 1.430466546626428e-08,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "8.fp32_steps",
+   "class": "fp32",
+   "local": 40994.0,
+   "kaggle": 40994.0,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "8.fp32_stored_m3",
+   "class": "fp32",
+   "local": 2264208.2042103293,
+   "kaggle": 2264207.936037879,
+   "rel": 1.184398368776181e-07,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "8.fp32_wall_s",
+   "class": "hardware",
+   "local": 294.0445108999993,
+   "kaggle": 492.96445884099967,
+   "rel": 0.4035178284630857,
+   "verdict": "hardware (not evidence)"
+  },
+  {
+   "metric": "8.fp64_clip_m3",
+   "class": "fp64",
+   "local": 0.0,
+   "kaggle": 0.0,
+   "rel": null,
+   "verdict": "both negligible"
+  },
+  {
+   "metric": "8.fp64_exchanged_1d_to_2d_m3",
+   "class": "fp64",
+   "local": 428538.37319170724,
+   "kaggle": 428538.37319170777,
+   "rel": 1.2224551661954728e-15,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "8.fp64_exchanged_2d_to_1d_m3",
+   "class": "fp64",
+   "local": 1186291.5112686679,
+   "kaggle": 1186291.5112686674,
+   "rel": 3.925352941367188e-16,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "8.fp64_infiltration_m3",
+   "class": "fp64",
+   "local": 2647771.394965788,
+   "kaggle": 2647771.3949657865,
+   "rel": 5.276074303768465e-16,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "8.fp64_mass_err",
+   "class": "fp64",
+   "local": 3.276340359397308e-15,
+   "kaggle": 3.4487793256813787e-15,
+   "rel": null,
+   "verdict": "both negligible"
+  },
+  {
+   "metric": "8.fp64_rain_m3",
+   "class": "fp64",
+   "local": 8153993.364876904,
+   "kaggle": 8153993.3648769,
+   "rel": 4.568669769230493e-16,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "8.fp64_steps",
+   "class": "fp64",
+   "local": 40995.0,
+   "kaggle": 40995.0,
+   "rel": 0.0,
+   "verdict": "identical"
+  },
+  {
+   "metric": "8.fp64_stored_m3",
+   "class": "fp64",
+   "local": 2264214.1408947124,
+   "kaggle": 2264214.140894713,
+   "rel": 2.0566132809493514e-16,
+   "verdict": "round-off"
+  },
+  {
+   "metric": "8.fp64_wall_s",
+   "class": "hardware",
+   "local": 403.15234220000275,
+   "kaggle": 487.3935435960002,
+   "rel": 0.1728402078830672,
+   "verdict": "hardware (not evidence)"
+  },
+  {
+   "metric": "8.passed",
+   "class": "fp64",
+   "local": 1.0,
+   "kaggle": 1.0,
+   "rel": 0.0,
+   "verdict": "identical"
+  }
+ ],
+ "flipped": [],
+ "counts": {
+  "fp64": 188,
+  "fp32": 8,
+  "hardware": 2
+ },
+ "sensitivity_used": true,
+ "local_provenance": {
+  "source": "SYNTHETIC",
+  "config_hash": "ec488c74bcba1145",
+  "seed": 20260917,
+  "git_commit": "ea3006a-dirty",
+  "timestamp": "2026-09-19T03:30:21Z",
+  "device": "cuda",
+  "precision": "fp64",
+  "engine": "engine",
+  "notes": [
+   "analytical verification suite"
+  ]
+ },
+ "here_provenance": {
+  "source": "SYNTHETIC",
+  "config_hash": "ec488c74bcba1145",
+  "seed": 20260917,
+  "git_commit": "e9ad14d",
+  "timestamp": "2026-09-20T08:05:29Z",
+  "device": "cuda",
+  "precision": "fp64",
+  "engine": "engine",
+  "notes": [
+   "analytical verification suite"
+  ]
+ }
+}

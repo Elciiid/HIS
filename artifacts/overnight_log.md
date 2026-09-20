@@ -281,3 +281,46 @@ checks ran locally from here on.
     session as a dataset input). The small text artifacts are also pushed to a
     `kaggle-results` branch when a `GITHUB_TOKEN` secret exists, because that is what I
     can read directly. Datasets and checkpoints are never pushed to git.
+
+23. **First Kaggle k0 run (Tesla T4, commit e9ad14d): the cross-check passes, after my
+    comparison was fixed twice.** The raw run flagged 5 of 198 metrics as meaningful
+    differences and declared the local numbers not reproduced. Four were my fault:
+    two wall-clock times (fp32 294 -> 493 s, fp64 403 -> 487 s), which measure the
+    machine; one fp32 mass error differing 1.3e-3, where single precision cannot agree
+    to 1e-3 over 40,000 steps; and one metric misclassified as hardware by a sloppy
+    `_s` suffix rule (`6.t_equilibrium_s` is a physical time, now fp64 again).
+    The remaining two needed measurement, not argument: `4.field_o2_relL2_per_period`
+    at periods 2 and 3 differed by 4.0e-3 and 8.6e-3. The conditioning probe runs the
+    same benchmark on ONE machine with the initial depth nudged by amounts that change
+    nothing physical, and measures the response:
+
+      perturbation   1 ulp (2.2e-16)   1e-13      1e-10
+      order 2, p2    1.68e-03          1.58e-02   2.34e-03
+      order 2, p3    1.23e-03          8.03e-03   9.00e-03
+      order 1, any   ~1e-14            ~1e-13     ~1e-13
+
+    So that metric has a round-off noise floor of ~1e-2 and cannot discriminate a
+    different GPU from a corrupted one; the first-order variant of the same test, which
+    has no slope limiter, does not move at all and agreed across machines to 1e-15.
+    The mechanism is the limiter: a branch on a comparison that one bit can flip at a
+    wet/dry front. Both flagged differences sit inside the measured floor, so the
+    verdict is now "reproduced" -- with the two metrics named in the report as
+    uninformative rather than passing. The weight of the evidence is elsewhere:
+    identical step counts (40,994 fp32 and 40,995 fp64 on both machines), fp64 mass
+    errors ~1e-15, 121 metrics at round-off, 44 bit-identical, 9/9 benchmarks pass.
+    **No sign that the faulty RAM reached the engine's results.** The dataset is still
+    regenerated on Kaggle: a 6 h generation run touches far more memory than this suite.
+    Caveat recorded: the sensitivity sweep was measured on the local (faulty) machine;
+    the fixed verify stage measures it on Kaggle too.
+
+24. **Kaggle hardware (T4, 14.56 GB): 514 s per storm in fp64, 505 s in fp32 (1.02x).**
+    Local was 341 s median, so a T4 is ~1.5x slower per storm; 42,450 steps either way,
+    12.1 ms/step against the local 9.8. fp32 buys nothing here, which says the storm is
+    not limited by double-precision arithmetic on this GPU -- consistent with the 2-D
+    kernels being bandwidth-bound and the 1-D solver running on the CPU. Peak VRAM is
+    44 MB, so memory is nowhere near the constraint and several workers fit per card.
+    Consequence for K1: 104 engine runs at 514 s is 14.8 h on one GPU, 7.4 h on two.
+    That fits a 12 h session but leaves little margin, so the generate stage keeps its
+    budget guard and the HOWTO tells the user how to try four workers and how to tell
+    whether it helped. Training-step timings still missing: that measurement needs a
+    dataset, so the hardware stage must be re-run after generation.

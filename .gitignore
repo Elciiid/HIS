@@ -47,3 +47,5 @@ artifacts/diagnostics/*
 !artifacts/diagnostics/*.jsonl
 !artifacts/phase2_paired.json
 !artifacts/conditioning_probe_local.json
+!artifacts/verify_comparison_kaggle.md
+!artifacts/verify_comparison_kaggle.json
