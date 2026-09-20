@@ -38,7 +38,8 @@ REPO_URL = os.environ.get("HIS_REPO_URL", "https://github.com/Elciiid/HIS.git")
 WORK = Path(os.environ.get("HIS_WORK", "/kaggle/working"))
 SECRET_NAME = "GITHUB_TOKEN"          # the Kaggle Secret the private-repo clone and push use
 RESULTS_BRANCH = "kaggle-results"
-STAGES = ("env", "verify", "hardware", "storage", "generate", "train", "evaluate", "diagnose", "k0")
+STAGES = ("env", "verify", "hardware", "storage", "precision", "generate", "train", "evaluate",
+          "diagnose", "k0")
 
 
 # ---------------------------------------------------------------------------
@@ -249,6 +250,12 @@ def stage_hardware(repo: Path, args, info: dict) -> None:
 def stage_storage(repo: Path, args, info: dict) -> None:
     """K0.2's verification: what the storage format costs, measured on one storm."""
     cli(repo, args, "--config", args.config, "storage-check", log="storage_check.log")
+
+
+def stage_precision(repo: Path, args, info: dict) -> None:
+    """Task B: float32 against float64 on the fixed engine, judged by the agreement criteria
+    in hydrointel/criteria.py. Six full-resolution storms, so it is its own session."""
+    cli(repo, args, "--config", args.config, "precision-study", "--v2", log="precision_v2.log")
 
 
 def stage_generate(repo: Path, args, info: dict) -> None:

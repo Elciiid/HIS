@@ -185,6 +185,7 @@ Run them in this order, one session each, `--resume-from` the previous output:
 
 | stage | what it produces | when to stop and send me results |
 |---|---|---|
+| `precision` | `precision_study_v2.md`: whether float32 is safe for generation under the new criteria (six full-resolution storms, ~1.5 h locally) | always |
 | `generate` | `artifacts/dataset/<hash>/` and `.../baseline/` | when the log says all pairs are done |
 | `train` | `artifacts/model/<hash>/` (checkpoints, curves) | when it reports `training done` |
 | `evaluate` | `artifacts/validation_report.md` | always — this holds Gate 1 |
