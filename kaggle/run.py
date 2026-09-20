@@ -334,11 +334,24 @@ def stage_generate(repo: Path, args, info: dict) -> None:
     """K1: a paired dataset, as much of it as this session's budget allows. Storms first, then
     their baselines, each across every GPU the session has; the merge writes the envelope and
     the dataset card, which need the whole index."""
-    parallel_cli(repo, args, "--config", args.config, "generate", "--budget-hours", str(args.budget_hours),
+    # --budget-hours is the budget for the STAGE, not for each half of it. The two phases run
+    # sequentially in separate processes, each building its own Budget, so handing both the whole
+    # figure would let the storms eat a session the baselines still need -- and a storm without
+    # its baseline is not a pair, so it is wasted work. Storms get half; the baselines get
+    # whatever is actually left, which is more than half whenever the storm pool ran out first.
+    t0 = time.perf_counter()
+    half = args.budget_hours / 2.0
+    parallel_cli(repo, args, "--config", args.config, "generate", "--budget-hours", f"{half:.3f}",
                  log="generate.log")
     cli(repo, args, "--config", args.config, "merge-shards", log="generate.log")
+    left = args.budget_hours - (time.perf_counter() - t0) / 3600.0
+    print(f"[generate] storms took {(time.perf_counter() - t0) / 3600.0:.2f} h of {args.budget_hours} h; "
+          f"{left:.2f} h left for their baselines", flush=True)
+    if left <= 0.1:
+        print("[generate] no time left for baselines: re-run the stage, it resumes", flush=True)
+        return
     parallel_cli(repo, args, "--config", args.config, "generate-baselines",
-                 "--budget-hours", str(args.budget_hours), log="baselines.log")
+                 "--budget-hours", f"{left:.3f}", log="baselines.log")
     cli(repo, args, "--config", args.config, "merge-shards", log="generate.log")
 
 

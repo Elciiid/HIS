@@ -184,7 +184,8 @@ absence of those pairs is a direct cause of the surrogate's failure to learn wha
 intervention does.
 
 1. Start a **new session** (or the same notebook; see section 9 for chaining) with
-   `STAGE = "generate"` and `BUDGET_HOURS = 10.5` if your session limit is 12 hours.
+   `STAGE = "generate"`, `WORKERS = 2` (what section 6b measured) and `BUDGET_HOURS = 10.5`
+   if your session limit is 12 hours.
 2. Use **Save & Run All (Commit)** for this one — see section 8.
 
 The stage refuses to start if `k0`'s benchmark record is missing, and it refuses to start if
@@ -196,10 +197,14 @@ It writes one record per storm and updates the index immediately, so a session t
 loses at most the storm in flight. When the budget is nearly used it stops cleanly and says
 so, rather than being killed mid-storm. Re-running continues where it left off.
 
-**How many storms fit** is computed from the seconds per storm that `k0` measured, keeping 20%
-of the session in reserve. At the local machine's 341 s per storm and two T4s running in
-parallel, one 12-hour session should fit the whole 60-storm paired set (104 engine runs, about
-5 hours). The log prints the projection before the first storm.
+**How many storms fit** is computed from the seconds per storm the engine actually measures,
+keeping 20% of the phase in reserve. `--budget-hours` is the budget for the **whole stage**:
+the storms get half of it and the baselines get whatever is left when the storms are done,
+because a storm without its baseline is not a pair and is wasted work. On two T4s with two
+workers a storm costs 557 s of wall clock per worker (12.91 storms/hour overall, measured),
+so `BUDGET_HOURS = 10.5` should produce roughly **54 of the 60 pairs in about 8.5 hours**.
+Re-running the stage fills in the rest; nothing is regenerated. The log prints the projection
+before the first storm and says how much time it handed to the baselines.
 
 **Watching two workers.** The stage prints `[parallel] 2 workers started` and then goes quiet,
 because each worker writes its own log: `generate.log.gpu0` and `generate.log.gpu1` in the
