@@ -134,6 +134,28 @@ def cmd_step_demand(cfg, args) -> int:
     return 0
 
 
+def cmd_kaggle_hardware(cfg, args) -> int:
+    from .kaggle_support import hardware_study
+    d = hardware_study(cfg, storms=args.storms)
+    print(f"report: {Path(cfg.outdir) / 'kaggle_hardware.md'}")
+    print(f"{d['info']['gpu']}: {d['s_per_storm_fp64']:.0f} s per storm in fp64, "
+          f"{d['s_per_storm_fp32']:.0f} s in fp32 ({d['fp32_speedup']:.2f}x)")
+    if d.get("full_resolution_fits") is not None:
+        print("full 20 m training " + ("FITS" if d["full_resolution_fits"] else "does NOT fit") + " on this GPU")
+    return 0
+
+
+def cmd_storage_check(cfg, args) -> int:
+    from .kaggle_support import storage_check
+    d = storage_check(cfg, sim_id=args.sim)
+    print(f"report: {Path(cfg.outdir) / 'storage_check.md'}")
+    m = d["metrics"]
+    print(f"stored record is {100 * d['size_ratio']:.0f}% of full fidelity; depth RMSE "
+          f"{m['depth_rmse_wet_m']:.2e} m, peak field {m['peak_field_max_abs_m']:.2e} m, "
+          f"identical={m['identical']}")
+    return 0
+
+
 def cmd_diagnose(cfg, args) -> int:
     from . import diagnostics as D
     for part in (["a1", "a3", "a4", "a5"] if args.part == "all" else [args.part]):
@@ -145,7 +167,7 @@ def cmd_diagnose(cfg, args) -> int:
 
 def cmd_generate_baselines(cfg, args) -> int:
     from .data.paired import generate_baselines
-    print(f"index: {generate_baselines(cfg, limit=args.limit)}")
+    print(f"index: {generate_baselines(cfg, limit=args.limit, budget_hours=args.budget_hours)}")
     return 0
 
 
@@ -155,7 +177,7 @@ def cmd_generate(cfg, args) -> int:
     idx = dataset_dir(cfg) / "index.json"
     _eta(f"dataset generation ({cfg.data.n_sims} sims)",
          _recorded(idx, lambda d: (cfg.data.n_sims - len(d)) * sum(v["wall_s"] for v in d.values()) / len(d)))
-    out = generate(cfg, check_benchmarks=not args.skip_benchmark_check)
+    out = generate(cfg, check_benchmarks=not args.skip_benchmark_check, budget_hours=args.budget_hours)
     print(f"dataset: {out}")
     return 0
 
@@ -231,7 +253,12 @@ def main(argv=None) -> int:
     sub.add_parser("predict-speed")
     sub.add_parser("cost")
     sub.add_parser("step-demand")
+    kh = sub.add_parser("kaggle-hardware"); kh.add_argument("--storms", type=int, default=1)
+    kh.add_argument("--quick", action="store_true")
+    sc = sub.add_parser("storage-check"); sc.add_argument("--sim", type=int, default=0)
+    sc.add_argument("--quick", action="store_true")
     gb = sub.add_parser("generate-baselines"); gb.add_argument("--limit", type=int)
+    gb.add_argument("--budget-hours", type=float, help="stop cleanly before this much wall time")
     dg = sub.add_parser("diagnose"); dg.add_argument("--part", choices=["a1", "a3", "a4", "a5", "c5", "c3_speed", "all"], default="all")
     bs = sub.add_parser("batch-study")
     bs.add_argument("--quick", action="store_true")
@@ -242,6 +269,7 @@ def main(argv=None) -> int:
     bs.add_argument("--full-hours", type=float, help="truncate the full-length stage to this many simulated hours")
     g = sub.add_parser("generate"); g.add_argument("--quick", action="store_true")
     g.add_argument("--skip-benchmark-check", action="store_true", help=argparse.SUPPRESS)
+    g.add_argument("--budget-hours", type=float, help="stop cleanly before this much wall time")
     t = sub.add_parser("train"); t.add_argument("--quick", action="store_true"); t.add_argument("--resume", action="store_true")
     e = sub.add_parser("evaluate"); e.add_argument("--quick", action="store_true"); e.add_argument("--calibrate", action="store_true")
     f = sub.add_parser("figures")
@@ -266,12 +294,13 @@ def main(argv=None) -> int:
     args.skip_benchmark_check = getattr(args, "skip_benchmark_check", False)
     args.resume = getattr(args, "resume", False)
     for name, default in (("stage", "all"), ("batch", None), ("full_storms", None), ("sequential", 4),
-                          ("full_hours", None)):
+                          ("full_hours", None), ("budget_hours", None), ("storms", 1), ("sim", 0), ("limit", None)):
         setattr(args, name, getattr(args, name, default))
     t0 = time.perf_counter()
     rc = {"benchmark": cmd_benchmark, "precision-study": cmd_precision_study,
           "batch-study": cmd_batch_study, "grouping-study": cmd_grouping_study,
-          "predict-speed": cmd_predict_speed, "cost": cmd_cost, "step-demand": cmd_step_demand, "diagnose": cmd_diagnose, "generate-baselines": cmd_generate_baselines, "generate": cmd_generate,
+          "predict-speed": cmd_predict_speed, "cost": cmd_cost, "step-demand": cmd_step_demand, "diagnose": cmd_diagnose, "kaggle-hardware": cmd_kaggle_hardware,
+          "storage-check": cmd_storage_check, "generate-baselines": cmd_generate_baselines, "generate": cmd_generate,
           "train": cmd_train, "evaluate": cmd_evaluate, "figures": cmd_figures, "all": cmd_all}[args.command](cfg, args)
     print(f"done in {(time.perf_counter() - t0) / 60:.1f} min")
     return rc

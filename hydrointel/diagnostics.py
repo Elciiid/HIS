@@ -296,12 +296,17 @@ def run_a1(cfg, device=None) -> dict:
         base = api.baseline_site(scen)
         rec = test.load(sid)
         pk_e = np.asarray(rec["depth_max_full"])
-        cache = mdir / "effects" / f"test_base_{sid}.pt"
-        if not cache.exists():
-            raise FileNotFoundError(f"{cache}: the engine baseline for test {sid} is not cached; run evaluate first")
-        pk_e0, _ = _engine_peak(base, scen, cache)
+        from .evaluate_effects import paired_baseline_peak
+        pk_e0 = paired_baseline_peak(cfg, sid)
+        if pk_e0 is None:
+            cache = mdir / "effects" / f"test_base_{sid}.pt"
+            if not cache.exists():
+                raise FileNotFoundError(f"{cache}: no engine baseline for test {sid} -- generate the paired "
+                                        "baselines, or run evaluate first to cache it")
+            pk_e0, _ = _engine_peak(base, scen, cache)
         sur = api.predict([site, base], scen)
-        h = torch.as_tensor(np.asarray(rec["h"]), dtype=torch.float32, device=builder.device)
+        # the record may be stored on a finer grid than the model: same averaging as training
+        h = torch.as_tensor(builder.snapshots(rec)[0], dtype=torch.float32, device=builder.device)
         ser = builder.upsample(h).amax(0).cpu().numpy()
         one(f"test {sid}", "test", pk_e, pk_e0, sur[0].depth_max.numpy(), sur[1].depth_max.numpy(), ser)
     scen, base, sites = single_field_sites(edge_probe(0, dom, cfg, cfg.seed), dom, ctx, cfg)
@@ -701,7 +706,7 @@ def run_c5(cfg, device=None) -> dict:
         h, y1, vols, b = decode_coarse(model, builder, site, scen, times)
         s = volume_scale(h, y1, vols, b, builder, land_c)
         hc = h * torch.where(land_c, s, 1.0)
-        h_e = torch.as_tensor(np.asarray(rec["h"]), device=builder.device).reshape(len(times), -1)
+        h_e = torch.as_tensor(builder.snapshots(rec)[0], device=builder.device).reshape(len(times), -1)
         L = land_c[None].expand_as(h_e)
         wet = L & (h_e > 0.05)
         row = {"sim": sid, "scale": s}
@@ -724,8 +729,11 @@ def run_c5(cfg, device=None) -> dict:
                         "implied_mass_err": md["reported"], "field_vs_true_sources": md["field_vs_true_sources"],
                         "_pk": pk}
         if not smp.baseline:
+            from .evaluate_effects import paired_baseline_peak
             base = api.baseline_site(scen)
-            pk_e0, _ = _engine_peak(base, scen, api.engine_cache_dir(cfg) / "effects" / f"test_base_{sid}.pt")
+            pk_e0 = paired_baseline_peak(cfg, sid)
+            if pk_e0 is None:
+                pk_e0, _ = _engine_peak(base, scen, api.engine_cache_dir(cfg) / "effects" / f"test_base_{sid}.pt")
             h0, y10, vols0, b0 = decode_coarse(model, builder, base, scen, times)
             s0 = volume_scale(h0, y10, vols0, b0, builder, land_c)
             for tag, hh0 in (("before", h0), ("after", h0 * torch.where(land_c, s0, 1.0))):

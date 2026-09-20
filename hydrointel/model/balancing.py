@@ -9,6 +9,8 @@ All lambdas are logged so a reviewer can see them evolve.
 """
 from __future__ import annotations
 
+import math
+
 import torch
 
 
@@ -28,13 +30,23 @@ class GradNormBalancer:
 
     @staticmethod
     def _norm(loss, params):
+        """Gradient norm of one loss term. Returns 0.0 when it is not finite: under mixed
+        precision a term's gradients can overflow, and a non-finite norm carries no
+        information about how to weight it -- the weight must then stay as it was, not become
+        inf and take the whole loss with it."""
         grads = torch.autograd.grad(loss, params, retain_graph=True, allow_unused=True)
         sq = sum((g.detach().float() ** 2).sum() for g in grads if g is not None)
-        return float(torch.sqrt(sq)) if torch.is_tensor(sq) else 0.0
+        if not torch.is_tensor(sq):
+            return 0.0
+        n = float(torch.sqrt(sq))
+        return n if math.isfinite(n) else 0.0
 
     def update(self, data_loss, terms: dict, params) -> None:
         params = [p for p in params if p.requires_grad]
         gd = self._norm(data_loss, params)
+        if gd <= 0.0:                      # no usable reference this step: keep every weight
+            self.initialised = True
+            return
         for n in self.names:
             if n not in terms or not terms[n].requires_grad:
                 continue

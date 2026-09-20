@@ -10,10 +10,10 @@ Two model forms, chosen by ``cfg.model.two_stage``:
 
 The effect loss is a relative error on the depth change at the query times,
 
-    L_eff = mean((dh_pred - dh_true)^2) / (mean(dh_true^2) + (1 mm / H0)^2)
+    L_eff = mean((dh_pred - dh_true)^2) / max(mean(dh_true^2), (2 cm / H0)^2)
 
 so a storm whose design moves depths by 2 cm counts as much as one that moves them
-by 20 cm, and predicting "no change" everywhere costs 1, not ~0. It is balanced
+by 20 cm, and predicting "no change" everywhere costs ~1, not ~0. It is balanced
 with the physics terms but its weight is floored at ``cfg.train.effect_floor`` x
 lambda_data, so the balancing cannot suppress it the way it could any other term.
 
@@ -73,7 +73,8 @@ class PairedTrainer(Trainer):
         for k, v in pidx.items():
             if v.get("status") == "failed_numerical" or v["source"] == "eval_cache":
                 continue
-            p = self.root / f"sim_{int(k):05d}.pt" if v["source"] == "self" else pair_dir(cfg) / v["record"]
+            from .data.generate import record_path
+            p = record_path(self.root, int(k)) if v["source"] == "self" else pair_dir(cfg) / v["record"]
             if p.exists():
                 self.base_path[int(k)] = p
         self.train_ids = [i for i in self.train_ds.ids if i in self.base_path]
@@ -95,8 +96,8 @@ class PairedTrainer(Trainer):
         if sid not in self._base_recs:
             if len(self._base_recs) >= 12:
                 self._base_recs.pop(next(iter(self._base_recs)))
-            rec = torch.load(self.base_path[sid], weights_only=False, mmap=True)
-            self._base_recs[sid] = self.builder.from_record(rec)
+            from .data.generate import load_record
+            self._base_recs[sid] = self.builder.from_record(load_record(self.base_path[sid]))
         return self._base_recs[sid]
 
     def mod_batch(self, ds: SimDataset, sid: int) -> dict:
@@ -239,7 +240,7 @@ class PairedTrainer(Trainer):
             if bal1 is not None and physics and bal1.due(self._step):
                 bal1.update(t1["data"], {k: v for k, v in t1.items() if k != "data"}, m.stage1.parameters())
             tot1 = t1["data"] if data_only else self.weighted(t1, bal1, ramp)
-            self._check(tot1, t1)
+            self._check(tot1, t1, bal1.lam if bal1 else None)
             scaler.scale(tot1).backward()
             t2, _ = self.stage2_terms(b1, b0, x2s.detach(), x1s.detach(), qi, physics, amp)
             p2 = m.stage2.parameters()
@@ -248,7 +249,7 @@ class PairedTrainer(Trainer):
             if bal1 is not None and physics and bal1.due(self._step):
                 bal1.update(t1["data"], {k: v for k, v in t1.items() if k != "data"}, params)
             tot1 = t1["data"] if data_only else self.weighted(t1, bal1, ramp)
-            self._check(tot1, t1)
+            self._check(tot1, t1, bal1.lam if bal1 else None)
             scaler.scale(tot1).backward()
             t2, _ = self.single_terms(b1, b0, qi, physics, amp)
             p2 = params
@@ -257,15 +258,17 @@ class PairedTrainer(Trainer):
             bal2.update(t2["data"], {k: v for k, v in t2.items() if k != "data"}, p2)
         tot2 = (t2["data"] + t2["effect"] * (bal2.lam["effect"] if bal2 else 1.0)) if data_only \
             else self.weighted(t2, bal2, ramp)
-        self._check(tot2, t2)
+        self._check(tot2, t2, bal2.lam if bal2 else None)
         scaler.scale(tot2).backward()
         self._last = (t1, t2, tot1, tot2)
         return float(t1["data"].detach() + t2["data"].detach()), float(t2["effect"].detach())
 
     @staticmethod
-    def _check(total, terms):
+    def _check(total, terms, lam: dict | None = None):
         if not torch.isfinite(total):
-            raise FloatingPointError("non-finite loss: " + ", ".join(f"{k}={float(v):.3g}" for k, v in terms.items()))
+            raise FloatingPointError(
+                "non-finite loss: " + ", ".join(f"{k}={float(v):.3g}" for k, v in terms.items())
+                + (" | weights: " + ", ".join(f"{k}={v:.3g}" for k, v in lam.items()) if lam else ""))
 
     # ------------------------------------------------------------------ train
     def train(self, resume: bool = False) -> Path:
@@ -296,6 +299,7 @@ class PairedTrainer(Trainer):
             log.info("resumed at step %d", step)
         t0 = time.perf_counter()
         start_step = step
+        last_ckpt = time.perf_counter()
         model.train()
         torch.cuda.reset_peak_memory_stats() if torch.cuda.is_available() else None
         while step < tc.steps:
@@ -338,7 +342,11 @@ class PairedTrainer(Trainer):
                     best = val["select"]
                     self._save(self.out / "best.pt")
                 model.train()
-            if step % tc.ckpt_every == 0 or step == tc.steps:
+            due = step % tc.ckpt_every == 0 or step == tc.steps
+            if tc.ckpt_seconds and time.perf_counter() - last_ckpt >= tc.ckpt_seconds:
+                due = True                     # a session can be killed without warning
+            if due:
+                last_ckpt = time.perf_counter()
                 torch.save({"model": model.state_dict(), "opt": opt.state_dict(), "sched": sched.state_dict(),
                             "scaler": scaler.state_dict(), "bal1": bal1.state_dict(), "bal2": bal2.state_dict(),
                             "step": step, "curves": curves, "best": best, "rng": rng.getstate(),

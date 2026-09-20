@@ -40,6 +40,23 @@ AFFECTED_M = 0.01
 AREA_THRESHOLDS = (0.15, 0.30, 0.50)
 
 
+def paired_baseline_peak(cfg, sim_id: int) -> np.ndarray | None:
+    """Peak depth from the paired baseline run of storm ``sim_id``, if the dataset has one.
+
+    The paired generator runs exactly the engine baseline the effect comparison needs (same
+    scenario, no interventions), so reusing its record saves a full engine run per test storm --
+    about six minutes each, which matters inside a fixed-length Kaggle session."""
+    from .data.generate import load_record, record_path
+    from .data.paired import pair_dir
+    p = record_path(pair_dir(cfg), sim_id)
+    if not p.exists():
+        return None
+    rec = load_record(p)
+    if not bool(rec["meta"].get("baseline")):
+        return None
+    return np.asarray(rec["depth_max_full"])
+
+
 def _engine_peak(site, scen, cache: Path) -> tuple[np.ndarray, float]:
     """Engine peak depth for (site, scenario), cached on disk: each costs a full storm."""
     if cache.exists():
@@ -140,7 +157,11 @@ def run(cfg, ctx, test_ids, mdir: Path, probe_sample) -> dict:
         from .data.dataset import SimDataset
         rec = SimDataset(api.dataset_dir(cfg), "test").load(sid)
         pk_e = np.asarray(rec["depth_max_full"])
-        pk_e0 = engine(base, scen, mdir / "effects" / f"test_base_{sid}.pt", f"test {sid} baseline")
+        pk_e0 = paired_baseline_peak(cfg, sid)
+        if pk_e0 is None:
+            pk_e0 = engine(base, scen, mdir / "effects" / f"test_base_{sid}.pt", f"test {sid} baseline")
+        else:
+            log.info("test %d: engine baseline taken from the paired dataset (no rerun)", sid)
         if pk_e0 is None:
             continue
         sur = api.predict([site, base], scen)

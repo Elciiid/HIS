@@ -34,7 +34,7 @@ import torch
 from .. import api
 from ..config import RunConfig, seed_everything
 from . import sampler as SMP
-from .generate import FAILED, _write_sim
+from .generate import Budget, FAILED, _write_sim, check_capacity, measured_s_per_storm, record_path
 
 log = logging.getLogger("hydrointel.data")
 
@@ -83,7 +83,8 @@ def plan(cfg: RunConfig, dom, index: dict, eval_cache: Path | None) -> list[dict
     return [r for r in rows if r["source"] != "engine"] + order
 
 
-def generate_baselines(cfg: RunConfig, device=None, limit: int | None = None) -> Path:
+def generate_baselines(cfg: RunConfig, device=None, limit: int | None = None,
+                       budget_hours: float | None = None) -> Path:
     from ..model.geokan_pino import model_dir
     from ..solver.coupling import NumericalInstabilityError
     seed_everything(cfg.seed)
@@ -95,24 +96,31 @@ def generate_baselines(cfg: RunConfig, device=None, limit: int | None = None) ->
     out.mkdir(parents=True, exist_ok=True)
     ip = out / "index.json"
     pidx = json.loads(ip.read_text(encoding="utf-8")) if ip.exists() else {}
-    f = cfg.data.coarsen
+    f = cfg.store_factor
     rows = plan(cfg, dom, index, api.engine_cache_dir(cfg) / "effects")
     eng = [r for r in rows if r["source"] == "engine"]
-    done = [r for r in eng if (out / f"sim_{r['sim']:05d}.pt").exists()]
+    done = [r for r in eng if record_path(out, r["sim"]).exists()]
     todo = [r for r in eng if r not in done and pidx.get(str(r["sim"]), {}).get("status") != FAILED]
     if limit is not None:
         todo = todo[:limit]
+    check_capacity(cfg, dom, len(index) + len(eng))
     log.info("paired baselines: %d storms; %d are baseline samples (self), %d reuse an evaluation run, "
              "%d need the engine (%d already done, %d to run now)", len(rows),
              sum(r["source"] == "self" for r in rows), sum(r["source"] == "eval_cache" for r in rows),
              len(eng), len(done), len(todo))
     for r in rows:
         if r["source"] != "engine":
-            pidx[str(r["sim"])] = {**r, "record": ("../" + f"sim_{r['sim']:05d}.pt") if r["source"] == "self"
+            pidx[str(r["sim"])] = {**r, "record": ("../" + record_path(root, r["sim"]).name) if r["source"] == "self"
                                    else str(api.engine_cache_dir(cfg) / "effects" / f"test_base_{r['sim']}.pt")}
     ip.write_text(json.dumps(pidx, indent=1), encoding="utf-8")
     t_start = time.perf_counter()
+    budget = Budget(budget_hours, assume_s=measured_s_per_storm(cfg))
+    log.info("baseline budget: %s", budget.note())
     for n_done, r in enumerate(todo, 1):
+        if not budget.room_for_another():
+            log.warning("stopping cleanly with %d of %d baselines done: %s. Rerun to resume.",
+                        n_done - 1, len(todo), budget.note())
+            break
         sid = r["sim"]
         smp = SMP.draw(sid, dom, cfg.data, cfg.seed, r["split"])
         bs = baseline_sample(smp)
@@ -137,11 +145,12 @@ def generate_baselines(cfg: RunConfig, device=None, limit: int | None = None) ->
             continue
         wall = time.perf_counter() - t0
         sub = {}
-        _write_sim(cfg, dom, f, sid, bs, lu, storage, kappa, manning, gamma, res, out / f"sim_{sid:05d}.pt", sub,
-                   wall, wall, 1)
+        path = record_path(out, sid, cfg.data.compress_records)
+        _write_sim(cfg, dom, f, sid, bs, lu, storage, kappa, manning, gamma, res, path, sub, wall, wall, 1)
         peak_mb = torch.cuda.max_memory_allocated() / 2 ** 20 if torch.cuda.is_available() else None
-        pidx[str(sid)] = {**r, **sub[str(sid)], "record": f"sim_{sid:05d}.pt", "pair_of": sid, "peak_gpu_mb": peak_mb}
+        pidx[str(sid)] = {**r, **sub[str(sid)], "record": path.name, "pair_of": sid, "peak_gpu_mb": peak_mb}
         ip.write_text(json.dumps(pidx, indent=1), encoding="utf-8")
+        budget.record(wall)
         el = time.perf_counter() - t_start
         log.info("baseline %d/%d for storm %d (%s, RP%d): %.0f s, mass err %.1e, peak GPU %.0f MB; %.2f h elapsed, "
                  "%.2f h to go at this rate", n_done, len(todo), sid, r["split"], r["rp"], wall,

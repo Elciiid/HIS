@@ -147,9 +147,13 @@ def score(pred: api.FloodResult, eng: dict, dom, f: int, pts, builder) -> dict:
     return out
 
 
-def _eng_record(rec) -> dict:
+def _eng_record(rec, builder=None) -> dict:
+    """The engine record as the model grid sees it. A dataset may store its snapshots on a
+    finer grid than the model trains on, so they go through the same block-averaging the
+    training inputs use (``builder.snapshots``) before anything is compared."""
     n = lambda a: a.numpy() if torch.is_tensor(a) else np.asarray(a)
-    return {"h": n(rec["h"]), "u": n(rec["u"]), "v": n(rec["v"]), "times": n(rec["times"]),
+    h, u, v = builder.snapshots(rec) if builder is not None else (n(rec["h"]), n(rec["u"]), n(rec["v"]))
+    return {"h": n(h), "u": n(u), "v": n(v), "times": n(rec["times"]),
             "depth_max_full": n(rec["depth_max_full"]), "q1": n(rec["q1"]),
             "infil": float(rec["volumes"]["infiltrated_m3"]), "stored": float(rec["volumes"]["stored_m3"])}
 
@@ -178,6 +182,7 @@ def evaluate(cfg: RunConfig, device=None, n_probe: int | None = None) -> Path:
     out = Path(cfg.outdir)
     mdir = model_dir(cfg)
     ecache = api.engine_cache_dir(cfg)
+    (ecache / "effects").mkdir(parents=True, exist_ok=True)
     rows = []
     warm = None
     for sid in test.ids:
@@ -194,7 +199,7 @@ def evaluate(cfg: RunConfig, device=None, n_probe: int | None = None) -> Path:
         if ctx.device.type == "cuda":
             torch.cuda.synchronize()
         wall = time.perf_counter() - t0
-        sc = score(pred, _eng_record(rec), dom, f, pts, builder)
+        sc = score(pred, _eng_record(rec, builder), dom, f, pts, builder)
         rows.append({"sim": sid, "kind": "test", "rp": smp.return_period_yr, "baseline": smp.baseline,
                      "edge_score": edge_score(smp, cfg), "engine_wall_s": float(rec["wall_s"]),
                      "surrogate_wall_s": wall, "engine_mass_err": float(rec["mass_balance_error"]),
@@ -455,8 +460,12 @@ def write_validation_report(cfg, ctx, rows, directional, out: Path, mdir: Path, 
     ov = mdir / "overfit_check.json"
     if ov.exists():
         o = json.loads(ov.read_text(encoding="utf-8"))
-        s += (f"Overfit sanity check: data loss on {o['n_samples']} simulations fell from {o['initial_loss']:.4g} "
-              f"to {o['final_loss']:.4g} in {o['steps']} steps ({'passed' if o['passed'] else 'FAILED'}).\n\n")
+        s += (f"Overfit sanity check: data loss on {o.get('n_samples', '?')} simulations fell from "
+              f"{o['initial_loss']:.4g} to {o['final_loss']:.4g} in {o.get('steps', '?')} steps "
+              f"({'passed' if o['passed'] else 'FAILED'}).")
+        if o.get("note"):
+            s += f" Note: {o['note']}."
+        s += "\n\n"
     from .forcing.scenarios import PATHWAY_NOTE, SSP_DEFAULT_RCP
     s += ("## Why the scenario pathways matter\n\n" + PATHWAY_NOTE + " In this system the RCP pathway scales "
           "rainfall and sets sea-level rise; the SSP pathway expands urban land along the road network (raising "

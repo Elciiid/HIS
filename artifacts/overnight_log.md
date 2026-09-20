@@ -229,3 +229,55 @@ never required and should have been (C1).
     new model would have re-run all 19 (about 1.8 h). They depend only on the engine
     config: now artifacts/engine_cache/<dataset hash>/, copied from the Phase 1 model
     directory (originals kept).
+
+---
+
+# Kaggle port (2026-09-20 afternoon): task K0
+
+The local machine has confirmed faulty RAM (two bugchecks, one bucket
+0x1a_61941_PAGE_TABLE_RESERVED_BITS_SET). Code is safe because git checksums every
+object; locally generated data is not. Compute moves to Kaggle; only short code
+checks ran locally from here on.
+
+19. **K0.2's premise did not hold, so the change is different from the one asked for.**
+    The task assumed ~300 MB per storm and a 36 GB paired dataset. Measured: a record
+    is **19.2 MB** (snapshots already fp32, already on the 2x coarse grid, 35 of them,
+    with only the peak-depth field at full resolution), so 60 storms plus 44 baselines
+    is ~2 GB -- it always fitted. What was implemented instead:
+    - **compression on write** (asked for, and worth it): measured 48% smaller
+      (depth series 38%, the Horton series 92%, peak field 90%) for ~0.3 s per record.
+    - **a capacity guard** (asked for): projects the total from the array shapes and
+      refuses to start above 15 GB, or above 60 snapshots per storm.
+    - **snapshot cap**: already satisfied at 35 per storm; asserted rather than changed.
+    - **fp32 snapshots**: already the case regardless of the fp64 solver.
+    - **store_coarsen**, which the task did not ask for: the dataset can now be stored
+      on a finer grid than the model trains on, and the input builder block-averages on
+      load. At full fidelity a record is 39 MB and 104 records are 4.0 GB. This is what
+      makes K2's A1 amendment possible: both the 20 m arm and the 2x arm can train on
+      one dataset. Without it the 2x-stored dataset cannot train a 20 m model at all.
+    - **K0.2's verification**, measured on one storm: on the 2x model grid a record
+      stored at 20 m and averaged down is *bit-identical* to one stored at 2x (depth
+      RMSE 0.0, areas identical), because block averaging composes and gzip is
+      lossless. So the reduction's cost is not accuracy but capability.
+
+20. **Task B's precision study did not finish and is not in the repo.** It was
+    interrupted twice locally (once by the session ending, once by the crash) and no
+    result file was written. It must be re-run on Kaggle; the criteria module and the
+    v2 study code are committed and unit-tested.
+
+21. **Two real bugs found by the end-to-end smoke test** (quick 80 m config, model grid
+    2x over full-fidelity storage, 30 training steps, everything on CPU/GPU in minutes):
+    - the gradient-norm balancer could return a non-finite weight when a term's
+      gradients overflowed under mixed precision, which made the total loss non-finite
+      and killed training. A non-finite norm estimate now leaves the weight unchanged.
+    - the evaluation compared stored snapshots against model-grid predictions without
+      block-averaging them, which only shows up once storage and model grids differ.
+      Every reader of stored snapshots now goes through the same builder path.
+    Also fixed: the engine-cache directory was not created before the first probe was
+    cached, and the report crashed on an overfit record missing a field.
+
+22. **Results come back two ways, deliberately.** Notebook output is primary (always
+    available, no credentials, holds the multi-GB dataset, and chains into the next
+    session as a dataset input). The small text artifacts are also pushed to a
+    `kaggle-results` branch when a `GITHUB_TOKEN` secret exists, because that is what I
+    can read directly. Datasets and checkpoints are never pushed to git.

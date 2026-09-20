@@ -193,6 +193,17 @@ class DataConfig:
     kappa_range: tuple[float, float] = (1.0, 6.0)
     manning_perturb: float = 0.25       # +- fraction
     gamma_range: tuple[float, float] = (0.8, 2.0)
+    # Grid the snapshots are STORED on, as a coarsening factor of the engine grid;
+    # 0 means "the same as coarsen". Storing at 1 (full 20 m fidelity) lets one dataset
+    # train models at any coarser grid, since block-averaging composes: the builder
+    # coarsens a stored record from store_coarsen to coarsen on load. It costs disk.
+    store_coarsen: int = 0
+    # gzip each record on write: measured 48% smaller (depth series 38%, the Horton
+    # series 92%) for ~0.3 s per record. Content is unchanged, so it stays out of the hash.
+    compress_records: bool = True
+    # Use an existing dataset directory instead of the one this config hashes to. Set it
+    # to train two models on identical data (e.g. full resolution against 2x coarse).
+    dataset_dir: str = ""
 
 
 @dataclass
@@ -223,6 +234,9 @@ class TrainConfig:
     log_every: int = 25
     val_every: int = 500
     ckpt_every: int = 1000
+    # Also checkpoint on a wall-clock timer, so a session killed without warning (Kaggle does
+    # this) loses at most this much work regardless of how slow a step is.
+    ckpt_seconds: float = 600.0
     # paired training: every modified storm with its baseline (data/paired.py), and a
     # loss on the effect (modified - baseline) whose weight the balancing may not push
     # below effect_floor x lambda_data
@@ -230,7 +244,9 @@ class TrainConfig:
     effect_floor: float = 0.5
 
 
-HASH_EXEMPT_DEFAULTS = (("model", "two_stage", False), ("train", "paired", False), ("train", "effect_floor", 0.5))
+HASH_EXEMPT_DEFAULTS = (("model", "two_stage", False), ("train", "paired", False), ("train", "effect_floor", 0.5),
+                        ("data", "store_coarsen", 0), ("data", "compress_records", True), ("data", "dataset_dir", ""),
+                        ("train", "ckpt_seconds", 600.0))
 
 
 @dataclass
@@ -257,6 +273,11 @@ class RunConfig:
     def dtype(self):
         import torch
         return torch.float64 if self.solver.precision == "fp64" else torch.float32
+
+    @property
+    def store_factor(self) -> int:
+        """Coarsening factor the dataset's snapshots are stored at."""
+        return int(self.data.store_coarsen or self.data.coarsen)
 
     def to_dict(self) -> dict:
         return _jsonable(dataclasses.asdict(self))

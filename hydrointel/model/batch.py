@@ -19,12 +19,27 @@ from .graph import build_graph
 
 
 class SampleBuilder:
+    """Model inputs on the model grid (``cfg.data.coarsen``), from a dataset stored on the
+    storage grid (``domain.pt``'s ``coarse.factor``, which may be finer).
+
+    Block averaging composes, so a dataset stored at full fidelity can train a model at any
+    coarser grid: everything the record and the static fields hold is averaged by
+    ``k = model factor / storage factor`` on load, and the velocities are averaged weighted
+    by depth, exactly as the generator would have written them.
+    """
+
     def __init__(self, cfg, domain, static: dict, scales: Scales, graph, device):
         self.cfg, self.domain, self.static, self.scales, self.graph = cfg, domain, static, scales, graph
         self.device = device
-        self.f = int(static["coarse"]["factor"])
+        self.store_f = int(static["coarse"]["factor"])
+        self.f = int(cfg.data.coarsen)
+        if self.f % self.store_f:
+            raise ValueError(f"model grid {self.f}x is not a whole multiple of the stored grid "
+                             f"{self.store_f}x: the snapshots cannot be block-averaged onto it")
+        self.k = self.f // self.store_f
         st = static["coarse"]["features"]
         st = st.numpy() if torch.is_tensor(st) else st
+        st = coarsen_mean(np.asarray(st), self.k)
         self.static_feat = st.reshape(st.shape[0], -1)
         self.mean = np.asarray(scales.feat_mean, np.float32)
         self.std = np.asarray(scales.feat_std, np.float32)
@@ -32,9 +47,9 @@ class SampleBuilder:
         self.interior = np.nonzero(topo.kind <= 1)[0]
         self.base_topo = topo
         ny, nx = graph.ny, graph.nx
-        z = static["coarse"]["dem2d"]
-        self.z2 = torch.as_tensor(np.asarray(z), dtype=torch.float32, device=device).reshape(-1)
-        sea = np.asarray(static["coarse"]["sea"])
+        z = coarsen_mean(np.asarray(static["coarse"]["dem2d"]), self.k)
+        self.z2 = torch.as_tensor(z, dtype=torch.float32, device=device).reshape(-1)
+        sea = coarsen_mean(np.asarray(static["coarse"]["sea"]).astype(float), self.k) > 0.5
         ch = coarsen_mean(domain.channel.astype(float), self.f) > 0
         mask = ~(sea | ch)
         mask[0, :] = mask[-1, :] = mask[:, 0] = mask[:, -1] = False
@@ -88,27 +103,45 @@ class SampleBuilder:
             b["horton_mmh"] = T(horton.reshape(horton.shape[0], -1))
         return b
 
+    def snapshots(self, rec: dict) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+        """The record's depth and velocity snapshots on the model grid. Velocities are averaged
+        weighted by depth (the discharge is what averages, not the speed), which reproduces
+        what the generator writes when it stores at the model grid directly."""
+        n = lambda a: a.numpy() if torch.is_tensor(a) else np.asarray(a)
+        h, u, v = n(rec["h"]), n(rec["u"]), n(rec["v"])
+        if self.k == 1:
+            return h, u, v
+        hc = coarsen_mean(h, self.k)
+        safe = np.where(hc > 0, hc, 1.0)
+        uc = np.where(hc > 0, coarsen_mean(h * u, self.k) / safe, 0.0)
+        vc = np.where(hc > 0, coarsen_mean(h * v, self.k) / safe, 0.0)
+        return hc, uc, vc
+
     def from_record(self, rec: dict) -> dict:
         meta, fo = rec["meta"], rec["forcing"]
         from ..forcing.scenarios import ssp_state
         rain = fo["rain_mmh"].numpy()
         series = np.stack([rain / self.scales.rain_scale, fo["tide_m"].numpy(),
                            fo["inflow_m3s"].numpy() / self.scales.inflow_scale])
-        b = self._common(node_dynamic(rec), rec["fields"]["gamma"].numpy(), series, rain,
+        manning_c = coarsen_mean(rec["fields"]["manning"].numpy(), self.k)
+        b = self._common(coarsen_mean(node_dynamic(rec), self.k), rec["fields"]["gamma"].numpy(), series, rain,
                          scalar_features(meta, fo), float(fo["t_end"]),
-                         ssp_state(meta["ssp"]).drainage_investment_factor, fo["horton_rate_mmh"].numpy(),
-                         rec["fields"]["manning"].numpy())
+                         ssp_state(meta["ssp"]).drainage_investment_factor,
+                         coarsen_mean(fo["horton_rate_mmh"].numpy(), self.k), manning_c)
         dev = self.device
         T = lambda a: torch.as_tensor(a.numpy() if torch.is_tensor(a) else a, dtype=torch.float32, device=dev)
-        nt = rec["h"].shape[0]
+        h, u, v = self.snapshots(rec)
+        nt = h.shape[0]
         b["times"] = T(rec["times"])
-        b["h"] = T(rec["h"]).reshape(nt, -1)
-        b["u"] = T(rec["u"]).reshape(nt, -1)
-        b["v"] = T(rec["v"]).reshape(nt, -1)
+        b["h"] = T(h).reshape(nt, -1)
+        b["u"] = T(u).reshape(nt, -1)
+        b["v"] = T(v).reshape(nt, -1)
         b["y1"] = T(rec["eta1"]) - b["bed1"][None]
         b["q1"] = T(rec["q1"])
         led = rec["ledger"]
-        b["v_target"] = T(led["v2d_coarse"]) + T(led["v1d"])
+        # the surface volume the model can see, on the model grid: recomputed from the
+        # snapshots rather than read from the ledger, whose extent follows the storage grid
+        b["v_target"] = T(h.astype(np.float64).sum(axis=(-2, -1)) * self.cell_c ** 2) + T(led["v1d"])
         b["vol_target"] = torch.stack([T(rec["volumes"]["infiltrated_m3"] * np.ones(1))[0],
                                        T(rec["volumes"]["stored_m3"] * np.ones(1))[0],
                                        T(np.array([float(led["bnd2d_in"][-1] - led["bnd2d_out"][-1]
@@ -229,7 +262,9 @@ def build_model(cfg, dataset_dir, device):
     scales = Scales.load(model_dir(cfg) / "scales.json")
     dom = context().domain
     topo = build_topology(dom.network)
-    z = np.asarray(static["coarse"]["dem2d"])
-    graph = build_graph(z, dom.dx * int(static["coarse"]["factor"]), topo).to(device)
+    # the graph lives on the MODEL grid; the dataset may be stored on a finer one
+    k = int(cfg.data.coarsen) // int(static["coarse"]["factor"])
+    z = coarsen_mean(np.asarray(static["coarse"]["dem2d"]), k)
+    graph = build_graph(z, dom.dx * int(cfg.data.coarsen), topo).to(device)
     n_feat2 = len(scales.feat_mean)
     return GeoKANPINO(cfg.model, n_feat2, graph, scales).to(device)

@@ -46,7 +46,8 @@ class Trainer:
         sp = self.out / "scales.json"
         if not sp.exists():
             dom = ctx.domain
-            compute_scales(self.train_ds, cfg.solver.h_dry, max(dom.nx, dom.ny) * dom.dx, cfg.solver.g).save(sp)
+            k = cfg.data.coarsen // int(self.train_ds.static["coarse"]["factor"])
+            compute_scales(self.train_ds, cfg.solver.h_dry, max(dom.nx, dom.ny) * dom.dx, cfg.solver.g, k).save(sp)
         self.model = build_model(cfg, self.root, self.device)
         self.builder = SampleBuilder(cfg, ctx.domain, self.train_ds.static, self.model.scales, self.model.graph,
                                      self.device)

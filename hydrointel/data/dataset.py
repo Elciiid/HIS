@@ -85,7 +85,8 @@ class SimDataset:
         if sim_id in self._cache:
             self._cache.move_to_end(sim_id)
             return self._cache[sim_id]
-        rec = torch.load(self.root / f"sim_{sim_id:05d}.pt", weights_only=False, mmap=True)
+        from .generate import load_record, record_path
+        rec = load_record(record_path(self.root, sim_id))
         self._cache[sim_id] = rec
         if len(self._cache) > self.cache_size:
             self._cache.popitem(last=False)
@@ -95,22 +96,25 @@ class SimDataset:
         return self.load(self.ids[k])
 
 
-def compute_scales(train: SimDataset, h_dry: float, domain_extent_m: float, g: float = 9.81) -> Scales:
+def compute_scales(train: SimDataset, h_dry: float, domain_extent_m: float, g: float = 9.81, k: int = 1) -> Scales:
+    """Normalisation constants from the training split. ``k`` block-averages the stored
+    snapshots onto the model grid first, so the scales describe the grid the model sees."""
+    from .generate import coarsen_mean
     depths, qs, inflows, rains, vols = [], [], [], [], []
     feats = []
     for sid in train.ids:
         r = train.load(sid)
-        h = r["h"].numpy()
+        h = coarsen_mean(r["h"].numpy(), k)
         depths.append(h[h > h_dry][::7])
         qs.append(np.abs(r["q1"].numpy()).ravel())
         inflows.append(float(r["forcing"]["inflow_m3s"].max()))
         rains.append(float(r["forcing"]["rain_mmh"].max()))
-        feats.append(node_dynamic(r))
+        feats.append(coarsen_mean(node_dynamic(r), k))
         vols.append(float(r["volumes"]["infiltrated_m3"]) + float(r["volumes"]["stored_m3"]))
     d = np.concatenate(depths)
     H0 = float(np.percentile(d, 95)) if d.size else 1.0
     Q0 = float(np.percentile(np.concatenate(qs), 95))
-    st = np.asarray(train.static["coarse"]["features"])
+    st = coarsen_mean(np.asarray(train.static["coarse"]["features"]), k)
     allf = np.concatenate([st, np.stack(feats).mean(0)], axis=0)
     mean = allf.reshape(allf.shape[0], -1).mean(1)
     std = allf.reshape(allf.shape[0], -1).std(1) + 1e-6

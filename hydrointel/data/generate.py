@@ -27,6 +27,78 @@ from . import sampler as SMP
 
 log = logging.getLogger("hydrointel.data")
 FAILED = "failed_numerical"      # index status of a storm the engine could not simulate
+# Kaggle's /kaggle/working is capped at about 20 GB and holds the logs and the model too,
+# so a dataset is refused above this. Checked before any storm runs.
+MAX_DATASET_GB = 15.0
+MAX_SNAPSHOTS_PER_STORM = 60
+COMPRESSED_SUFFIX = ".pt.gz"
+
+
+def record_path(root: Path, sim_id: int, compress: bool | None = None) -> Path:
+    """Where simulation ``sim_id`` lives. With ``compress`` None, an existing file wins, so a
+    directory holding either format (or both, from different runs) always reads back."""
+    plain, gz = root / f"sim_{sim_id:05d}.pt", root / f"sim_{sim_id:05d}{COMPRESSED_SUFFIX}"
+    if compress is None:
+        return gz if gz.exists() and not plain.exists() else plain
+    return gz if compress else plain
+
+
+def save_record(rec: dict, path: Path) -> None:
+    if path.name.endswith(COMPRESSED_SUFFIX):
+        import gzip
+        with gzip.open(path, "wb", compresslevel=1) as fh:
+            torch.save(rec, fh)
+    else:
+        torch.save(rec, path)
+
+
+def load_record(path: Path) -> dict:
+    """Load a record written either way. Compressed records cannot be memory-mapped; they are
+    read in full, which is what the training builder does with them anyway."""
+    if str(path).endswith(COMPRESSED_SUFFIX):
+        import gzip
+        with gzip.open(path, "rb") as fh:
+            return torch.load(fh, weights_only=False)
+    return torch.load(path, weights_only=False, mmap=True)
+
+
+def projected_size(cfg: RunConfig, dom, n_records: int) -> dict:
+    """Bytes a dataset of ``n_records`` storms will occupy, from the array shapes the writer
+    produces. Checked before generation so a run cannot die half way through on a full disk."""
+    sf = cfg.store_factor
+    t_end = (cfg.forcing.spinup_h + cfg.forcing.storm_duration_h + cfg.solver.recession_h) * 3600.0
+    nt = int(t_end / cfg.solver.output_interval_s) + 1
+    ny, nx = dom.ny // sf, dom.nx // sf
+    cells = ny * nx
+    from ..domain import landuse as LU
+    per = 4 * (3 * nt * cells                       # h, u, v snapshots (fp32)
+               + nt * cells                         # potential infiltration series
+               + dom.ny * dom.nx                    # peak depth at full fidelity
+               + (3 + LU.N_CLASSES) * cells)        # per-cell site fields and land-use fractions
+    # measured on the Phase 1 dataset: gzip -1 leaves 52% of the bytes
+    if cfg.data.compress_records:
+        per *= 0.52
+    return {"snapshots_per_storm": nt, "store_coarsen": sf, "stored_grid": [ny, nx],
+            "bytes_per_record": per, "n_records": n_records, "total_gb": per * n_records / 2 ** 30}
+
+
+def check_capacity(cfg: RunConfig, dom, n_records: int, limit_gb: float = MAX_DATASET_GB) -> dict:
+    p = projected_size(cfg, dom, n_records)
+    if p["snapshots_per_storm"] > MAX_SNAPSHOTS_PER_STORM:
+        raise RuntimeError(f"{p['snapshots_per_storm']} snapshots per storm exceeds the "
+                           f"{MAX_SNAPSHOTS_PER_STORM} this storage format allows: raise "
+                           f"solver.output_interval_s (now {cfg.solver.output_interval_s:g} s)")
+    if p["total_gb"] > limit_gb:
+        raise RuntimeError(
+            f"projected dataset size {p['total_gb']:.1f} GB exceeds the {limit_gb:g} GB limit: "
+            f"{n_records} records x {p['bytes_per_record'] / 2 ** 20:.0f} MB at store_coarsen="
+            f"{p['store_coarsen']} ({p['stored_grid'][0]}x{p['stored_grid'][1]}, "
+            f"{p['snapshots_per_storm']} snapshots). Raise data.store_coarsen, raise "
+            f"solver.output_interval_s, or generate fewer storms.")
+    log.info("projected dataset size %.2f GB (%d records x %.0f MB, store_coarsen=%d, %d snapshots each)",
+             p["total_gb"], n_records, p["bytes_per_record"] / 2 ** 20, p["store_coarsen"],
+             p["snapshots_per_storm"])
+    return p
 
 
 def coarsen_mean(a: np.ndarray, f: int) -> np.ndarray:
@@ -63,7 +135,63 @@ def static_fields(dom, f: int) -> dict:
                        "sea": coarsen_mean(dom.sea.astype(float), f) > 0.5}}
 
 
-def generate(cfg: RunConfig, device=None, check_benchmarks: bool = True) -> Path:
+class Budget:
+    """A wall-clock budget for a generation run, so a Kaggle session that will be killed at a
+    fixed time stops cleanly between storms instead of losing the storm it is in.
+
+    ``margin`` is held back from the budget; a storm is only started if the time it is
+    projected to take (the median of the storms already done here, or ``assume_s``) fits in
+    what is left."""
+
+    def __init__(self, hours: float | None, margin: float = 0.2, assume_s: float | None = None):
+        self.hours, self.margin, self.assume_s = hours, margin, assume_s
+        self.t0 = time.perf_counter()
+        self.walls: list[float] = []
+
+    @property
+    def deadline_s(self) -> float:
+        return float("inf") if not self.hours else self.hours * 3600.0 * (1.0 - self.margin)
+
+    def elapsed(self) -> float:
+        return time.perf_counter() - self.t0
+
+    def record(self, wall: float) -> None:
+        self.walls.append(wall)
+
+    def projected_next_s(self) -> float:
+        if self.walls:
+            return float(np.median(self.walls))
+        return float(self.assume_s or 0.0)
+
+    def room_for_another(self) -> bool:
+        if not self.hours:
+            return True
+        return self.elapsed() + self.projected_next_s() <= self.deadline_s
+
+    def note(self) -> str:
+        return (f"{self.elapsed() / 3600:.2f} h used of {self.hours:.2f} h budget "
+                f"(stopping by {self.deadline_s / 3600:.2f} h, next storm projected "
+                f"{self.projected_next_s() / 60:.1f} min)") if self.hours else "no budget limit"
+
+
+def measured_s_per_storm(cfg: RunConfig) -> float | None:
+    """Seconds per storm measured on this machine, from the hardware study or an existing
+    dataset index. Used to project how much fits in a session before starting."""
+    hw = Path(cfg.outdir) / "kaggle_hardware.json"
+    if hw.exists():
+        d = json.loads(hw.read_text(encoding="utf-8"))
+        v = d.get("s_per_storm_fp64" if cfg.solver.precision == "fp64" else "s_per_storm_fp32")
+        if v:
+            return float(v)
+    idx = api.dataset_dir(cfg) / "index.json"
+    if idx.exists():
+        w = [v["wall_s"] for v in json.loads(idx.read_text(encoding="utf-8")).values() if "wall_s" in v]
+        if w:
+            return float(np.median(w))
+    return None
+
+
+def generate(cfg: RunConfig, device=None, check_benchmarks: bool = True, budget_hours: float | None = None) -> Path:
     if check_benchmarks:
         require_benchmarks(cfg)
     seed_everything(cfg.seed)
@@ -71,10 +199,12 @@ def generate(cfg: RunConfig, device=None, check_benchmarks: bool = True) -> Path
     dom = ctx.domain
     out = api.dataset_dir(cfg)
     out.mkdir(parents=True, exist_ok=True)
-    f = cfg.data.coarsen
+    sf = cfg.store_factor
     n = cfg.data.n_sims
     splits = SMP.assign_splits(n, cfg.data, cfg.seed, cfg.data.return_periods)
-    torch.save(static_fields(dom, f), out / "domain.pt")
+    # a paired dataset also holds a baseline for most storms: budget for both
+    check_capacity(cfg, dom, n * 2)
+    torch.save(static_fields(dom, sf), out / "domain.pt")
     index_path = out / "index.json"
     index = json.loads(index_path.read_text(encoding="utf-8")) if index_path.exists() else {}
     if index:
@@ -84,12 +214,22 @@ def generate(cfg: RunConfig, device=None, check_benchmarks: bool = True) -> Path
     done_now = 0
     # a storm the engine could not simulate stays recorded as failed; it is deterministic
     # and would fail again, so it is not retried
-    todo = [i for i in range(n) if not ((out / f"sim_{i:05d}.pt").exists() and str(i) in index)
+    todo = [i for i in range(n) if not (record_path(out, i).exists() and str(i) in index)
             and index.get(str(i), {}).get("status") != FAILED]
     bs = max(1, int(cfg.data.batch))
-    log.info("%d/%d simulations to run, %d at a time", len(todo), n, bs)
+    budget = Budget(budget_hours, assume_s=measured_s_per_storm(cfg))
+    log.info("%d/%d simulations to run, %d at a time; %s", len(todo), n, bs, budget.note())
+    if budget_hours and budget.projected_next_s():
+        from ..kaggle_support import pair_budget
+        p = pair_budget(budget.projected_next_s(), budget_hours)
+        log.info("at %.0f s per storm this session fits about %d storms (%d pairs, %.1f h of the %.1f h budget)",
+                 p["s_per_storm"], p["storms"], p["pairs"], p["projected_hours"], budget_hours)
     for c0 in range(0, len(todo), bs):
         chunk = todo[c0:c0 + bs]
+        if not budget.room_for_another():
+            log.warning("stopping cleanly with %d of %d simulations done: %s. Rerun to resume.",
+                        done_now, len(todo), budget.note())
+            break
         smps = [SMP.draw(i, dom, cfg.data, cfg.seed, splits[i]) for i in chunk]
         scens = [api.Scenario(s.return_period_yr, s.rcp, s.ssp, s.horizon_year, s.tide_on, s.storm_tide_offset_h)
                  for s in smps]
@@ -113,16 +253,19 @@ def generate(cfg: RunConfig, device=None, check_benchmarks: bool = True) -> Path
         batch_wall = time.perf_counter() - t0
         wall = batch_wall / len(chunk)
         for i, smp, scen, lu, mat, res in zip(chunk, smps, scens, lus, mats, results):
-            path = out / f"sim_{i:05d}.pt"
+            path = record_path(out, i, cfg.data.compress_records)
             storage, kappa, manning, gamma, base_S, base_n = mat
-            _write_sim(cfg, dom, f, i, smp, lu, storage, kappa, manning, gamma, res, path, index,
+            _write_sim(cfg, dom, sf, i, smp, lu, storage, kappa, manning, gamma, res, path, index,
                        wall, batch_wall, len(chunk))
             done_now += 1
+            budget.record(wall)
             index_path.write_text(json.dumps(index, indent=1), encoding="utf-8")
             rate = (time.perf_counter() - t_start) / done_now
             left = len(todo) - (todo.index(i) + 1)
-            log.info("sim %d/%d %s: %.0f s (batch of %d in %.0f s), mass err %.1e, ETA %.1f h", i + 1, n,
-                     _desc(smp), wall, len(chunk), batch_wall, res.mass_balance_error, left * rate / 3600)
+            log.info("sim %d/%d %s: %.0f s (batch of %d in %.0f s), mass err %.1e, peak %.2f m, %.1f MB on disk, "
+                     "ETA %.1f h; %s", i + 1, n, _desc(smp), wall, len(chunk), batch_wall,
+                     res.mass_balance_error, index[str(i)]["peak_depth_land"], path.stat().st_size / 2 ** 20,
+                     left * rate / 3600, budget.note())
     env = _envelope(cfg, dom, index, out, ctx)
     env.save(out / "envelope.json")
     write_card(cfg, out, index, env, ctx)
@@ -142,10 +285,10 @@ def _recheck(out: Path, index: dict, dom) -> None:
     bank = tp.zbank[tp.kind <= 1]
     qdir = out / "quarantine"
     for k, meta in list(index.items()):
-        path = out / f"sim_{int(k):05d}.pt"
+        path = record_path(out, int(k))
         if meta.get("status") == FAILED or not path.exists():
             continue
-        rec = torch.load(path, weights_only=False, mmap=True)
+        rec = load_record(path)
         d2 = float(np.asarray(rec["depth_max_full"]).max())
         rise = float((np.asarray(rec["eta1"]) - bank[None]).max())
         if d2 > MAX_PLAUSIBLE_DEPTH_2D_M or rise > MAX_PLAUSIBLE_RISE_1D_M or not np.isfinite(d2 + rise):
@@ -162,7 +305,8 @@ def _recheck(out: Path, index: dict, dom) -> None:
 
 def _write_sim(cfg, dom, f, i, smp, lu, storage, kappa, manning, gamma, res, path, index,
                wall, batch_wall, batch_size) -> None:
-    """Coarsen one simulation and write its training record."""
+    """Write one simulation's training record, with the snapshots block-averaged to the
+    storage grid (``f``) and the peak depth kept at full fidelity."""
     fo = res.extras["forcing"]
     times = res.times.numpy()
     h, u, v = res.depth_series.numpy(), res.u.numpy(), res.v.numpy()
@@ -195,8 +339,10 @@ def _write_sim(cfg, dom, f, i, smp, lu, storage, kappa, manning, gamma, res, pat
         "ledger": _ledger(res, h, f, dom.dx),
         "run_log": {k: v for k, v in asdict(res.extras["run_log"]).items() if k != "series"},
     }
-    torch.save(_to_tensors(rec), path)
+    rec["store_coarsen"] = int(f)
+    save_record(_to_tensors(rec), path)
     index[str(i)] = {**smp.meta(), "wall_s": wall, "batch_wall_s": batch_wall, "batch_size": batch_size,
+                     "store_coarsen": int(f), "record": path.name, "bytes": path.stat().st_size,
                      "mass_err": res.mass_balance_error,
                      "peak_depth_land": float(h.max(0)[~(dom.sea)].max()),
                      "in_distribution": res.in_distribution}
