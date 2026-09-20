@@ -230,10 +230,15 @@ def stage_verify(repo: Path, args, info: dict) -> None:
             fh.write(line)
         p.wait()
     tests_rc = p.returncode
-    from hydrointel.kaggle_support import compare_benchmarks           # noqa: E402  (repo is on sys.path)
+    from hydrointel.kaggle_support import compare_benchmarks, conditioning_probe   # noqa: E402
+    # how far the reported metrics move for a one-bit change in the initial condition, on this
+    # machine: the scale below which a cross-machine difference means nothing
+    cli(repo, args, "--config", args.config, "conditioning-probe", log="conditioning.log")
+    sens_path = outdir(args) / "conditioning_probe.json"
+    sens = json.loads(sens_path.read_text(encoding="utf-8")) if sens_path.exists() else None
     local = repo / "artifacts" / "benchmark_results.json"
     here = outdir(args) / "benchmark_results.json"
-    cmp = compare_benchmarks(local, here, info)
+    cmp = compare_benchmarks(local, here, info, sensitivity=sens)
     save_json(outdir(args) / "verify_comparison.json", {**cmp, "pytest_returncode": tests_rc})
     (outdir(args) / "verify_comparison.md").write_text(cmp["markdown"], encoding="utf-8")
     print(cmp["markdown"], flush=True)

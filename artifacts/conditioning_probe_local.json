@@ -1,0 +1,49 @@
+{
+  "provenance": {
+    "source": "SYNTHETIC",
+    "config_hash": "ec488c74bcba1145",
+    "seed": 20260917,
+    "git_commit": "e9ad14d-dirty",
+    "timestamp": "2026-09-20T13:35:56Z",
+    "device": "cuda",
+    "precision": "fp64",
+    "engine": "engine",
+    "notes": []
+  },
+  "case": "benchmark 4, Thacker planar oscillation, field scale, 200 cells",
+  "perturbation": "initial depth h0 = 2.0 m -> nextafter(2.0), one ulp (2.2e-16 relative)",
+  "metrics": {
+    "4.field_o1_relL2_per_period[0]": 3.967283577464854e-15,
+    "4.field_o1_relL2_per_period[1]": 2.0158532417006772e-15,
+    "4.field_o1_relL2_per_period[2]": 1.7763746838950083e-15,
+    "4.field_o2_relL2_per_period[0]": 5.054475038607138e-05,
+    "4.field_o2_relL2_per_period[1]": 0.001684006057853814,
+    "4.field_o2_relL2_per_period[2]": 0.0012267172381095794
+  },
+  "runs": {
+    "o1": {
+      "reference": [
+        0.11893396986943054,
+        0.2202983831677182,
+        0.3124968607948186
+      ],
+      "one_ulp": [
+        0.11893396986943007,
+        0.22029838316771774,
+        0.31249686079481803
+      ]
+    },
+    "o2": {
+      "reference": [
+        0.009851190312498745,
+        0.012532528823669675,
+        0.01610363914482908
+      ],
+      "one_ulp": [
+        0.009850692386543394,
+        0.012511423969210388,
+        0.01612341801965103
+      ]
+    }
+  }
+}

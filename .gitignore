@@ -46,3 +46,4 @@ artifacts/diagnostics/*
 !artifacts/diagnostics/*.json
 !artifacts/diagnostics/*.jsonl
 !artifacts/phase2_paired.json
+!artifacts/conditioning_probe_local.json

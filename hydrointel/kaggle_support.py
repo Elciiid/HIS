@@ -31,6 +31,29 @@ log = logging.getLogger("hydrointel.kaggle")
 ROUNDOFF_REL = 1e-6
 MEANINGFUL_REL = 1e-3
 TINY_ABS = 1e-12
+# Single precision carries ~1e-7 relative round-off per operation instead of ~1e-16, and a
+# storm is ~40,000 steps, so two GPUs running the same fp32 code diverge far more than two
+# running the same fp64 code. Judged, but on its own scale.
+FP32_REL = 1e-2
+
+
+def metric_class(name: str) -> str:
+    """What a metric measures, which decides whether a cross-machine difference is evidence.
+
+    hardware  wall-clock times and memory: different machines, different numbers, by design
+    fp32      computed in single precision: hardware-dependent rounding, judged loosely
+    fp64      the deterministic double-precision physics: the actual cross-check
+    """
+    tail = name.split(".", 1)[-1]
+    if "wall_s" in tail or "peak_gpu" in tail or tail.endswith("_s") and "period" not in tail:
+        return "hardware"
+    if "fp32" in tail:
+        return "fp32"
+    return "fp64"
+
+
+def tolerance_for(cls: str) -> float:
+    return {"hardware": float("inf"), "fp32": FP32_REL, "fp64": MEANINGFUL_REL}[cls]
 
 
 # ---------------------------------------------------------------------------
@@ -50,8 +73,13 @@ def _flat_metrics(res: dict) -> dict:
     return out
 
 
-def compare_benchmarks(local_path: Path, here_path: Path, info: dict | None = None) -> dict:
-    """Compare two benchmark_results.json files metric by metric."""
+def compare_benchmarks(local_path: Path, here_path: Path, info: dict | None = None,
+                       sensitivity: dict | None = None) -> dict:
+    """Compare two benchmark_results.json files metric by metric.
+
+    ``sensitivity`` is the output of ``conditioning_probe``: how far each metric moves when
+    the initial condition is nudged by one unit in the last place. A cross-machine difference
+    smaller than that is round-off the scheme itself amplifies, not evidence about memory."""
     local_path, here_path = Path(local_path), Path(here_path)
     if not here_path.exists():
         raise FileNotFoundError(f"{here_path}: run the benchmark suite on this machine first")
@@ -59,53 +87,83 @@ def compare_benchmarks(local_path: Path, here_path: Path, info: dict | None = No
         raise FileNotFoundError(f"{local_path}: the local benchmark record is missing from the repo")
     L, H = json.loads(local_path.read_text(encoding="utf-8")), json.loads(here_path.read_text(encoding="utf-8"))
     lm, hm = _flat_metrics(L), _flat_metrics(H)
+    sens = (sensitivity or {}).get("metrics", {})
     rows = []
     for k in sorted(set(lm) | set(hm)):
         a, b = lm.get(k), hm.get(k)
+        cls = metric_class(k)
         if a is None or b is None:
-            rows.append({"metric": k, "local": a, "kaggle": b, "rel": None, "verdict": "missing on one side"})
+            rows.append({"metric": k, "class": cls, "local": a, "kaggle": b, "rel": None,
+                         "verdict": "missing on one side"})
             continue
         scale = max(abs(a), abs(b))
         if scale <= TINY_ABS:
             # e.g. the lake-at-rest velocities, ~1e-14: the method's own round-off floor, where
             # a relative change carries no information. Reported, not counted.
-            rows.append({"metric": k, "local": a, "kaggle": b, "rel": None, "verdict": "both negligible"})
+            rows.append({"metric": k, "class": cls, "local": a, "kaggle": b, "rel": None,
+                         "verdict": "both negligible"})
             continue
         rel = abs(b - a) / scale
-        rows.append({"metric": k, "local": a, "kaggle": b, "rel": rel,
-                     "verdict": "identical" if rel == 0.0 else
-                                "round-off" if rel <= ROUNDOFF_REL else
-                                "differs" if rel <= MEANINGFUL_REL else "MEANINGFUL DIFFERENCE"})
+        row = {"metric": k, "class": cls, "local": a, "kaggle": b, "rel": rel}
+        if cls == "hardware":
+            row["verdict"] = "hardware (not evidence)"
+        elif rel == 0.0:
+            row["verdict"] = "identical"
+        elif rel <= ROUNDOFF_REL:
+            row["verdict"] = "round-off"
+        elif rel <= tolerance_for(cls):
+            row["verdict"] = "differs" if cls == "fp64" else f"differs, within the {cls} tolerance"
+        elif k in sens and rel <= sens[k]:
+            # measured: one bit of difference in the initial condition moves this metric at
+            # least this far on ONE machine, so the cross-machine difference carries no
+            # information about memory
+            row["verdict"] = "within its own measured round-off sensitivity"
+            row["ulp_sensitivity"] = sens[k]
+        else:
+            row["verdict"] = "MEANINGFUL DIFFERENCE"
+            if k in sens:
+                row["ulp_sensitivity"] = sens[k]
+        rows.append(row)
     bad = [r for r in rows if r["verdict"] in ("MEANINGFUL DIFFERENCE", "missing on one side")]
-    mid = [r for r in rows if r["verdict"] == "differs"]
+    mid = [r for r in rows if str(r["verdict"]).startswith("differs")]
     pass_local = {r["key"]: bool(r["passed"]) for r in L.get("results", [])}
     pass_here = {r["key"]: bool(r["passed"]) for r in H.get("results", [])}
     flipped = sorted(k for k in set(pass_local) & set(pass_here) if pass_local[k] != pass_here[k])
     verdict = ("the local benchmark numbers are NOT reproduced on this machine" if bad or flipped else
                "this machine reproduces the local benchmark numbers to the precision they are reported at")
+    counts = {c: sum(r["class"] == c for r in rows) for c in ("fp64", "fp32", "hardware")}
     md = ["# Benchmark cross-check: Kaggle against the local machine\n",
           "The local machine has confirmed faulty RAM, so every number it produced is suspect. The engine's "
           "analytical suite is deterministic in fp64, so running it here and comparing metric by metric says "
           "whether bit flips reached the results.\n",
+          "**What counts as evidence.** Only the double-precision physics metrics "
+          f"({counts['fp64']} of {len(rows)}). Wall-clock times ({counts['hardware']}) measure the machine, not "
+          f"the arithmetic. Single-precision metrics ({counts['fp32']}) carry ~1e-7 round-off per operation over "
+          f"~40,000 steps and are judged at {FP32_REL:g} rather than {MEANINGFUL_REL:g}. Where a metric's own "
+          "sensitivity to a one-bit change in the initial condition has been measured, a difference below that "
+          "is the scheme amplifying round-off, which says nothing about memory.\n",
           f"**Verdict: {verdict}.**\n",
-          f"- metrics compared: {len(rows)}",
+          f"- metrics compared: {len(rows)} ({counts['fp64']} fp64, {counts['fp32']} fp32, "
+          f"{counts['hardware']} hardware)",
           f"- identical: {sum(r['verdict'] == 'identical' for r in rows)}",
           f"- both below the reporting floor ({TINY_ABS:g}), so uninformative: "
           f"{sum(r['verdict'] == 'both negligible' for r in rows)}",
           f"- round-off only (<= {ROUNDOFF_REL:g} relative): {sum(r['verdict'] == 'round-off' for r in rows)}",
-          f"- differing between {ROUNDOFF_REL:g} and {MEANINGFUL_REL:g}: {len(mid)}",
-          f"- **meaningful differences (> {MEANINGFUL_REL:g}) or missing: {len(bad)}**",
+          f"- differing beyond round-off but within their class tolerance: {len(mid)}",
+          f"- within a measured one-ulp sensitivity: "
+          f"{sum(r['verdict'] == 'within its own measured round-off sensitivity' for r in rows)}",
+          f"- **meaningful differences or missing: {len(bad)}**",
           f"- pass/fail flips: {flipped or 'none'}\n"]
     if info:
         md.append(f"Local: {L.get('provenance', {}).get('device')} / "
                   f"{L.get('provenance', {}).get('precision')}, commit "
                   f"{L.get('provenance', {}).get('git_commit')}. "
                   f"Here: {info.get('gpu')} / torch {info.get('torch')}, commit {info.get('repo_head', '')[:7]}.\n")
-    md.append("| metric | local | Kaggle | relative difference | verdict |")
-    md.append("|---|---|---|---|---|")
+    md.append("| metric | class | local | Kaggle | relative difference | verdict |")
+    md.append("|---|---|---|---|---|---|")
     for r in sorted(rows, key=lambda r: -(r["rel"] or 0)):
         rel = "n/a" if r["rel"] is None else f"{r['rel']:.2e}"
-        md.append(f"| {r['metric']} | {r['local']!r} | {r['kaggle']!r} | {rel} | {r['verdict']} |")
+        md.append(f"| {r['metric']} | {r['class']} | {r['local']!r} | {r['kaggle']!r} | {rel} | {r['verdict']} |")
     md.append("")
     if bad or flipped:
         md.append("**Every measurement made on the local machine must be re-derived here.** The engine ran the "
@@ -117,7 +175,44 @@ def compare_benchmarks(local_path: Path, here_path: Path, info: dict | None = No
                   "The dataset is regenerated here regardless; the surrogate's failure to learn effects rests on "
                   "reasoning that this cross-check supports rather than replaces.\n")
     return {"verdict": verdict, "reproduced": not (bad or flipped), "rows": rows, "flipped": flipped,
+            "counts": counts, "sensitivity_used": bool(sens),
             "markdown": "\n".join(md), "local_provenance": L.get("provenance"), "here_provenance": H.get("provenance")}
+
+
+# ---------------------------------------------------------------------------
+# How much does a metric move when nothing meaningful changes?
+# ---------------------------------------------------------------------------
+def conditioning_probe(cfg: RunConfig, device=None, periods: int = 3) -> dict:
+    """Run the Thacker benchmark twice on ONE machine: once as the suite runs it, once with
+    the initial depth changed by a single unit in the last place (a relative change of 2.2e-16,
+    the smallest a float64 can express).
+
+    This measures how far each reported metric moves when the physics is identical and only
+    round-off differs. Where two machines differ by less than this, the difference is the
+    scheme amplifying round-off -- second-order schemes do this at wet/dry fronts, because a
+    slope limiter is a branch on a comparison and one bit can flip it -- and carries no
+    information about whether memory was faulty.
+    """
+    from .benchmarks.suite import _thacker
+    ctx = api.configure(cfg, device)
+    dev = ctx.device
+    field = dict(L=4000.0, a=1000.0, h0=2.0, eta=500.0)
+    out = {"case": "benchmark 4, Thacker planar oscillation, field scale, 200 cells",
+           "perturbation": "initial depth h0 = 2.0 m -> nextafter(2.0), one ulp (2.2e-16 relative)",
+           "metrics": {}, "runs": {}}
+    for order in (1, 2):
+        base, _ = _thacker(dev, 200, order, compile=True, periods=periods, **field)
+        bumped, _ = _thacker(dev, 200, order, compile=True, periods=periods,
+                             **{**field, "h0": float(np.nextafter(field["h0"], np.inf))})
+        out["runs"][f"o{order}"] = {"reference": base["relL2_per_period"],
+                                    "one_ulp": bumped["relL2_per_period"]}
+        for i, (a, b) in enumerate(zip(base["relL2_per_period"], bumped["relL2_per_period"])):
+            rel = abs(b - a) / max(abs(a), abs(b), 1e-300)
+            out["metrics"][f"4.field_o{order}_relL2_per_period[{i}]"] = rel
+            log.info("conditioning: order %d period %d moves %.2e for one ulp", order, i + 1, rel)
+    from .viz.provenance import write_json
+    write_json(Path(cfg.outdir) / "conditioning_probe.json", out, ctx.provenance("engine"))
+    return out
 
 
 # ---------------------------------------------------------------------------

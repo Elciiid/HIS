@@ -145,6 +145,15 @@ def cmd_kaggle_hardware(cfg, args) -> int:
     return 0
 
 
+def cmd_conditioning_probe(cfg, args) -> int:
+    from .kaggle_support import conditioning_probe
+    d = conditioning_probe(cfg)
+    print(f"report: {Path(cfg.outdir) / 'conditioning_probe.json'}")
+    for k, v in d["metrics"].items():
+        print(f"  {k}: one ulp moves it {v:.2e}")
+    return 0
+
+
 def cmd_storage_check(cfg, args) -> int:
     from .kaggle_support import storage_check
     d = storage_check(cfg, sim_id=args.sim)
@@ -274,6 +283,7 @@ def main(argv=None) -> int:
     sub.add_parser("step-demand")
     kh = sub.add_parser("kaggle-hardware"); kh.add_argument("--storms", type=int, default=1)
     kh.add_argument("--quick", action="store_true")
+    cp = sub.add_parser("conditioning-probe"); cp.add_argument("--quick", action="store_true")
     sc = sub.add_parser("storage-check"); sc.add_argument("--sim", type=int, default=0)
     sc.add_argument("--quick", action="store_true")
     gb = sub.add_parser("generate-baselines"); gb.add_argument("--limit", type=int)
@@ -323,7 +333,7 @@ def main(argv=None) -> int:
     rc = {"benchmark": cmd_benchmark, "precision-study": cmd_precision_study,
           "batch-study": cmd_batch_study, "grouping-study": cmd_grouping_study,
           "predict-speed": cmd_predict_speed, "cost": cmd_cost, "step-demand": cmd_step_demand, "diagnose": cmd_diagnose, "kaggle-hardware": cmd_kaggle_hardware,
-          "storage-check": cmd_storage_check, "generate-baselines": cmd_generate_baselines,
+          "storage-check": cmd_storage_check, "conditioning-probe": cmd_conditioning_probe, "generate-baselines": cmd_generate_baselines,
           "merge-shards": cmd_merge_shards, "generate": cmd_generate,
           "train": cmd_train, "evaluate": cmd_evaluate, "figures": cmd_figures, "all": cmd_all}[args.command](cfg, args)
     print(f"done in {(time.perf_counter() - t0) / 60:.1f} min")
