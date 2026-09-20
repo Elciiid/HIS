@@ -8,6 +8,7 @@ from the seed, so a session clones the repo and rebuilds everything.
     python kaggle/run.py --stage verify       # benchmarks + tests, vs the local numbers
     python kaggle/run.py --stage hardware     # seconds per storm, per training step, VRAM
     python kaggle/run.py --stage storage      # what the storage format costs in accuracy
+    python kaggle/run.py --stage workers      # how many generation workers, measured
     python kaggle/run.py --stage generate     # paired dataset, as much as the session fits
     python kaggle/run.py --stage train        # paired two-stage training (resumable)
     python kaggle/run.py --stage evaluate     # Gate 1 / Report 2 evaluation
@@ -38,8 +39,8 @@ REPO_URL = os.environ.get("HIS_REPO_URL", "https://github.com/Elciiid/HIS.git")
 WORK = Path(os.environ.get("HIS_WORK", "/kaggle/working"))
 SECRET_NAME = "GITHUB_TOKEN"          # the Kaggle Secret the private-repo clone and push use
 RESULTS_BRANCH = "kaggle-results"
-STAGES = ("env", "verify", "hardware", "storage", "precision", "generate", "train", "evaluate",
-          "diagnose", "k0")
+STAGES = ("env", "verify", "hardware", "storage", "precision", "workers", "generate", "train",
+          "evaluate", "diagnose", "k0")
 
 
 # ---------------------------------------------------------------------------
@@ -263,6 +264,13 @@ def stage_precision(repo: Path, args, info: dict) -> None:
     cli(repo, args, "--config", args.config, "precision-study", "--v2", log="precision_v2.log")
 
 
+def usable_cpus() -> int:
+    try:
+        return len(os.sched_getaffinity(0))
+    except AttributeError:
+        return os.cpu_count() or 1
+
+
 def n_gpus() -> int:
     try:
         import torch
@@ -275,7 +283,13 @@ def parallel_cli(repo: Path, args, *cmd: str, log: str) -> None:
     """Run one worker per GPU over the same dataset directory, each pinned to its own device
     and taking every n-th storm. Kaggle's GPU offering is two T4s, and generation is one storm
     at a time, so this halves the wall time. With one GPU it is the plain single run."""
-    n = max(1, min(n_gpus(), args.max_workers))
+    # one worker per GPU by default; never more than the machine has vCPUs, because each
+    # worker is a full engine process and the host RAM scales with them (worker_scaling
+    # measured peak RSS doubling from one worker to two)
+    want = args.workers or n_gpus()
+    n = max(1, min(want, usable_cpus()))
+    if n < want:
+        print(f"[parallel] {want} workers requested, {usable_cpus()} vCPUs available: running {n}", flush=True)
     if n == 1:
         cli(repo, args, *cmd, log=log)
         return
@@ -299,6 +313,15 @@ def parallel_cli(repo: Path, args, *cmd: str, log: str) -> None:
         print("\n".join(tail), flush=True)
     if any(codes):
         raise RuntimeError(f"generation workers failed with codes {codes}: see {log}.gpu*")
+
+
+def stage_workers(repo: Path, args, info: dict) -> None:
+    """Measure how many generation workers this machine should run, and prove that running
+    them in parallel changes no number."""
+    cmd = ["--config", args.config, "worker-scaling", "--storms", str(max(args.storms, 4))]
+    if args.ladder:
+        cmd += ["--ladder", args.ladder]
+    cli(repo, args, *cmd, log="worker_scaling.log")
 
 
 def stage_generate(repo: Path, args, info: dict) -> None:
@@ -369,9 +392,11 @@ def main(argv=None) -> int:
     ap.add_argument("--config", default="kaggle/configs/kaggle.json")
     ap.add_argument("--budget-hours", type=float, default=10.5,
                     help="wall-clock budget for generation; it stops cleanly before this")
-    ap.add_argument("--storms", type=int, default=1, help="storms to time in the hardware stage")
-    ap.add_argument("--max-workers", type=int, default=2,
-                    help="most generation workers to run at once (one per GPU)")
+    ap.add_argument("--workers", type=int,
+                    help="generation workers to run at once; default one per GPU, capped at the vCPU count. "
+                         "Run the worker-scaling stage first and use what it recommends.")
+    ap.add_argument("--ladder", help="worker counts for the worker-scaling stage, e.g. 1,2,4")
+    ap.add_argument("--storms", type=int, default=1, help="storms to time in the hardware and scaling stages")
     ap.add_argument("--part", default="all", help="which diagnose part to run")
     ap.add_argument("--resume-from", help="a previous session's artifacts directory, usually "
                                          "/kaggle/input/<notebook-slug>/artifacts, copied in before the stage runs")

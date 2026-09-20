@@ -145,6 +145,19 @@ def cmd_kaggle_hardware(cfg, args) -> int:
     return 0
 
 
+def cmd_worker_scaling(cfg, args) -> int:
+    from .kaggle_support import worker_scaling
+    ladder = tuple(int(x) for x in args.ladder.split(",")) if args.ladder else None
+    d = worker_scaling(cfg, storms=args.storms, ladder=ladder)
+    print(f"report: {Path(cfg.outdir) / 'worker_scaling.md'}")
+    for r in d["rows"]:
+        print(f"  {r['workers']} worker(s): {r['storms_per_hour']:.2f} storms/h, "
+              f"{(r['cores_busy'] or 0):.1f} cores busy, peak RSS {r['peak_rss_gb']:.2f} GB")
+    print(f"determinism: {'bit-identical' if d['determinism'].get('identical') else 'DIFFERENT - see the report'}")
+    print(f"recommended workers: {d['recommended_workers']} ({d['reason']})")
+    return 0
+
+
 def cmd_conditioning_probe(cfg, args) -> int:
     from .kaggle_support import conditioning_probe
     d = conditioning_probe(cfg)
@@ -284,6 +297,9 @@ def main(argv=None) -> int:
     kh = sub.add_parser("kaggle-hardware"); kh.add_argument("--storms", type=int, default=1)
     kh.add_argument("--quick", action="store_true")
     cp = sub.add_parser("conditioning-probe"); cp.add_argument("--quick", action="store_true")
+    ws = sub.add_parser("worker-scaling"); ws.add_argument("--storms", type=int, default=4)
+    ws.add_argument("--ladder", help="comma-separated worker counts, e.g. 1,2,4 (default 1,2,4,vCPUs)")
+    ws.add_argument("--quick", action="store_true")
     sc = sub.add_parser("storage-check"); sc.add_argument("--sim", type=int, default=0)
     sc.add_argument("--quick", action="store_true")
     gb = sub.add_parser("generate-baselines"); gb.add_argument("--limit", type=int)
@@ -327,13 +343,13 @@ def main(argv=None) -> int:
     args.resume = getattr(args, "resume", False)
     for name, default in (("stage", "all"), ("batch", None), ("full_storms", None), ("sequential", 4),
                           ("full_hours", None), ("budget_hours", None), ("storms", 1), ("sim", 0), ("limit", None),
-                          ("shard", None)):
+                          ("shard", None), ("ladder", None)):
         setattr(args, name, getattr(args, name, default))
     t0 = time.perf_counter()
     rc = {"benchmark": cmd_benchmark, "precision-study": cmd_precision_study,
           "batch-study": cmd_batch_study, "grouping-study": cmd_grouping_study,
           "predict-speed": cmd_predict_speed, "cost": cmd_cost, "step-demand": cmd_step_demand, "diagnose": cmd_diagnose, "kaggle-hardware": cmd_kaggle_hardware,
-          "storage-check": cmd_storage_check, "conditioning-probe": cmd_conditioning_probe, "generate-baselines": cmd_generate_baselines,
+          "storage-check": cmd_storage_check, "conditioning-probe": cmd_conditioning_probe, "worker-scaling": cmd_worker_scaling, "generate-baselines": cmd_generate_baselines,
           "merge-shards": cmd_merge_shards, "generate": cmd_generate,
           "train": cmd_train, "evaluate": cmd_evaluate, "figures": cmd_figures, "all": cmd_all}[args.command](cfg, args)
     print(f"done in {(time.perf_counter() - t0) / 60:.1f} min")

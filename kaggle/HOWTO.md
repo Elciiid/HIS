@@ -127,6 +127,38 @@ two verdicts:
 
 Send me this file either way.
 
+## 6b. Decide the worker count by measuring it (`workers`)
+
+Generation runs one storm at a time, so it parallelises across processes. How many to run is
+a measurement, not a guess: on the T4 a storm uses only 44 MB of VRAM but the engine's 1-D
+solver runs on the CPU, so the limit is vCPUs and host RAM, not the GPU.
+
+1. Run a session with `STAGE = "workers"`. It takes about **1 hour** (it generates the same
+   four storms at each worker count).
+2. It reports, per rung: storms per hour, how many cores were actually busy, peak host RSS
+   and the lowest free RAM seen. It caps the ladder at the machine's vCPU count.
+3. It then regenerates the same four storms serially and **compares every array and scalar of
+   every record** between the serial and the widest parallel run. Seeds are derived per storm
+   from a sha256 of the run key, so execution order must not change a single number.
+
+Read `worker_scaling.md` and use the number it recommends:
+
+```
+!python {HIS}/kaggle/run.py --stage generate --workers 4 --budget-hours 10.5     --config kaggle/configs/kaggle.json
+```
+
+**If the determinism check says NOT identical, stop and tell me.** That would be a seeding or
+ordering bug, and it matters far more than any speedup; generation stays on one worker until
+it is understood. The recommendation already falls back to 1 in that case.
+
+Two things to watch in the table, because they are why more workers can be worse:
+
+- **cores busy** rising much more slowly than the worker count means the workers are waiting
+  on each other, not working.
+- **peak host RSS** scales roughly linearly with workers (measured: 1.25 GB to 2.51 GB going
+  from one worker to two on a small grid; full-size storms hold far larger snapshot buffers).
+  If the lowest free RAM gets close to zero, the session will be killed rather than slowed.
+
 ## 7. Generate the paired dataset (`generate`)
 
 Each modified storm gets a matching baseline: same storm, same forcing, no interventions. The
@@ -203,6 +235,7 @@ Run them in this order, one session each, `--resume-from` the previous output:
 
 | stage | what it produces | when to stop and send me results |
 |---|---|---|
+| `workers` | `worker_scaling.md`: storms/hour, cores busy, peak RAM per worker count, and the determinism check | always, before `generate` |
 | `precision` | `precision_study_v2.md`: whether float32 is safe for generation under the new criteria (six full-resolution storms, ~1.5 h locally) | always |
 | `generate` | `artifacts/dataset/<hash>/` and `.../baseline/` | when the log says all pairs are done |
 | `train` | `artifacts/model/<hash>/` (checkpoints, curves) | when it reports `training done` |

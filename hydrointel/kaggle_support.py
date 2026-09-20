@@ -15,6 +15,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import time
 from pathlib import Path
 
@@ -351,6 +352,221 @@ def hardware_report(res: dict) -> str:
                      "oracle argument remains the available evidence.\n")
     else:
         s.append("\n_Training-step timings need a dataset: run the generate stage first, then this stage again._\n")
+    return "\n".join(s) + "\n"
+
+
+# ---------------------------------------------------------------------------
+# How many generation workers should run at once?
+# ---------------------------------------------------------------------------
+IGNORE_WHEN_COMPARING = ("wall_s", "batch_wall_s", "batch_size", "run_log", "bytes", "record")
+
+
+def host_resources() -> dict:
+    """What the machine actually has. Worker counts are capped by vCPUs, and host RAM is the
+    binding limit long before VRAM: each worker holds a storm's snapshot buffers."""
+    import os
+    info = {"cpu_count": os.cpu_count()}
+    try:                                                  # what this process may actually use
+        info["cpu_affinity"] = len(os.sched_getaffinity(0))
+    except AttributeError:
+        info["cpu_affinity"] = info["cpu_count"]
+    try:
+        import psutil
+        vm = psutil.virtual_memory()
+        info.update({"ram_total_gb": round(vm.total / 2 ** 30, 2),
+                     "ram_available_gb": round(vm.available / 2 ** 30, 2)})
+    except ImportError:
+        info["ram_total_gb"] = info["ram_available_gb"] = None
+    if torch.cuda.is_available():
+        info["gpus"] = [torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())]
+        info["vram_gb"] = round(torch.cuda.get_device_properties(0).total_memory / 2 ** 30, 2)
+    return info
+
+
+def compare_records(a: Path, b: Path) -> dict:
+    """Every array and scalar of two simulation records, compared exactly. Wall times and the
+    batch bookkeeping are excluded: they are timings, not results."""
+    from .data.generate import load_record
+    ra, rb = load_record(Path(a)), load_record(Path(b))
+    diffs, checked = [], 0
+
+    def walk(x, y, path=""):
+        nonlocal checked
+        if isinstance(x, dict):
+            for k in sorted(set(x) | set(y)):
+                if k in IGNORE_WHEN_COMPARING:
+                    continue
+                if k not in x or k not in y:
+                    diffs.append({"key": path + k, "reason": "present on one side only"})
+                    continue
+                walk(x[k], y[k], f"{path}{k}.")
+            return
+        checked += 1
+        if torch.is_tensor(x) or isinstance(x, np.ndarray):
+            xa, ya = np.asarray(x), np.asarray(y)
+            if xa.shape != ya.shape:
+                diffs.append({"key": path[:-1], "reason": f"shape {xa.shape} vs {ya.shape}"})
+            elif not np.array_equal(xa, ya):
+                d = np.abs(xa.astype(np.float64) - ya.astype(np.float64))
+                diffs.append({"key": path[:-1], "reason": "values differ",
+                              "max_abs_diff": float(d.max()), "n_differing": int((d > 0).sum())})
+        elif isinstance(x, (int, float)) and not isinstance(x, bool):
+            if float(x) != float(y):
+                diffs.append({"key": path[:-1], "reason": "scalar differs", "a": float(x), "b": float(y)})
+        elif x != y:
+            diffs.append({"key": path[:-1], "reason": f"differs: {x!r} vs {y!r}"})
+    walk(ra, rb)
+    return {"identical": not diffs, "n_compared": checked, "diffs": diffs}
+
+
+def _run_workers(repo_cmd: list, n: int, outdir: Path, n_gpus: int, log_name: str) -> dict:
+    """Run ``n`` sharded generation workers, sampling CPU and host memory while they work."""
+    import subprocess
+    import sys
+    try:
+        import psutil
+    except ImportError:
+        psutil = None
+    env0 = dict(os.environ, PYTHONUNBUFFERED="1")
+    procs, handles = [], []
+    t0 = time.perf_counter()
+    for i in range(n):
+        cmd = [sys.executable, "-u", "-m", "hydrointel.cli", *repo_cmd, "--shard", f"{i}/{n}"]
+        env = dict(env0, CUDA_VISIBLE_DEVICES=str(i % max(n_gpus, 1)))
+        fh = open(outdir / f"{log_name}.w{i}", "w", encoding="utf-8")
+        p = subprocess.Popen(cmd, env=env, stdout=fh, stderr=subprocess.STDOUT, text=True)
+        procs.append(p)
+        handles.append(fh)
+    peak_rss_gb, cpu_time, samples, min_avail_gb = 0.0, 0.0, 0, float("inf")
+    while any(p.poll() is None for p in procs):
+        time.sleep(2.0)
+        if psutil is None:
+            continue
+        rss, cput = 0.0, 0.0
+        for p in procs:
+            try:
+                pr = psutil.Process(p.pid)
+                for q in [pr, *pr.children(recursive=True)]:
+                    with q.oneshot():
+                        rss += q.memory_info().rss
+                        t = q.cpu_times()
+                        cput += t.user + t.system
+            except Exception:                         # a worker finished between poll and sample
+                continue
+        peak_rss_gb = max(peak_rss_gb, rss / 2 ** 30)
+        cpu_time = max(cpu_time, cput)
+        min_avail_gb = min(min_avail_gb, psutil.virtual_memory().available / 2 ** 30)
+        samples += 1
+    codes = [p.wait() for p in procs]
+    for fh in handles:
+        fh.close()
+    wall = time.perf_counter() - t0
+    return {"workers": n, "wall_s": wall, "exit_codes": codes, "peak_rss_gb": peak_rss_gb,
+            "cpu_seconds": cpu_time, "cores_busy": cpu_time / wall if wall else None,
+            "min_available_ram_gb": None if min_avail_gb == float("inf") else min_avail_gb,
+            "samples": samples}
+
+
+def worker_scaling(cfg: RunConfig, storms: int = 4, ladder: tuple[int, ...] | None = None,
+                   device=None) -> dict:
+    """Measure, don't project: run the SAME storms at each worker count and report storms per
+    hour, cores busy and peak host RAM, then check that a parallel run produces bit-identical
+    records to a serial one.
+
+    The seeds are derived per storm from a sha256 of the run key, so execution order must not
+    change a single number. That is an assumption about the sampler until it is tested, and a
+    seeding bug would matter far more than any speedup, so the parallel results are compared
+    array by array against the serial ones."""
+    import copy
+    import json as _json
+    host = host_resources()
+    n_gpus = len(host.get("gpus", [])) or (1 if torch.cuda.is_available() else 0)
+    cap = host["cpu_affinity"] or 1
+    rungs = sorted({w for w in (ladder or (1, 2, 4, cap)) if 1 <= w <= cap})
+    log.info("host: %s; ladder %s (capped at %d vCPUs)", host, rungs, cap)
+    root = Path(cfg.outdir) / "worker_scaling"
+    root.mkdir(parents=True, exist_ok=True)
+    rows, record_dirs = [], {}
+    for w in rungs:
+        out = root / f"w{w}"
+        out.mkdir(parents=True, exist_ok=True)
+        run = copy.deepcopy(cfg)
+        run.outdir = str(out)
+        run.data.n_sims = storms
+        cmd = ["--outdir", str(out), "--config", str(root / f"config_w{w}.json"), "generate",
+               "--skip-benchmark-check"]
+        run.validate().save(root / f"config_w{w}.json")
+        r = _run_workers(cmd, w, root, n_gpus, f"gen_w{w}.log")
+        r["storms"] = storms
+        r["s_per_storm"] = r["wall_s"] / storms
+        r["storms_per_hour"] = 3600.0 * storms / r["wall_s"]
+        r["ok"] = all(c == 0 for c in r["exit_codes"])
+        rows.append(r)
+        record_dirs[w] = api.dataset_dir(run)
+        log.info("workers=%d: %.0f s for %d storms (%.2f storms/h), %.1f cores busy, peak RSS %.2f GB",
+                 w, r["wall_s"], storms, r["storms_per_hour"], r["cores_busy"] or 0.0, r["peak_rss_gb"])
+    # determinism: serial against the widest parallel run, record by record
+    from .data.generate import record_path
+    det = {"compared": [], "identical": True}
+    if 1 in record_dirs and len(rungs) > 1:
+        wide = max(rungs)
+        for sid in range(storms):
+            a, b = record_path(record_dirs[1], sid), record_path(record_dirs[wide], sid)
+            if not (a.exists() and b.exists()):
+                det["identical"] = False
+                det["compared"].append({"sim": sid, "error": f"missing record ({a.exists()}, {b.exists()})"})
+                continue
+            c = compare_records(a, b)
+            det["compared"].append({"sim": sid, **c})
+            det["identical"] &= c["identical"]
+        det["serial_workers"], det["parallel_workers"] = 1, wide
+        log.info("determinism: %d storms compared between 1 and %d workers: %s", storms, wide,
+                 "bit-identical" if det["identical"] else "DIFFERENT")
+    ok = [r for r in rows if r["ok"]]
+    best = max(ok, key=lambda r: r["storms_per_hour"]) if ok else None
+    res = {"host": host, "storms": storms, "ladder": rungs, "rows": rows, "determinism": det,
+           "recommended_workers": (best["workers"] if best and det["identical"] else 1),
+           "reason": ("fastest measured and bit-identical to the serial run" if best and det["identical"]
+                      else "parallel runs are NOT bit-identical to serial: use one worker until the "
+                           "seeding is fixed" if not det["identical"] else "no run succeeded")}
+    from .viz.provenance import write_json
+    write_json(Path(cfg.outdir) / "worker_scaling.json", res, api.context().provenance("engine"))
+    (Path(cfg.outdir) / "worker_scaling.md").write_text(worker_scaling_report(res), encoding="utf-8")
+    return res
+
+
+def worker_scaling_report(res: dict) -> str:
+    h, d = res["host"], res["determinism"]
+    s = ["# How many generation workers?\n",
+         f"Host: {h.get('cpu_affinity')} vCPUs usable of {h.get('cpu_count')}, "
+         f"{h.get('ram_total_gb')} GB RAM ({h.get('ram_available_gb')} GB free at the start), "
+         f"{len(h.get('gpus', []))} x {(h.get('gpus') or ['no GPU'])[0]}, {h.get('vram_gb')} GB VRAM each.\n",
+         f"Each rung generates the same {res['storms']} storms from scratch, so the comparison is like for "
+         "like. Worker counts above the vCPU count are not tried.\n",
+         "| workers | wall [s] | s/storm | storms/hour | cores busy | peak host RSS [GB] | min free RAM [GB] | ok |",
+         "|---|---|---|---|---|---|---|---|"]
+    for r in res["rows"]:
+        s.append(f"| {r['workers']} | {r['wall_s']:.0f} | {r['s_per_storm']:.0f} | {r['storms_per_hour']:.2f} | "
+                 f"{(r['cores_busy'] or 0):.1f} | {r['peak_rss_gb']:.2f} | "
+                 f"{(r['min_available_ram_gb'] or 0):.2f} | {'yes' if r['ok'] else 'NO'} |")
+    s.append("")
+    if d.get("compared"):
+        s.append(f"## Determinism: {d['serial_workers']} worker against {d['parallel_workers']}\n")
+        s.append("Seeds are derived per storm from a sha256 of the run key, so execution order must not change a "
+                 "single number. Every array and scalar of each record is compared exactly; wall times and batch "
+                 "bookkeeping are excluded because they are timings, not results.\n")
+        if d["identical"]:
+            s.append(f"**Bit-identical** across all {len(d['compared'])} storms "
+                     f"({sum(c.get('n_compared', 0) for c in d['compared'])} arrays and scalars compared).\n")
+        else:
+            s.append("**NOT identical.** This is a seeding or ordering bug and matters more than any speedup; "
+                     "generation stays on one worker until it is understood.\n")
+            for c in d["compared"]:
+                for x in c.get("diffs", [])[:8]:
+                    s.append(f"- sim {c['sim']}: `{x['key']}` {x['reason']}"
+                             + (f", max |diff| {x['max_abs_diff']:.3e}" if "max_abs_diff" in x else ""))
+            s.append("")
+    s.append(f"**Recommendation: {res['recommended_workers']} worker(s)** -- {res['reason']}.\n")
     return "\n".join(s) + "\n"
 
 
