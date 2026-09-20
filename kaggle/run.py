@@ -294,16 +294,22 @@ def parallel_cli(repo: Path, args, *cmd: str, log: str) -> None:
         cli(repo, args, *cmd, log=log)
         return
     env_base = dict(os.environ, PYTHONUNBUFFERED="1", PYTHONPATH=str(repo))
+    # round-robin over the devices that exist. More workers than GPUs is a sensible thing to ask
+    # for -- one storm does not saturate a T4 -- but str(i) would hand worker 2 a CUDA_VISIBLE_DEVICES
+    # of 2 on a two-GPU box, leaving it with no device at all. The scaling measurement shares
+    # devices the same way, so its numbers describe this path.
+    devices = max(1, n_gpus())
     procs = []
     for i in range(n):
         full = [sys.executable, "-u", "-m", "hydrointel.cli", "--outdir", str(outdir(args)), *cmd,
                 "--shard", f"{i}/{n}"]
-        env = dict(env_base, CUDA_VISIBLE_DEVICES=str(i))
+        env = dict(env_base, CUDA_VISIBLE_DEVICES=str(i % devices))
         fh = open(outdir(args) / f"{log}.gpu{i}", "a", encoding="utf-8")
-        print(f"$ CUDA_VISIBLE_DEVICES={i} " + " ".join(full), flush=True)
+        print(f"$ CUDA_VISIBLE_DEVICES={i % devices} " + " ".join(full), flush=True)
         procs.append((subprocess.Popen(full, cwd=str(repo), env=env, stdout=fh, stderr=subprocess.STDOUT,
                                        text=True), fh, i))
-    print(f"[parallel] {n} workers started; per-worker logs are {log}.gpu0 .. {log}.gpu{n - 1}", flush=True)
+    print(f"[parallel] {n} workers started over {devices} GPU(s); per-worker logs are "
+          f"{log}.gpu0 .. {log}.gpu{n - 1}", flush=True)
     codes = []
     for p, fh, i in procs:
         codes.append(p.wait())

@@ -30,6 +30,7 @@ log = logging.getLogger("hydrointel.kaggle")
 # Two machines running the same fp64 code do not agree bit for bit: different GPUs use
 # different kernels and reduction orders. These separate round-off from a real difference.
 ROUNDOFF_REL = 1e-6
+KNEE_TOL = 0.95          # a rung counts as "as fast as the best" within this fraction
 MEANINGFUL_REL = 1e-3
 TINY_ABS = 1e-12
 # Single precision carries ~1e-7 relative round-off per operation instead of ~1e-16, and a
@@ -467,6 +468,33 @@ def _run_workers(repo_cmd: list, n: int, outdir: Path, n_gpus: int, log_name: st
             "samples": samples}
 
 
+def recommend_workers(ok: list[dict], identical: bool) -> tuple[int, str]:
+    """The knee of the measured curve, not its peak.
+
+    Host RAM scales with workers and Kaggle's RAM limit is far tighter than its VRAM, so the pick
+    is the SMALLEST worker count within KNEE_TOL of the fastest rung. Once the GPUs are saturated
+    another worker buys a few per cent of throughput for a whole engine process worth of memory,
+    which is a bad trade on a host that can be OOM-killed. `ok` holds only the rungs that
+    succeeded; a parallel run that is not bit-identical to the serial one vetoes parallelism
+    outright, whatever it measured."""
+    if not identical:
+        return 1, ("parallel runs are NOT bit-identical to serial: use one worker until the "
+                   "seeding is fixed")
+    if not ok:
+        return 1, "no run succeeded"
+    best = max(ok, key=lambda r: r["storms_per_hour"])
+    knee = min((r for r in ok if r["storms_per_hour"] >= KNEE_TOL * best["storms_per_hour"]),
+               key=lambda r: r["workers"])
+    if knee["workers"] == best["workers"]:
+        return knee["workers"], "fastest measured and bit-identical to the serial run"
+    return knee["workers"], (
+        f"within {100 * (1 - knee['storms_per_hour'] / best['storms_per_hour']):.0f}% of the fastest "
+        f"rung ({best['workers']} workers, {best['storms_per_hour']:.2f} storms/h) for "
+        f"{knee['peak_rss_gb'] / best['peak_rss_gb']:.2f}x its host RAM, and bit-identical to the "
+        "serial run")
+
+
+
 def worker_scaling(cfg: RunConfig, storms: int = 4, ladder: tuple[int, ...] | None = None,
                    device=None) -> dict:
     """Measure, don't project: run the SAME storms at each worker count and report storms per
@@ -524,11 +552,10 @@ def worker_scaling(cfg: RunConfig, storms: int = 4, ladder: tuple[int, ...] | No
                  "bit-identical" if det["identical"] else "DIFFERENT")
     ok = [r for r in rows if r["ok"]]
     best = max(ok, key=lambda r: r["storms_per_hour"]) if ok else None
+    pick, why = recommend_workers(ok, det["identical"])
     res = {"host": host, "storms": storms, "ladder": rungs, "rows": rows, "determinism": det,
-           "recommended_workers": (best["workers"] if best and det["identical"] else 1),
-           "reason": ("fastest measured and bit-identical to the serial run" if best and det["identical"]
-                      else "parallel runs are NOT bit-identical to serial: use one worker until the "
-                           "seeding is fixed" if not det["identical"] else "no run succeeded")}
+           "fastest_workers": (best["workers"] if best else None), "knee_tolerance": KNEE_TOL,
+           "recommended_workers": pick, "reason": why}
     from .viz.provenance import write_json
     write_json(Path(cfg.outdir) / "worker_scaling.json", res, api.context().provenance("engine"))
     (Path(cfg.outdir) / "worker_scaling.md").write_text(worker_scaling_report(res), encoding="utf-8")
@@ -567,6 +594,13 @@ def worker_scaling_report(res: dict) -> str:
                              + (f", max |diff| {x['max_abs_diff']:.3e}" if "max_abs_diff" in x else ""))
             s.append("")
     s.append(f"**Recommendation: {res['recommended_workers']} worker(s)** -- {res['reason']}.\n")
+    if res.get("fastest_workers") and res["recommended_workers"] != res["fastest_workers"]:
+        s.append(f"The pick is the knee of the curve, not its peak: the smallest worker count within "
+                 f"{100 * (1 - res['knee_tolerance']):.0f}% of the best measured throughput. Beyond the knee the "
+                 "GPUs are already busy, so each further worker costs a whole engine process of host "
+                 "RAM for a few per cent of speed -- and host RAM, not VRAM, is what gets a Kaggle "
+                 f"session killed. Use {res['fastest_workers']} only if the session is short of wall clock "
+                 "and has RAM to spare.\n")
     return "\n".join(s) + "\n"
 
 

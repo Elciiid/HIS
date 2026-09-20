@@ -144,20 +144,38 @@ solver runs on the CPU, so the limit is vCPUs and host RAM, not the GPU.
 Read `worker_scaling.md` and use the number it recommends:
 
 ```
-!python {HIS}/kaggle/run.py --stage generate --workers 4 --budget-hours 10.5     --config kaggle/configs/kaggle.json
+!python {HIS}/kaggle/run.py --stage generate --workers 2 --budget-hours 10.5 --config kaggle/configs/kaggle.json
 ```
 
 **If the determinism check says NOT identical, stop and tell me.** That would be a seeding or
 ordering bug, and it matters far more than any speedup; generation stays on one worker until
 it is understood. The recommendation already falls back to 1 in that case.
 
+### What it measured on Kaggle (2 x Tesla T4, 4 vCPUs, 31.35 GB RAM)
+
+| workers | storms/hour | cores busy | peak host RSS | 104 paired runs would take |
+|---|---|---|---|---|
+| 1 | 6.77 | 1.0 | 3.84 GB | 15.4 h |
+| 2 | 12.91 | 2.0 | 6.84 GB | 8.1 h |
+| 4 | 13.42 | 3.9 | 13.61 GB | 7.8 h |
+
+Bit-identical between 1 worker and 4, across 216 arrays and scalars.
+
+The recommendation is the **knee of the curve, not its peak**: the smallest rung within 5% of
+the fastest one. Two workers is 3.8% slower than four for half the host memory. The jump from
+one worker to two is nearly linear because there are two GPUs; the jump from two to four is
+4%, because by then both GPUs are busy and the extra processes only queue behind them. Host
+RAM is what gets a Kaggle session killed, so the 4% is not worth 6.8 GB.
+
 Two things to watch in the table, because they are why more workers can be worse:
 
 - **cores busy** rising much more slowly than the worker count means the workers are waiting
   on each other, not working.
-- **peak host RSS** scales roughly linearly with workers (measured: 1.25 GB to 2.51 GB going
-  from one worker to two on a small grid; full-size storms hold far larger snapshot buffers).
-  If the lowest free RAM gets close to zero, the session will be killed rather than slowed.
+- **peak host RSS** scales roughly linearly with workers. If the lowest free RAM gets close to
+  zero, the session will be killed rather than slowed.
+
+Worker counts above the GPU count are allowed -- one storm does not saturate a T4 -- and the
+workers share the devices round-robin, exactly as the measurement did.
 
 ## 7. Generate the paired dataset (`generate`)
 
